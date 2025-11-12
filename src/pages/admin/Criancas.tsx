@@ -4,9 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, User, Calendar, MapPin } from "lucide-react";
+import { Search, Plus, User, Calendar, MapPin, List, LayoutGrid, MoreVertical, Eye, Edit } from "lucide-react";
+import { useState } from "react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 
 const Criancas = () => {
+  const [isListView, setIsListView] = useState(false);
+
   const criancas = [
     { 
       id: 1, 
@@ -92,7 +99,7 @@ const Criancas = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -111,60 +118,124 @@ const Criancas = () => {
                   <SelectItem value="convocado">Convocado</SelectItem>
                 </SelectContent>
               </Select>
+              <ToggleGroup 
+                type="single" 
+                defaultValue="grid" 
+                onValueChange={(value) => setIsListView(value === "list")}
+                className="flex-shrink-0"
+              >
+                <ToggleGroupItem value="grid" aria-label="Visualizar em grade">
+                  <LayoutGrid className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="Visualizar em lista">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </CardHeader>
         </Card>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {criancas.map((crianca) => (
-            <Card key={crianca.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <User className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{crianca.nome}</CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <Calendar className="h-3 w-3" />
-                        {crianca.idade}
-                      </CardDescription>
+        {!isListView ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {criancas.map((crianca) => (
+              <Card key={crianca.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary/10 p-3 rounded-full">
+                        <User className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{crianca.nome}</CardTitle>
+                        <CardDescription className="flex items-center gap-1 mt-1">
+                          <Calendar className="h-3 w-3" />
+                          {crianca.idade}
+                        </CardDescription>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Data Nasc.:</span>
-                  <span className="font-medium">{crianca.dataNascimento}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Responsável:</span>
-                  <span className="font-medium">{crianca.responsavel}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Status:</span>
-                  {getStatusBadge(crianca.status)}
-                </div>
-                {crianca.cmei !== "-" && (
-                  <div className="flex items-center gap-2 text-sm pt-2 border-t border-border">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-primary">{crianca.cmei}</span>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Data Nasc.:</span>
+                    <span className="font-medium">{crianca.dataNascimento}</span>
                   </div>
-                )}
-                <div className="pt-2 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Ver Detalhes
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Editar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Responsável:</span>
+                    <span className="font-medium">{crianca.responsavel}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Status:</span>
+                    {getStatusBadge(crianca.status)}
+                  </div>
+                  {crianca.cmei !== "-" && (
+                    <div className="flex items-center gap-2 text-sm pt-2 border-t border-border">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-primary">{crianca.cmei}</span>
+                    </div>
+                  )}
+                  <div className="pt-2 flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1">
+                      Ver Detalhes
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1">
+                      Editar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Criança</TableHead>
+                    <TableHead>Responsável</TableHead>
+                    <TableHead>Data Nasc.</TableHead>
+                    <TableHead>Idade</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>CMEI</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {criancas.map((crianca) => (
+                    <TableRow key={crianca.id}>
+                      <TableCell className="font-medium">{crianca.nome}</TableCell>
+                      <TableCell>{crianca.responsavel}</TableCell>
+                      <TableCell>{crianca.dataNascimento}</TableCell>
+                      <TableCell>{crianca.idade}</TableCell>
+                      <TableCell>{getStatusBadge(crianca.status)}</TableCell>
+                      <TableCell>{crianca.cmei !== "-" ? crianca.cmei : "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );
