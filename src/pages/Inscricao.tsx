@@ -28,7 +28,7 @@ const Inscricao = () => {
             {/* Dados da Criança */}
             <Card>
               <CardHeader>
-                <CardTitle>Nova Criança</CardTitle>
+                <CardTitle>Dados da Criança</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
