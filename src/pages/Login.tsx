@@ -64,10 +64,7 @@ const Login = () => {
               </Link>
 
               <div className="text-center text-sm text-muted-foreground">
-                Não tem acesso administrativo?{" "}
-                <Link to="/cadastro" className="text-primary hover:underline">
-                  Cadastre-se como responsável
-                </Link>
+                Não tem acesso administrativo?
               </div>
             </CardContent>
           </Card>
