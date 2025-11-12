@@ -31,7 +31,7 @@ const Inscricao = () => {
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="nome-crianca">Nome Completo da Criança *</Label>
+                    <Label htmlFor="nome-crianca">Nome Completo *</Label>
                     <Input id="nome-crianca" placeholder="Ex: Ana Maria da Silva" />
                   </div>
                   <div className="space-y-2">
