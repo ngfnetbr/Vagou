@@ -42,7 +42,7 @@ const Inscricao = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4">
                   <div className="space-y-3 p-4 rounded-lg border bg-card md:col-span-1">
                     <Label className="text-base font-semibold">Sexo *</Label>
                     <RadioGroup defaultValue="feminino" className="flex flex-col gap-3">
