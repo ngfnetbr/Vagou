@@ -9,13 +9,13 @@ import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { DialogTrigger } from "@/components/ui/dialog"; // Importar DialogTrigger
-import NovaCriancaModal from "@/components/NovaCriancaModal"; // Importar o novo modal
+import { Dialog, DialogTrigger } from "@/components/ui/dialog"; // Importar Dialog e DialogTrigger
+import NovaCriancaModalContent from "@/components/NovaCriancaModal"; // Importar o conteúdo do modal
 
 
 const Criancas = () => {
   const [isListView, setIsListView] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar o modal
+  // O estado isModalOpen não é mais necessário aqui, pois o Dialog gerencia seu próprio estado.
 
   const criancas = [
     { 
@@ -94,15 +94,17 @@ const Criancas = () => {
             <h1 className="text-3xl font-bold text-foreground">Crianças</h1>
             <p className="text-muted-foreground">Cadastro e gerenciamento de todas as crianças do sistema</p>
           </div>
-          <DialogTrigger asChild> {/* Envolve o botão com DialogTrigger */}
-            <Button 
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-              onClick={() => setIsModalOpen(true)} // Abre o modal
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Criança
-            </Button>
-          </DialogTrigger>
+          <Dialog> {/* O Dialog agora envolve o Trigger e o Content */}
+            <DialogTrigger asChild>
+              <Button 
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Criança
+              </Button>
+            </DialogTrigger>
+            <NovaCriancaModalContent /> {/* Renderiza o conteúdo do modal */}
+          </Dialog>
         </div>
 
         <Card>
@@ -245,7 +247,7 @@ const Criancas = () => {
           </Card>
         )}
       </div>
-      <NovaCriancaModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} /> {/* Renderiza o modal */}
+      {/* O NovaCriancaModal não é mais renderizado aqui, pois seu conteúdo está dentro do Dialog */}
     </AdminLayout>
   );
 };
