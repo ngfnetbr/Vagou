@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"; // Importar DropdownMenu
+import { Badge } from "@/components/ui/badge"; // Importar Badge
 
 interface Cmei {
   id: number;
@@ -210,7 +211,18 @@ const CMEIs = () => {
                         <TableCell className="font-medium">{cmei.nome}</TableCell>
                         <TableCell>{cmei.endereco}</TableCell>
                         <TableCell className="text-center">{cmei.capacidade}</TableCell>
-                        <TableCell className="text-center">{cmei.ocupacao}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <span>{cmei.ocupacao}</span>
+                            <Badge className={`text-xs font-normal ${
+                              ocupacaoPercent >= 90 
+                                ? 'bg-destructive/20 text-destructive' 
+                                : 'bg-secondary/20 text-secondary'
+                            }`}>
+                              {ocupacaoPercent}%
+                            </Badge>
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center">{cmei.capacidade - cmei.ocupacao}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
