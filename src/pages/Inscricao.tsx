@@ -55,8 +55,8 @@ const formSchema = z.object({
   nomeCrianca: z.string().min(1, "Nome completo da criança é obrigatório."),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatória."),
   sexo: z.enum(["feminino", "masculino"], { message: "Selecione o sexo da criança." }),
-  programasSociais: z.enum(["sim", "nao"], { message: "Selecione se é beneficiário de programas sociais." }), // Alterado de volta para enum
-  aceitaQualquerCmei: z.enum(["sim", "nao"], { message: "Selecione se aceita qualquer CMEI." }), // Alterado de volta para enum
+  programasSociais: z.enum(["sim", "nao"], { message: "Selecione se é beneficiário de programas sociais." }),
+  aceitaQualquerCmei: z.enum(["sim", "nao"], { message: "Selecione se aceita qualquer CMEI." }),
   cmei1: z.string().min(1, "1ª Opção de CMEI é obrigatória."),
   cmei2: z.string().optional().or(z.literal('')),
   nomeResponsavel: z.string().min(1, "Nome completo do responsável é obrigatório."),
@@ -75,8 +75,8 @@ const Inscricao = () => {
       nomeCrianca: "",
       dataNascimento: "",
       sexo: "feminino",
-      programasSociais: "nao", // Valor padrão para RadioGroup
-      aceitaQualquerCmei: "nao", // Valor padrão para RadioGroup
+      programasSociais: "nao",
+      aceitaQualquerCmei: "nao",
       cmei1: "",
       cmei2: "",
       nomeResponsavel: "",
@@ -157,7 +157,7 @@ const Inscricao = () => {
                           <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
-                            className="flex gap-4" // Alterado para flex horizontal
+                            className="flex flex-col gap-3" // Alterado para flex vertical
                           >
                             <FormItem className="flex items-center space-x-2">
                               <FormControl>
@@ -188,7 +188,7 @@ const Inscricao = () => {
                           <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
-                            className="flex gap-4" // Alinha "Sim" e "Não" lado a lado
+                            className="flex flex-col gap-3" // Alterado para flex vertical
                           >
                             <FormItem className="flex items-center space-x-2">
                               <FormControl>
@@ -219,7 +219,7 @@ const Inscricao = () => {
                           <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
-                            className="flex gap-4" // Alinha "Sim" e "Não" lado a lado
+                            className="flex flex-col gap-3" // Alterado para flex vertical
                           >
                             <FormItem className="flex items-center space-x-2">
                               <FormControl>
