@@ -144,7 +144,7 @@ const Inscricao = () => {
             {/* Dados da Criança */}
             <Card>
               <CardHeader>
-                <CardTitle>Dados da Criança</CardTitle>
+                <CardTitle>Dados da CardTitle</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -309,7 +309,7 @@ const Inscricao = () => {
                         <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger id="cmei-2" disabled={!selectedCmei1}>
-                              <SelectValue placeholder="Selecione (opcional)" />
+                              <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -381,7 +381,7 @@ const Inscricao = () => {
                         <FormControl>
                           <Input
                             id="telefone"
-                            placeholder="(44) 9 9999-9999"
+                            placeholder="(00) 9 0000-0000"
                             {...field}
                             value={formatPhone(field.value)}
                             onChange={(e) => {
@@ -403,7 +403,7 @@ const Inscricao = () => {
                         <FormControl>
                           <Input
                             id="telefone2"
-                            placeholder="(44) 9 9999-9999 (opcional)"
+                            placeholder="(00) 9 0000-0000"
                             {...field}
                             value={formatPhone(field.value)}
                             onChange={(e) => {
@@ -424,7 +424,7 @@ const Inscricao = () => {
                     <FormItem className="space-y-2">
                       <FormLabel htmlFor="email">E-mail</FormLabel>
                       <FormControl>
-                        <Input id="email" type="email" placeholder="email@exemplo.com (opcional)" {...field} />
+                        <Input id="email" type="email" placeholder="email@exemplo.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -447,7 +447,7 @@ const Inscricao = () => {
                       <FormItem className="space-y-2">
                         <FormLabel htmlFor="endereco">Endereço</FormLabel>
                         <FormControl>
-                          <Input id="endereco" placeholder="Rua, número, complemento (opcional)" {...field} />
+                          <Input id="endereco" placeholder="Rua, número, complemento" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -460,7 +460,7 @@ const Inscricao = () => {
                       <FormItem className="space-y-2">
                         <FormLabel htmlFor="bairro">Bairro</FormLabel>
                         <FormControl>
-                          <Input id="bairro" placeholder="Bairro (opcional)" {...field} />
+                          <Input id="bairro" placeholder="Bairro" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -482,7 +482,7 @@ const Inscricao = () => {
                     <FormItem className="space-y-2">
                       <FormLabel htmlFor="observacoes">Observações</FormLabel>
                       <FormControl>
-                        <Textarea id="observacoes" placeholder="Informações adicionais (opcional)" {...field} />
+                        <Textarea id="observacoes" placeholder="Informações adicionais" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
