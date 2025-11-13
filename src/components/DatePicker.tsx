@@ -61,21 +61,21 @@ export function DatePicker({ value, onChange, placeholder = "Selecione uma data"
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <div className="relative flex items-center">
-        <Input
-          id="date-input"
-          placeholder={placeholder}
-          value={inputValue}
-          onChange={handleInputChange}
-          className={cn(
-            "w-full pr-10",
-            !date && "text-muted-foreground",
-            "hover:bg-primary/10 hover:text-primary"
-          )}
-          disabled={disabled}
-        />
-        <PopoverTrigger asChild> {/* Agora o PopoverTrigger envolve apenas o botão */}
+    <div className="relative flex items-center"> {/* Este div agrupa visualmente o input e o botão */}
+      <Input
+        id="date-input"
+        placeholder={placeholder}
+        value={inputValue}
+        onChange={handleInputChange}
+        className={cn(
+          "w-full pr-10", // Adiciona padding-right para o ícone
+          !date && "text-muted-foreground",
+          "hover:bg-primary/10 hover:text-primary"
+        )}
+        disabled={disabled}
+      />
+      <Popover open={open} onOpenChange={setOpen}> {/* O Popover agora envolve apenas o Trigger e o Content */}
+        <PopoverTrigger asChild>
           <Button
             variant="ghost"
             className="absolute right-0 top-0 h-full px-3 py-2 rounded-l-none"
@@ -84,16 +84,16 @@ export function DatePicker({ value, onChange, placeholder = "Selecione uma data"
             <CalendarIcon className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
-      </div>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={handleDateSelect}
-          initialFocus
-          locale={ptBR}
-        />
-      </PopoverContent>
-    </Popover>
+        <PopoverContent className="w-auto p-0">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleDateSelect}
+            initialFocus
+            locale={ptBR}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
