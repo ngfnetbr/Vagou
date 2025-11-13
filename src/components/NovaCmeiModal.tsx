@@ -45,12 +45,13 @@ const cmeiSchema = z.object({
   longitude: z.string().optional().or(z.literal('')),
   telefone: z
     .string()
-    .min(1, "Telefone é obrigatório.")
-    .regex(/^\(\d{2}\) \d \d{4}-\d{4}$/, "Telefone inválido. Formato esperado: (00) 9 0000-0000."),
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => !val || /^\(\d{2}\) \d \d{4}-\d{4}$/.test(val), "Telefone inválido. Formato esperado: (00) 9 0000-0000."),
   email: z.string().email("E-mail inválido.").optional().or(z.literal('')),
   diretor: z.string().optional().or(z.literal('')),
   coordenador: z.string().optional().or(z.literal('')),
-  observacoes: z.string().optional().or(z.literal('')),
+  // observacoes: z.string().optional().or(z.literal('')), // Removido
 });
 
 type CmeiFormData = z.infer<typeof cmeiSchema>;
@@ -73,7 +74,7 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
       email: "",
       diretor: "",
       coordenador: "",
-      observacoes: "",
+      // observacoes: "", // Removido
     },
   });
 
@@ -83,7 +84,7 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
   };
 
   return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"> {/* Adicionado max-h e overflow-y-auto para responsividade */}
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{initialData ? "Editar CMEI" : "Novo CMEI"}</DialogTitle>
         <DialogDescription>
@@ -152,10 +153,10 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
               name="telefone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Telefone *</FormLabel>
+                  <FormLabel>Telefone</FormLabel> {/* Removido o '*' de obrigatório */}
                   <FormControl>
                     <Input
-                      placeholder="(00) 9 0000-0000"
+                      placeholder="(00) 9 0000-0000 (opcional)" // Adicionado (opcional)
                       {...field}
                       value={formatPhone(field.value)}
                       onChange={(e) => {
@@ -210,19 +211,7 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
               )}
             />
           </div>
-          <FormField
-            control={form.control}
-            name="observacoes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Observações</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Informações adicionais sobre o CMEI" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Removido o FormField para 'observacoes' */}
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               <X className="mr-2 h-4 w-4" />
