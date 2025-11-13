@@ -1,13 +1,30 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import NovaTurmaBaseModal, { TurmaBaseFormData } from "@/components/NovaTurmaBaseModal";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+interface TurmaBase extends TurmaBaseFormData {
+  id: number;
+}
 
 const TurmasBase = () => {
-  const turmasBase = [
+  const [turmasBase, setTurmasBase] = useState<TurmaBase[]>([
     {
       id: 1,
       nome: "Berçário I",
@@ -19,44 +36,78 @@ const TurmasBase = () => {
     {
       id: 2,
       nome: "Berçário II",
-      idadeMinima: 1,
-      idadeMaxima: 1,
+      idadeMinima: 12,
+      idadeMaxima: 23,
       capacidade: 15,
       descricao: "1 ano"
     },
     {
       id: 3,
       nome: "Maternal I",
-      idadeMinima: 2,
-      idadeMaxima: 2,
+      idadeMinima: 24,
+      idadeMaxima: 35,
       capacidade: 20,
       descricao: "2 anos"
     },
     {
       id: 4,
       nome: "Maternal II",
-      idadeMinima: 3,
-      idadeMaxima: 3,
+      idadeMinima: 36,
+      idadeMaxima: 47,
       capacidade: 20,
       descricao: "3 anos"
     },
     {
       id: 5,
       nome: "Pré I",
-      idadeMinima: 4,
-      idadeMaxima: 4,
+      idadeMinima: 48,
+      idadeMaxima: 59,
       capacidade: 25,
       descricao: "4 anos"
     },
     {
       id: 6,
       nome: "Pré II",
-      idadeMinima: 5,
-      idadeMaxima: 5,
+      idadeMinima: 60,
+      idadeMaxima: 71,
       capacidade: 25,
       descricao: "5 anos"
     },
-  ];
+  ]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTurmaBase, setEditingTurmaBase] = useState<TurmaBase | undefined>(undefined);
+
+  const handleSaveTurma = (data: TurmaBaseFormData & { id?: number }) => {
+    if (data.id) {
+      // Edição
+      setTurmasBase(turmasBase.map(t => t.id === data.id ? { ...t, ...data } : t));
+      toast.success("Turma base atualizada com sucesso!");
+    } else {
+      // Nova turma
+      const newId = turmasBase.length > 0 ? Math.max(...turmasBase.map(t => t.id)) + 1 : 1;
+      setTurmasBase([...turmasBase, { id: newId, ...data }]);
+      toast.success("Turma base cadastrada com sucesso!");
+    }
+    setEditingTurmaBase(undefined);
+    setIsModalOpen(false);
+  };
+
+  const handleDeleteTurma = (id: number) => {
+    setTurmasBase(turmasBase.filter(turma => turma.id !== id));
+    toast.success("Turma base excluída com sucesso!");
+    setIsModalOpen(false); // Fecha o modal após a exclusão
+  };
+
+  const handleEditClick = (turma: TurmaBase) => {
+    setEditingTurmaBase(turma);
+    setIsModalOpen(true);
+  };
+
+  const handleNewTurmaClick = () => {
+    setEditingTurmaBase(undefined);
+    setIsModalOpen(true);
+  };
 
   return (
     <AdminLayout>
@@ -66,10 +117,23 @@ const TurmasBase = () => {
             <h1 className="text-3xl font-bold text-foreground">Turmas Base</h1>
             <p className="text-muted-foreground">Configuração dos modelos de turmas com faixas etárias</p>
           </div>
-          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Turma Base
-          </Button>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                onClick={handleNewTurmaClick}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Turma Base
+              </Button>
+            </DialogTrigger>
+            <NovaTurmaBaseModal 
+              initialData={editingTurmaBase} 
+              onSave={handleSaveTurma} 
+              onClose={() => setIsModalOpen(false)} 
+              onDelete={handleDeleteTurma}
+            />
+          </Dialog>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -92,7 +156,7 @@ const TurmasBase = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Faixa Etária:</span>
-                    <Badge variant="secondary">{turma.descricao}</Badge>
+                    <Badge variant="secondary">{turma.descricao || `${turma.idadeMinima} - ${turma.idadeMaxima} meses`}</Badge>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Capacidade:</span>
@@ -101,78 +165,40 @@ const TurmasBase = () => {
                 </div>
                 
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditClick(turma)}>
                     <Edit className="mr-2 h-3 w-3" />
                     Editar
                   </Button>
-                  <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma base 
+                          <span className="font-semibold"> {turma.nome} </span>
+                          e removerá todos os dados associados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteTurma(turma.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Adicionar Nova Turma Base</CardTitle>
-            <CardDescription>
-              Crie um novo modelo de turma com faixa etária e capacidade
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome-turma">Nome da Turma *</Label>
-                <Input 
-                  id="nome-turma" 
-                  placeholder="Ex: Maternal III"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="capacidade-turma">Capacidade Padrão *</Label>
-                <Input 
-                  id="capacidade-turma" 
-                  type="number"
-                  placeholder="20"
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="idade-min">Idade Mínima (meses ou anos)</Label>
-                <Input 
-                  id="idade-min" 
-                  type="number"
-                  placeholder="12"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="idade-max">Idade Máxima (meses ou anos)</Label>
-                <Input 
-                  id="idade-max" 
-                  type="number"
-                  placeholder="23"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="descricao-turma">Descrição da Faixa Etária</Label>
-              <Input 
-                id="descricao-turma" 
-                placeholder="Ex: 1 a 2 anos"
-              />
-            </div>
-
-            <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar Turma Base
-            </Button>
-          </CardContent>
-        </Card>
+        {/* O formulário de adição inline foi removido, pois agora usamos o modal */}
       </div>
     </AdminLayout>
   );
