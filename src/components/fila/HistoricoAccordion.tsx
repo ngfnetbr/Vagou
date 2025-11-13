@@ -70,7 +70,7 @@ export const HistoricoAccordion = ({
                                 <Eye className="mr-2 h-4 w-4" />
                                 Ver detalhes
                               </DropdownMenuItem>
-                              {(item.status === "Desistente" || item.status === "Recusada" || item.status === "Trancada") && (
+                              {(item.status === "Desistente" || item.status === "Recusada") && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-secondary focus:bg-secondary/10 focus:text-secondary">

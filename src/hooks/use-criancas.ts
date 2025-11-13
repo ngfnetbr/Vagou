@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCriancas, addCriancaFromInscricao, InscricaoFormData, Crianca, updateCrianca, deleteCrianca, getCriancaById, convocarCrianca, marcarDesistente, fetchAvailableTurmas, ConvocationData, reativarCrianca, marcarFimDeFila, confirmarMatricula, marcarRecusada, realocarCrianca, transferirCrianca, solicitarRemanejamento, trancarMatricula } from "@/lib/mock-data";
+import { fetchCriancas, addCriancaFromInscricao, InscricaoFormData, Crianca, updateCrianca, deleteCrianca, getCriancaById, convocarCrianca, marcarDesistente, fetchAvailableTurmas, ConvocationData, reativarCrianca, marcarFimDeFila, confirmarMatricula, marcarRecusada, realocarCrianca, transferirCrianca, solicitarRemanejamento } from "@/lib/mock-data";
 import { toast } from "sonner";
 
 const CRIANCAS_QUERY_KEY = ["criancas"];
@@ -174,11 +174,11 @@ export function useCriancas() {
   });
   
   const transferirMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number, data: ConvocationData }) => transferirCrianca(id, data),
+    mutationFn: ({ id, justificativa }: { id: number, justificativa: string }) => transferirCrianca(id, justificativa),
     onSuccess: (updatedCrianca) => {
       queryClient.invalidateQueries({ queryKey: CRIANCAS_QUERY_KEY });
-      toast.success("Transferência concluída!", {
-        description: `${updatedCrianca.nome} foi transferido(a) para ${updatedCrianca.cmei}.`,
+      toast.warning("Transferência (Mudança de Cidade) concluída.", {
+        description: `${updatedCrianca.nome} foi marcado(a) como desistente devido à transferência.`,
       });
     },
     onError: () => {
@@ -203,20 +203,8 @@ export function useCriancas() {
     },
   });
   
-  const trancarMatriculaMutation = useMutation({
-    mutationFn: ({ id, justificativa }: { id: number, justificativa: string }) => trancarMatricula(id, justificativa),
-    onSuccess: (updatedCrianca) => {
-      queryClient.invalidateQueries({ queryKey: CRIANCAS_QUERY_KEY });
-      toast.warning("Matrícula Trancada.", {
-        description: `${updatedCrianca.nome} teve a matrícula trancada.`,
-      });
-    },
-    onError: () => {
-      toast.error("Erro ao trancar matrícula.", {
-        description: "Tente novamente mais tarde.",
-      });
-    },
-  });
+  // Removendo trancarMatriculaMutation
+  // const trancarMatriculaMutation = useMutation({ ... });
 
 
   return {
@@ -249,8 +237,7 @@ export function useCriancas() {
     isTransferring: transferirMutation.isPending,
     solicitarRemanejamento: solicitarRemanejamentoMutation.mutateAsync,
     isRequestingRemanejamento: solicitarRemanejamentoMutation.isPending,
-    trancarMatricula: trancarMatriculaMutation.mutateAsync,
-    isTrancandoMatricula: trancarMatriculaMutation.isPending,
+    // isTrancandoMatricula removido
   };
 }
 

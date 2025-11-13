@@ -98,7 +98,6 @@ const DetalhesCrianca = () => {
       "Convocado": { className: "bg-primary/20 text-primary", text: "Convocado" },
       "Desistente": { className: "bg-destructive/20 text-destructive", text: "Desistente" },
       "Recusada": { className: "bg-destructive/20 text-destructive", text: "Recusada" },
-      "Trancada": { className: "bg-destructive/20 text-destructive", text: "Trancada" },
       "Remanejamento Solicitado": { className: "bg-accent/20 text-foreground", text: "Remanejamento Solicitado" },
     };
     
@@ -203,7 +202,8 @@ const DetalhesCrianca = () => {
   const isConvocado = crianca.status === 'Convocado';
   const isDesistente = crianca.status === 'Desistente';
   const isRecusada = crianca.status === 'Recusada';
-  const isTrancada = crianca.status === 'Trancada'; // Novo status
+  
+  // isTrancada removido
   
   const deadlineInfo = isConvocado && crianca.convocacaoDeadline ? (() => {
     const deadlineDate = parseISO(crianca.convocacaoDeadline + 'T00:00:00');
@@ -313,8 +313,8 @@ const DetalhesCrianca = () => {
                 </>
             )}
             
-            {/* 2. Se Desistente, Recusada OU TRANCADA: Reativar */}
-            {(isDesistente || isRecusada || isTrancada) && (
+            {/* 2. Se Desistente ou Recusada: Reativar */}
+            {(isDesistente || isRecusada) && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button 
@@ -348,7 +348,7 @@ const DetalhesCrianca = () => {
             )}
             
             {/* 3. Se Fila de Espera, Convocado (expirado) ou Recusada: Convocar/Reconvocar */}
-            {(!isMatriculado && !isDesistente && !isTrancada) && (
+            {(!isMatriculado && !isDesistente) && (
                 <Dialog open={isConvocarModalOpen} onOpenChange={setIsConvocarModalOpen}>
                     <DialogTrigger asChild>
                         <Button 
@@ -421,8 +421,6 @@ const DetalhesCrianca = () => {
                   ? 'Removido(a) da fila por desistência.'
                   : isRecusada
                   ? 'Convocação recusada.'
-                  : isTrancada
-                  ? 'Matrícula trancada.'
                   : `Na fila de espera.`
                 }
               </p>

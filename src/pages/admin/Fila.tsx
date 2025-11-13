@@ -96,7 +96,6 @@ const Fila = () => {
       "Convocado": { className: "bg-primary/20 text-primary", text: "Convocado" },
       "Desistente": { className: "bg-destructive/20 text-destructive", text: "Desistente" },
       "Recusada": { className: "bg-destructive/20 text-destructive", text: "Recusada" },
-      "Trancada": { className: "bg-destructive/20 text-destructive", text: "Trancada" },
       "Remanejamento Solicitado": { className: "bg-accent/20 text-foreground", text: "Remanejamento Solicitado" },
     };
     
@@ -155,7 +154,7 @@ const Fila = () => {
     const comPrioridade = criancas.filter(c => c.status === "Fila de Espera" && c.programasSociais === "sim").length;
     const totalConvocados = criancas.filter(c => c.status === "Convocado").length;
     
-    const historico = criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada" || c.status === "Desistente" || c.status === "Recusada" || c.status === "Trancada" || c.status === "Remanejamento Solicitado");
+    const historico = criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada" || c.status === "Desistente" || c.status === "Recusada" || c.status === "Remanejamento Solicitado");
 
     return { 
         filteredFila: [...convocados, ...sortedFila], 

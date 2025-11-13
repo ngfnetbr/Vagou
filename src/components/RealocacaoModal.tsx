@@ -27,7 +27,6 @@ interface RealocacaoModalProps {
   isPending: boolean;
 }
 
-// Renomeando o componente internamente para refletir o foco em Realocação
 const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoModalProps) => {
   // Usamos useAvailableTurmas, mas filtramos apenas o CMEI atual
   const { data: availableTurmas, isLoading: isLoadingTurmas } = useAvailableTurmas(crianca.id);

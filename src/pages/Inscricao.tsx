@@ -81,7 +81,7 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
           // Aplicando a asserção de tipo diretamente no argumento da mutação
           await addCrianca(finalData); 
         }
-        onSuccess(finalData);
+        onSuccess(data);
         if (!isEditing) {
           form.reset();
         }

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Download, MoreVertical, Loader2, Eye, Trash2, RotateCcw, ArrowRight, Lock, ListRestart } from "lucide-react";
+import { Search, Download, MoreVertical, Loader2, Eye, Trash2, RotateCcw, ArrowRight, ListRestart } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import JustificativaModal from "@/components/JustificativaModal";
-import RealocacaoTransferenciaModal from "@/components/RealocacaoTransferenciaModal";
+import RealocacaoModal from "@/components/RealocacaoModal"; // Importação atualizada
 import { Crianca, ConvocationData } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,8 +25,8 @@ const mockTurmas = [
   "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Pré I", "Pré II"
 ];
 
-type JustificativaAction = 'desistente' | 'remanejamento' | 'trancar';
-type VagaAction = 'realocar' | 'transferir';
+type JustificativaAction = 'desistente' | 'remanejamento' | 'transferir'; // 'trancar' removido
+type VagaAction = 'realocar'; // 'transferir' removido daqui
 
 const Matriculas = () => {
   const { 
@@ -40,8 +40,6 @@ const Matriculas = () => {
     isTransferring,
     solicitarRemanejamento,
     isRequestingRemanejamento,
-    trancarMatricula,
-    isTrancandoMatricula,
   } = useCriancas();
   const navigate = useNavigate();
   
@@ -63,8 +61,7 @@ const Matriculas = () => {
     let filtered = criancas.filter(c => 
         c.status === "Matriculado" || 
         c.status === "Matriculada" || 
-        c.status === "Remanejamento Solicitado" ||
-        c.status === "Trancada"
+        c.status === "Remanejamento Solicitado"
     );
 
     if (cmeiFilter !== "todos") {
@@ -90,7 +87,7 @@ const Matriculas = () => {
   // Get list of unique CMEIs where children are currently matriculated
   const allCmeiNames = useMemo(() => Array.from(new Set(criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada").map(c => c.cmei))).filter(name => name !== 'N/A'), [criancas]);
 
-  // --- Handlers para Modais de Vaga (Realocar/Transferir) ---
+  // --- Handlers para Modais de Vaga (Realocar) ---
   
   const handleVagaActionClick = (crianca: Crianca, action: VagaAction) => {
     setCriancaToVaga(crianca);
@@ -99,17 +96,15 @@ const Matriculas = () => {
   };
   
   const handleVagaConfirm = async (id: number, data: ConvocationData) => {
-    if (currentVagaAction === 'realocar') {
-        await realocarCrianca({ id, data });
-    } else if (currentVagaAction === 'transferir') {
-        await transferirCrianca({ id, data });
-    }
+    // Apenas Realocar usa este modal agora
+    await realocarCrianca({ id, data });
+    
     setIsVagaModalOpen(false);
     setCriancaToVaga(undefined);
     setCurrentVagaAction(undefined);
   };
   
-  // --- Handlers para Modais de Justificativa (Desistente/Remanejamento/Trancar) ---
+  // --- Handlers para Modais de Justificativa (Desistente/Remanejamento/Transferir) ---
 
   const handleJustificativaActionClick = (crianca: Crianca, action: JustificativaAction) => {
     setCriancaToJustify(crianca);
@@ -130,8 +125,9 @@ const Matriculas = () => {
           case 'remanejamento':
             await solicitarRemanejamento({ id, justificativa });
             break;
-          case 'trancar':
-            await trancarMatricula({ id, justificativa });
+          case 'transferir':
+            // Transferir agora é uma ação de saída do sistema (mudança de cidade)
+            await transferirCrianca({ id, justificativa });
             break;
         }
         
@@ -163,12 +159,12 @@ const Matriculas = () => {
           isPending: isRequestingRemanejamento,
           actionVariant: 'secondary' as const,
         };
-      case 'trancar':
+      case 'transferir':
         return {
-          title: `Trancar Matrícula de ${criancaNome}`,
-          description: "Descreva o motivo do trancamento. A matrícula será marcada como 'Trancada'.",
-          actionLabel: "Confirmar Trancamento",
-          isPending: isTrancandoMatricula,
+          title: `Transferir ${criancaNome} (Mudança de Cidade)`,
+          description: "Confirme a transferência por mudança de cidade. A matrícula será encerrada e a criança marcada como desistente.",
+          actionLabel: "Confirmar Transferência",
+          isPending: isTransferring,
           actionVariant: 'destructive' as const,
         };
       default:
@@ -181,7 +177,6 @@ const Matriculas = () => {
       "Matriculada": { className: "bg-secondary/20 text-secondary", text: "Matriculada" },
       "Matriculado": { className: "bg-secondary/20 text-secondary", text: "Matriculado" },
       "Remanejamento Solicitado": { className: "bg-accent/20 text-foreground", text: "Remanejamento Solicitado" },
-      "Trancada": { className: "bg-destructive/20 text-destructive", text: "Trancada" },
       // Fallbacks
       "Fila de Espera": { className: "bg-muted/50 text-muted-foreground", text: "Fila de Espera" },
       "Convocado": { className: "bg-primary/20 text-primary", text: "Convocado" },
@@ -296,16 +291,12 @@ const Matriculas = () => {
                                 Ver detalhes
                               </DropdownMenuItem>
                               
-                              {/* Ações que exigem nova vaga (Realocar/Transferir) */}
+                              {/* Ações que exigem nova vaga (Realocar) */}
                               {(matricula.status === "Matriculado" || matricula.status === "Matriculada") && (
                                 <>
                                   <DropdownMenuItem onClick={() => handleVagaActionClick(matricula, 'realocar')}>
                                     <RotateCcw className="mr-2 h-4 w-4" />
                                     Realocar (Mudar Turma)
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleVagaActionClick(matricula, 'transferir')}>
-                                    <ArrowRight className="mr-2 h-4 w-4" />
-                                    Transferir (Mudar CMEI)
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -317,10 +308,15 @@ const Matriculas = () => {
                                     <ListRestart className="mr-2 h-4 w-4" />
                                     Solicitar remanejamento
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleJustificativaActionClick(matricula, 'trancar')}>
-                                    <Lock className="mr-2 h-4 w-4" />
-                                    Trancar matrícula
+                                  
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => handleJustificativaActionClick(matricula, 'transferir')}
+                                  >
+                                    <ArrowRight className="mr-2 h-4 w-4" />
+                                    Transferir (Mudança de Cidade)
                                   </DropdownMenuItem>
+                                  
                                   <DropdownMenuItem 
                                     className="text-destructive"
                                     onClick={() => handleJustificativaActionClick(matricula, 'desistente')}
@@ -348,7 +344,7 @@ const Matriculas = () => {
         </Card>
       </div>
       
-      {/* Modal de Justificativa (Desistente, Remanejamento, Trancar) */}
+      {/* Modal de Justificativa (Desistente, Remanejamento, Transferir) */}
       <Dialog open={isJustificativaModalOpen} onOpenChange={setIsJustificativaModalOpen}>
         {criancaToJustify && currentJustificativaAction && (
           <JustificativaModal
@@ -363,19 +359,18 @@ const Matriculas = () => {
         )}
       </Dialog>
       
-      {/* Modal de Realocação/Transferência */}
+      {/* Modal de Realocação (Apenas Realocar usa este modal agora) */}
       <Dialog open={isVagaModalOpen} onOpenChange={setIsVagaModalOpen}>
         {criancaToVaga && currentVagaAction && (
-          <RealocacaoTransferenciaModal
+          <RealocacaoModal // Nome do componente atualizado
             crianca={criancaToVaga}
-            actionType={currentVagaAction}
             onConfirm={handleVagaConfirm}
             onClose={() => {
               setIsVagaModalOpen(false);
               setCriancaToVaga(undefined);
               setCurrentVagaAction(undefined);
             }}
-            isPending={currentVagaAction === 'realocar' ? isRealocating : isTransferring}
+            isPending={isRealocating}
           />
         )}
       </Dialog>
