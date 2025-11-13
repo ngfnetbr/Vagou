@@ -2,9 +2,9 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, User, Plus, Edit, Eye, Trash2, MoreVertical } from "lucide-react";
+import { Users, User, Plus, Edit, Eye, Trash2, MoreVertical, List, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSearchParams, useNavigate } from "react-router-dom"; // Importando useNavigate
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import NovaTurmaModal, { NovaTurmaFormData } from "@/components/NovaTurmaModal";
@@ -26,6 +26,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Turma {
   id: number;
@@ -94,12 +96,13 @@ const initialTurmasData: Turma[] = [
 
 const Turmas = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate(); // Inicializando useNavigate
+  const navigate = useNavigate();
   const cmeiFilterParam = searchParams.get("cmei");
   const [selectedCmei, setSelectedCmei] = useState<string>(cmeiFilterParam || "todos");
   const [turmas, setTurmas] = useState<Turma[]>(initialTurmasData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTurma, setEditingTurma] = useState<Turma | undefined>(undefined);
+  const [currentView, setCurrentView] = useState<"grid" | "list">("grid"); // Novo estado para visualização
 
   useEffect(() => {
     if (cmeiFilterParam && selectedCmei !== cmeiFilterParam) {
@@ -140,7 +143,7 @@ const Turmas = () => {
       setTurmas(turmas.map(t => t.id === data.id ? { 
         ...t, 
         capacidade: data.capacidade, 
-        sala: data.sala, // Alterado de turno para sala
+        sala: data.sala,
         nome: nomeCompleto,
       } : t));
       toast.success("Turma atualizada com sucesso!");
@@ -152,10 +155,10 @@ const Turmas = () => {
         cmei: data.cmei, 
         nome: nomeCompleto,
         capacidade: data.capacidade, 
-        ocupacao: 0, // Nova turma começa com 0 ocupação
+        ocupacao: 0,
         alunos: [],
         turmaBaseId: Number(data.turmaBaseId),
-        sala: data.sala, // Alterado de turno para sala
+        sala: data.sala,
       }]);
       toast.success("Turma cadastrada com sucesso!");
     }
@@ -176,7 +179,7 @@ const Turmas = () => {
       cmei: turma.cmei,
       nome: turma.nome,
       capacidade: turma.capacidade,
-      sala: turma.sala, // Alterado de turno para sala
+      sala: turma.sala,
     });
     setIsModalOpen(true);
   };
@@ -198,12 +201,218 @@ const Turmas = () => {
         turmaBaseId: String(editingTurma.turmaBaseId),
         nome: editingTurma.nome,
         capacidade: editingTurma.capacidade,
-        sala: editingTurma.sala as NovaTurmaFormData['sala'], // Alterado de turno para sala
+        sala: editingTurma.sala as NovaTurmaFormData['sala'],
       };
     }
     // Preenche o CMEI se houver um filtro ativo
     return cmeiFilterParam && cmeiFilterParam !== "todos" ? { cmei: cmeiFilterParam } : undefined;
   };
+
+  const renderTurmaActions = (turma: Turma) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleViewAllClick(turma)}>
+          <Eye className="mr-2 h-4 w-4" />
+          Ver Detalhes
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleEditClick(turma)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Editar Turma
+        </DropdownMenuItem>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir Turma
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
+                <span className="font-semibold"> {turma.nome} </span>
+                do CMEI {turma.cmei}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDeleteTurma(turma.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const renderTurmasGrid = () => (
+    Object.entries(groupedTurmas).map(([cmeiName, turmasList]) => (
+      <div key={cmeiName} className="space-y-4">
+        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <Users className="h-6 w-6 text-primary" />
+          {cmeiName}
+        </h2>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          {turmasList.map((turma) => {
+            const ocupacaoPercent = Math.round((turma.ocupacao / turma.capacidade) * 100);
+            const baseTurma = mockTurmasBase.find(t => t.id === turma.turmaBaseId);
+            
+            return (
+              <Card key={turma.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{turma.nome}</CardTitle>
+                      <CardDescription className="mt-1">
+                        {turma.ocupacao} / {turma.capacidade} alunos ({baseTurma?.nome})
+                      </CardDescription>
+                    </div>
+                    <Badge variant={ocupacaoPercent === 100 ? "default" : "secondary"}>
+                      {ocupacaoPercent}%
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground">Alunos Matriculados</h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                      {turma.alunos.slice(0, 5).map((aluno, alunoIndex) => (
+                        <div 
+                          key={alunoIndex}
+                          className="flex items-center justify-between p-2 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{aluno}</span>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            Ver
+                          </Button>
+                        </div>
+                      ))}
+                      {turma.alunos.length > 5 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">
+                          + {turma.alunos.length - 5} alunos
+                        </p>
+                      )}
+                      {turma.alunos.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          Nenhum aluno matriculado nesta turma.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleViewAllClick(turma)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Ver Todos
+                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-1/2">
+                          <MoreVertical className="mr-2 h-4 w-4" />
+                          Gerenciar
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditClick(turma)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar Turma
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir Turma
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
+                                <span className="font-semibold"> {turma.nome} </span>
+                                do CMEI {turma.cmei}.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteTurma(turma.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    ))
+  );
+
+  const renderTurmasList = () => (
+    <Card>
+      <CardContent className="pt-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>CMEI</TableHead>
+              <TableHead>Turma</TableHead>
+              <TableHead>Modelo Base</TableHead>
+              <TableHead className="text-center">Capacidade</TableHead>
+              <TableHead className="text-center">Ocupação</TableHead>
+              <TableHead className="text-center">Vagas Livres</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTurmas.map((turma) => {
+              const ocupacaoPercent = Math.round((turma.ocupacao / turma.capacidade) * 100);
+              const baseTurma = mockTurmasBase.find(t => t.id === turma.turmaBaseId);
+              
+              return (
+                <TableRow key={turma.id}>
+                  <TableCell className="font-medium">{turma.cmei}</TableCell>
+                  <TableCell>{turma.nome}</TableCell>
+                  <TableCell>{baseTurma?.nome}</TableCell>
+                  <TableCell className="text-center">{turma.capacidade}</TableCell>
+                  <TableCell className="text-center">{turma.ocupacao}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={turma.capacidade - turma.ocupacao === 0 ? "destructive" : "secondary"}>
+                      {turma.capacidade - turma.ocupacao}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {renderTurmaActions(turma)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <AdminLayout>
@@ -235,7 +444,7 @@ const Turmas = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <Select onValueChange={handleCmeiChange} value={selectedCmei}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Filtrar por CMEI" />
@@ -247,133 +456,45 @@ const Turmas = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <ToggleGroup 
+                type="single" 
+                value={currentView}
+                onValueChange={(value) => {
+                  if (value) {
+                    setCurrentView(value as "grid" | "list");
+                  }
+                }}
+                className="flex-shrink-0"
+              >
+                <ToggleGroupItem value="grid" aria-label="Visualizar em grade">
+                  <LayoutGrid className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="Visualizar em lista">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </CardHeader>
         </Card>
 
-        {Object.keys(groupedTurmas).length === 0 && (
+        {Object.keys(groupedTurmas).length === 0 && selectedCmei !== "todos" && (
+          <Card>
+            <CardContent className="py-6 text-center text-muted-foreground">
+              Nenhuma turma encontrada para o CMEI selecionado.
+            </CardContent>
+          </Card>
+        )}
+        
+        {currentView === "grid" ? renderTurmasGrid() : renderTurmasList()}
+        
+        {/* Se estiver em modo lista e não houver turmas, a mensagem de 'Nenhuma turma encontrada' já é tratada pelo renderTurmasList */}
+        {currentView === "list" && filteredTurmas.length === 0 && (
           <Card>
             <CardContent className="py-6 text-center text-muted-foreground">
               Nenhuma turma encontrada para o filtro selecionado.
             </CardContent>
           </Card>
         )}
-
-        {Object.entries(groupedTurmas).map(([cmeiName, turmasList]) => (
-          <div key={cmeiName} className="space-y-4">
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Users className="h-6 w-6 text-primary" />
-              {cmeiName}
-            </h2>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              {turmasList.map((turma) => {
-                const ocupacaoPercent = Math.round((turma.ocupacao / turma.capacidade) * 100);
-                const baseTurma = mockTurmasBase.find(t => t.id === turma.turmaBaseId);
-                
-                return (
-                  <Card key={turma.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg">{turma.nome}</CardTitle>
-                          <CardDescription className="mt-1">
-                            {turma.ocupacao} / {turma.capacidade} alunos ({baseTurma?.nome})
-                          </CardDescription>
-                        </div>
-                        <Badge variant={ocupacaoPercent === 100 ? "default" : "secondary"}>
-                          {ocupacaoPercent}%
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-semibold text-foreground">Alunos Matriculados</h4>
-                        <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                          {turma.alunos.slice(0, 5).map((aluno, alunoIndex) => (
-                            <div 
-                              key={alunoIndex}
-                              className="flex items-center justify-between p-2 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm">{aluno}</span>
-                              </div>
-                              <Button variant="ghost" size="sm">
-                                Ver
-                              </Button>
-                            </div>
-                          ))}
-                          {turma.alunos.length > 5 && (
-                            <p className="text-xs text-muted-foreground text-center py-2">
-                              + {turma.alunos.length - 5} alunos
-                            </p>
-                          )}
-                          {turma.alunos.length === 0 && (
-                            <p className="text-sm text-muted-foreground text-center py-2">
-                              Nenhum aluno matriculado nesta turma.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2 pt-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => handleViewAllClick(turma)} // Ação do botão "Ver Todos"
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          Ver Todos
-                        </Button>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="w-1/2">
-                              <MoreVertical className="mr-2 h-4 w-4" />
-                              Gerenciar
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditClick(turma)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar Turma
-                            </DropdownMenuItem>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Excluir Turma
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
-                                    <span className="font-semibold"> {turma.nome} </span>
-                                    do CMEI {turma.cmei}.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteTurma(turma.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        ))}
       </div>
     </AdminLayout>
   );
