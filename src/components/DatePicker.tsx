@@ -34,7 +34,8 @@ export function DatePicker({ value, onChange, placeholder = "Selecione uma data"
           variant={"outline"}
           className={cn(
             "w-full justify-between text-left font-normal", // 'justify-between' empurra o ícone para a direita
-            !date && "text-muted-foreground"
+            !date && "text-muted-foreground",
+            "hover:bg-primary/10 hover:text-primary" // Adiciona classes para um hover azul sutil
           )}
           disabled={disabled}
         >
