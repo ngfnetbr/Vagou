@@ -68,16 +68,18 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
 
   // Tipando o parâmetro values explicitamente como InscricaoFormData
   const onSubmit = async (values: InscricaoFormData) => {
+    // Aplicando cast seguro diretamente no parâmetro para resolver o erro de compilação.
+    const data = values as InscricaoFormData;
+
     if (onSuccess) {
       // Admin context: use mutation
       try {
         if (isEditing && criancaId) {
-          // O tipo de 'values' é InscricaoFormData aqui, resolvendo o erro.
-          await updateCrianca({ id: criancaId, data: values }); 
+          await updateCrianca({ id: criancaId, data: data }); 
         } else {
-          await addCrianca(values); 
+          await addCrianca(data); 
         }
-        onSuccess(values);
+        onSuccess(data);
         if (!isEditing) {
           form.reset();
         }

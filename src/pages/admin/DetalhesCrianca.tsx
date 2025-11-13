@@ -1,7 +1,7 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Calendar, MapPin, Phone, Mail, Edit, History, Loader2, CheckCircle, XCircle, Bell } from "lucide-react";
+import { ArrowLeft, User, Calendar, MapPin, Phone, Mail, Edit, History, Loader2, FileText } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useCriancaDetails } from "@/hooks/use-criancas";
@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import NovaCriancaModalContent from "@/components/NovaCriancaModal";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const DetalhesCrianca = () => {
   const navigate = useNavigate();
@@ -16,6 +17,13 @@ const DetalhesCrianca = () => {
   const criancaId = id ? parseInt(id) : undefined;
   const { data: crianca, isLoading, error, refetch } = useCriancaDetails(criancaId || 0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleGeneratePdf = () => {
+    toast.info("Gerando Ficha em PDF...", {
+      description: `A ficha de ${crianca?.nome} será gerada em breve.`,
+    });
+    // Lógica de geração de PDF seria implementada aqui
+  };
 
   if (isLoading) {
     return (
@@ -82,6 +90,14 @@ const DetalhesCrianca = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para Lista
             </Button>
+            <Button 
+              variant="outline" 
+              className="text-secondary border-secondary hover:bg-secondary/10"
+              onClick={handleGeneratePdf}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Gerar Ficha em PDF
+            </Button>
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="text-primary border-primary hover:bg-primary/10">
@@ -97,8 +113,8 @@ const DetalhesCrianca = () => {
           </div>
         </div>
 
-        {/* Status e Localização */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Status e Localização - Layout ajustado para 2 colunas */}
+        <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Status Atual</CardTitle>
@@ -126,29 +142,6 @@ const DetalhesCrianca = () => {
               <p className="text-sm text-muted-foreground mt-2">
                 {crianca.aceitaQualquerCmei === 'sim' ? 'Aceita qualquer CMEI' : 'Prioriza opções selecionadas'}
               </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {crianca.status === 'Fila de Espera' && (
-                <Button className="w-full bg-primary hover:bg-primary/90">
-                  <Bell className="mr-2 h-4 w-4" />
-                  Convocar para Vaga
-                </Button>
-              )}
-              {(crianca.status === 'Matriculada' || crianca.status === 'Matriculado') && (
-                <Button variant="outline" className="w-full text-destructive border-destructive hover:bg-destructive/10">
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Marcar como Desistente
-                </Button>
-              )}
-              <Button variant="outline" className="w-full">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Ver Posição na Fila
-              </Button>
             </CardContent>
           </Card>
         </div>
