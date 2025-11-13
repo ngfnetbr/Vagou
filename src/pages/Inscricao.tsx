@@ -68,18 +68,18 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
 
   // Tipando o parâmetro values explicitamente como InscricaoFormData
   const onSubmit = async (values: InscricaoFormData) => {
-    // Aplicando cast seguro, pois a validação Zod garante que todos os campos obrigatórios estão presentes.
-    const data = values as InscricaoFormData;
-
+    // O TypeScript, por vezes, infere que 'values' pode ter campos opcionais devido ao uso do useForm,
+    // mesmo com o ZodResolver. Usamos a asserção de tipo para garantir que os dados são completos.
+    
     if (onSuccess) {
       // Admin context: use mutation
       try {
         if (isEditing && criancaId) {
-          await updateCrianca({ id: criancaId, data: data }); 
+          await updateCrianca({ id: criancaId, data: values as InscricaoFormData }); 
         } else {
-          await addCrianca(data); 
+          await addCrianca(values as InscricaoFormData); 
         }
-        onSuccess(data);
+        onSuccess(values);
         if (!isEditing) {
           form.reset();
         }
@@ -99,8 +99,8 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
     if (criancaId) {
       await deleteCrianca(criancaId);
       if (onSuccess) {
-        // O getValues() pode retornar um tipo parcial, o cast é mantido aqui.
-        onSuccess(form.getValues() as InscricaoFormData); 
+        // O getValues() retorna o tipo correto, mas o cast é mantido aqui para garantir que o onSuccess receba o tipo completo, mesmo que o formulário esteja sendo resetado.
+        onSuccess(form.getValues()); 
       }
     }
   };
