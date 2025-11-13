@@ -1,12 +1,46 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, ListOrdered, TrendingUp } from "lucide-react";
+import { Users, GraduationCap, ListOrdered, TrendingUp, Loader2 } from "lucide-react";
+import { useCriancas } from "@/hooks/use-criancas";
+import { useMemo } from "react";
 
 const Dashboard = () => {
+  const { criancas, isLoading } = useCriancas();
+
+  const { totalCriancas, matriculasAtivas, filaEspera, convocacoesPendentes, taxaOcupacao } = useMemo(() => {
+    if (!criancas || criancas.length === 0) {
+      return {
+        totalCriancas: 0,
+        matriculasAtivas: 0,
+        filaEspera: 0,
+        convocacoesPendentes: [],
+        taxaOcupacao: "0%",
+      };
+    }
+
+    const totalCriancas = criancas.length;
+    const matriculasAtivas = criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada").length;
+    const filaEspera = criancas.filter(c => c.status === "Fila de Espera").length;
+    const convocacoesPendentes = criancas.filter(c => c.status === "Convocado");
+    
+    // Mock de capacidade total (assumindo 900 vagas totais para o cálculo de ocupação)
+    const capacidadeTotal = 900; 
+    const ocupacao = Math.round((matriculasAtivas / capacidadeTotal) * 100);
+    const taxaOcupacao = `${ocupacao}%`;
+    
+    return {
+      totalCriancas,
+      matriculasAtivas,
+      filaEspera,
+      convocacoesPendentes,
+      taxaOcupacao,
+    };
+  }, [criancas]);
+
   const stats = [
     {
       title: "Total de Crianças",
-      value: "1,234",
+      value: totalCriancas.toLocaleString('pt-BR'),
       icon: Users,
       description: "Cadastradas no sistema",
       color: "text-primary",
@@ -14,7 +48,7 @@ const Dashboard = () => {
     },
     {
       title: "Matrículas Ativas",
-      value: "856",
+      value: matriculasAtivas.toLocaleString('pt-BR'),
       icon: GraduationCap,
       description: "Alunos matriculados",
       color: "text-secondary",
@@ -22,7 +56,7 @@ const Dashboard = () => {
     },
     {
       title: "Fila de Espera",
-      value: "378",
+      value: filaEspera.toLocaleString('pt-BR'),
       icon: ListOrdered,
       description: "Aguardando vaga",
       color: "text-accent",
@@ -30,13 +64,24 @@ const Dashboard = () => {
     },
     {
       title: "Taxa de Ocupação",
-      value: "94%",
+      value: taxaOcupacao,
       icon: TrendingUp,
-      description: "Capacidade utilizada",
+      description: "Capacidade utilizada (Mock)",
       color: "text-secondary",
       bgColor: "bg-secondary/10",
     },
   ];
+  
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-lg text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -73,22 +118,25 @@ const Dashboard = () => {
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Convocações Pendentes</CardTitle>
-              <CardDescription>Últimas convocações aguardando confirmação</CardDescription>
+              <CardTitle>Convocações Pendentes ({convocacoesPendentes.length})</CardTitle>
+              <CardDescription>Convocações aguardando confirmação ou prazo expirado</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                {convocacoesPendentes.slice(0, 5).map((crianca) => (
+                  <div key={crianca.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
                     <div>
-                      <p className="font-medium text-foreground">Maria Silva Santos</p>
-                      <p className="text-sm text-muted-foreground">CMEI Exemplo {i}</p>
+                      <p className="font-medium text-foreground">{crianca.nome}</p>
+                      <p className="text-sm text-muted-foreground">{crianca.cmei} ({crianca.turmaAtual})</p>
                     </div>
-                    <span className="text-xs bg-accent/20 text-foreground px-2 py-1 rounded">
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
                       Pendente
                     </span>
                   </div>
                 ))}
+                {convocacoesPendentes.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhuma convocação pendente.</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -96,21 +144,20 @@ const Dashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Atividades Recentes</CardTitle>
-              <CardDescription>Últimas ações no sistema</CardDescription>
+              <CardDescription>Últimas ações no sistema (Mock)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { acao: "Nova matrícula", detalhe: "João Pedro - CMEI Central", hora: "10:30" },
-                  { acao: "Convocação enviada", detalhe: "Ana Costa - CMEI Norte", hora: "09:15" },
-                  { acao: "Transferência", detalhe: "Lucas Oliveira - CMEI Sul", hora: "08:45" },
-                ].map((atividade, i) => (
+                {criancas.flatMap(c => c.historico)
+                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                    .slice(0, 5)
+                    .map((atividade, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 border border-border rounded-lg">
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{atividade.acao}</p>
-                      <p className="text-sm text-muted-foreground">{atividade.detalhe}</p>
+                      <p className="text-sm text-muted-foreground">{atividade.detalhes}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground">{atividade.hora}</span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">{atividade.data}</span>
                   </div>
                 ))}
               </div>

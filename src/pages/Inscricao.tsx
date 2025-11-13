@@ -68,18 +68,16 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
 
   // O parâmetro 'data' é garantido como InscricaoFormData pelo zodResolver
   const onSubmit = async (data: InscricaoFormData) => {
-    // Usamos a asserção de tipo mais forte para garantir que o compilador aceite o tipo completo.
-    const validatedData = data as any as InscricaoFormData;
+    // O tipo de 'data' é InscricaoFormData devido ao uso do zodResolver
+    // Não precisamos de 'validatedData' ou asserções complexas aqui.
 
     if (onSuccess) {
       // Admin context: use mutation
       try {
         if (isEditing && criancaId) {
-          // Aplicando a asserção de tipo
-          await updateCrianca({ id: criancaId, data: validatedData }); 
+          await updateCrianca({ id: criancaId, data }); 
         } else {
-          // Aplicando a asserção de tipo
-          await addCrianca(validatedData); 
+          await addCrianca(data); 
         }
         onSuccess(data);
         if (!isEditing) {
@@ -102,7 +100,7 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
       await deleteCrianca(criancaId);
       if (onSuccess) {
         // O getValues() retorna o tipo correto, que é InscricaoFormData
-        onSuccess(form.getValues() as InscricaoFormData); 
+        onSuccess(form.getValues()); 
       }
     }
   };
