@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState } from "react";
+import { toast } from "sonner"; // Import Sonner for notifications
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react"; // Import Loader2
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { DatePicker } from "@/components/DatePicker"; // Importando o novo DatePicker
+import { DatePicker } from "@/components/DatePicker";
+import { useCriancas } from "@/hooks/use-criancas"; // Import useCriancas hook
 
 // Funções de máscara
 const formatCpf = (value: string) => {
@@ -72,7 +74,7 @@ const isValidCpf = (value: string) => {
 };
 
 // Esquema de validação com Zod
-const formSchema = z.object({
+export const formSchema = z.object({
   nomeCrianca: z.string().min(1, "Nome completo da criança é obrigatório."),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatória."),
   sexo: z.enum(["feminino", "masculino"], { message: "Selecione o sexo da criança." }),
@@ -97,7 +99,16 @@ const formSchema = z.object({
   observacoes: z.string().optional().or(z.literal('')),
 });
 
-const Inscricao = () => {
+export type InscricaoFormData = z.infer<typeof formSchema>;
+
+interface InscricaoProps {
+  onSuccess?: (data: InscricaoFormData) => void;
+  isModal?: boolean;
+}
+
+const Inscricao = ({ onSuccess, isModal = false }: InscricaoProps) => {
+  const { addCrianca, isAdding } = useCriancas();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -120,10 +131,10 @@ const Inscricao = () => {
   });
 
   const cmeiOptions = [
-    { value: "cmei1", label: "CMEI Exemplo 1" },
-    { value: "cmei2", label: "CMEI Exemplo 2" },
-    { value: "cmei3", label: "CMEI Exemplo 3" },
-    { value: "cmei4", label: "CMEI Exemplo 4" },
+    { value: "CMEI Centro", label: "CMEI Centro" },
+    { value: "CMEI Norte", label: "CMEI Norte" },
+    { value: "CMEI Sul", label: "CMEI Sul" },
+    { value: "CMEI Leste", label: "CMEI Leste" },
   ];
 
   const selectedCmei1 = form.watch("cmei1");
@@ -131,14 +142,38 @@ const Inscricao = () => {
     (cmei) => cmei.value !== selectedCmei1
   );
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Dados do formulário:", values);
-    // Aqui você enviaria os dados para o backend
+  const onSubmit = async (values: InscricaoFormData) => {
+    if (onSuccess) {
+      // Admin context: use mutation
+      try {
+        await addCrianca(values);
+        onSuccess(values);
+        form.reset(); // Reset form after successful submission in admin context
+      } catch (error) {
+        // Error handled by useCriancas hook toast
+      }
+    } else {
+      // Public context: placeholder for public submission logic
+      toast.success("Inscrição realizada com sucesso!", {
+        description: "Seu protocolo de inscrição será enviado por e-mail.",
+      });
+      form.reset();
+    }
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className={isModal ? "p-0" : "container mx-auto px-4 py-6"}>
       <div className="max-w-4xl mx-auto">
+        {!isModal && (
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-3">
+              Nova Inscrição para Vaga
+            </h1>
+            <p className="text-muted-foreground">
+              Preencha o formulário abaixo para cadastrar a criança na fila de espera.
+            </p>
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Dados da Criança */}
@@ -492,12 +527,20 @@ const Inscricao = () => {
             </Card>
 
             <div className="flex gap-4">
-              <Button type="button" variant="outline" className="flex-1">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => form.reset()}>
                 Cancelar
               </Button>
-              <Button type="submit" className="flex-1 bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                <Save className="mr-2 h-4 w-4" />
-                Cadastrar
+              <Button 
+                type="submit" 
+                className="flex-1 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                disabled={isAdding}
+              >
+                {isAdding ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {isAdding ? "Cadastrando..." : (onSuccess ? "Cadastrar Criança" : "Cadastrar")}
               </Button>
             </div>
           </form>

@@ -4,77 +4,49 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, User, Calendar, MapPin, List, LayoutGrid, MoreVertical, Eye, Edit } from "lucide-react";
-import { useState } from "react";
+import { Search, Plus, User, Calendar, MapPin, List, LayoutGrid, MoreVertical, Eye, Edit, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import NovaCriancaModalContent from "@/components/NovaCriancaModal";
+import { useCriancas } from "@/hooks/use-criancas";
+import { Crianca } from "@/lib/mock-data";
 
 
 const Criancas = () => {
-  const [currentView, setCurrentView] = useState<"grid" | "list">("grid"); // Alterado para 'currentView'
+  const { criancas, isLoading } = useCriancas();
+  const [currentView, setCurrentView] = useState<"grid" | "list">("grid");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
 
-  const criancas = [
-    { 
-      id: 1, 
-      nome: "Ana Silva Santos", 
-      dataNascimento: "15/03/2023", 
-      idade: "1 ano e 10 meses",
-      responsavel: "Maria Silva",
-      status: "Matriculada",
-      cmei: "CMEI Centro"
-    },
-    { 
-      id: 2, 
-      nome: "João Pedro Costa", 
-      dataNascimento: "22/05/2023", 
-      idade: "1 ano e 8 meses",
-      responsavel: "Pedro Costa",
-      status: "Matriculado",
-      cmei: "CMEI Norte"
-    },
-    { 
-      id: 3, 
-      nome: "Carlos Eduardo Silva", 
-      dataNascimento: "08/07/2023", 
-      idade: "1 ano e 6 meses",
-      responsavel: "Eduardo Silva",
-      status: "Fila de Espera",
-      cmei: "-"
-    },
-    { 
-      id: 4, 
-      nome: "Mariana Costa Santos", 
-      dataNascimento: "30/04/2023", 
-      idade: "1 ano e 9 meses",
-      responsavel: "Ana Costa",
-      status: "Fila de Espera",
-      cmei: "-"
-    },
-    { 
-      id: 5, 
-      nome: "Pedro Henrique Oliveira", 
-      dataNascimento: "12/06/2023", 
-      idade: "1 ano e 7 meses",
-      responsavel: "José Oliveira",
-      status: "Convocado",
-      cmei: "CMEI Sul"
-    },
-    { 
-      id: 6, 
-      nome: "Julia Santos Lima", 
-      dataNascimento: "25/08/2023", 
-      idade: "1 ano e 5 meses",
-      responsavel: "Maria Lima",
-      status: "Matriculada",
-      cmei: "CMEI Leste"
-    },
-  ];
+  const filteredCriancas = useMemo(() => {
+    let filtered = criancas;
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "outline", className: string }> = {
+    if (statusFilter !== "todos") {
+      // Note: We need to handle both 'Matriculado' and 'Matriculada' if the filter is generic 'Matriculado'
+      if (statusFilter === "Matriculado" || statusFilter === "Matriculada") {
+        filtered = filtered.filter(c => c.status === "Matriculado" || c.status === "Matriculada");
+      } else {
+        filtered = filtered.filter(c => c.status === statusFilter);
+      }
+    }
+
+    if (searchTerm) {
+      const lowerCaseSearch = searchTerm.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.nome.toLowerCase().includes(lowerCaseSearch) ||
+        c.responsavel.toLowerCase().includes(lowerCaseSearch)
+      );
+    }
+
+    return filtered;
+  }, [criancas, statusFilter, searchTerm]);
+
+  const getStatusBadge = (status: Crianca['status']) => {
+    const variants: Record<Crianca['status'], { variant: "default" | "secondary" | "outline", className: string }> = {
       "Matriculada": { variant: "default", className: "bg-secondary text-secondary-foreground" },
       "Matriculado": { variant: "default", className: "bg-secondary text-secondary-foreground" },
       "Fila de Espera": { variant: "secondary", className: "" },
@@ -85,6 +57,17 @@ const Criancas = () => {
     return <Badge variant={config.variant} className={config.className}>{status}</Badge>;
   };
 
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-lg text-muted-foreground">Carregando dados das crianças...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -93,7 +76,7 @@ const Criancas = () => {
             <h1 className="text-3xl font-bold text-foreground">Crianças</h1>
             <p className="text-muted-foreground">Cadastro e gerenciamento de todas as crianças do sistema</p>
           </div>
-          <Dialog>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
               <Button 
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
@@ -102,7 +85,7 @@ const Criancas = () => {
                 Nova Criança
               </Button>
             </DialogTrigger>
-            <NovaCriancaModalContent />
+            <NovaCriancaModalContent onClose={() => setIsModalOpen(false)} />
           </Dialog>
         </div>
 
@@ -114,24 +97,26 @@ const Criancas = () => {
                 <Input 
                   placeholder="Buscar por nome da criança..." 
                   className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Select>
+              <Select onValueChange={setStatusFilter} value={statusFilter}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Filtrar por status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os status</SelectItem>
-                  <SelectItem value="matriculado">Matriculado</SelectItem>
-                  <SelectItem value="fila">Fila de Espera</SelectItem>
-                  <SelectItem value="convocado">Convocado</SelectItem>
+                  <SelectItem value="Matriculado">Matriculado/a</SelectItem>
+                  <SelectItem value="Fila de Espera">Fila de Espera</SelectItem>
+                  <SelectItem value="Convocado">Convocado</SelectItem>
                 </SelectContent>
               </Select>
               <ToggleGroup 
                 type="single" 
-                value={currentView} // Controlado pelo estado
+                value={currentView}
                 onValueChange={(value) => {
-                  if (value) { // Só atualiza se um valor for fornecido (evita deselection)
+                  if (value) {
                     setCurrentView(value as "grid" | "list");
                   }
                 }}
@@ -148,9 +133,15 @@ const Criancas = () => {
           </CardHeader>
         </Card>
 
-        {currentView === "grid" ? ( // Renderização condicional
+        {filteredCriancas.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Nenhuma criança encontrada com os filtros aplicados.
+            </CardContent>
+          </Card>
+        ) : currentView === "grid" ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {criancas.map((crianca) => (
+            {filteredCriancas.map((crianca) => (
               <Card key={crianca.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -181,7 +172,7 @@ const Criancas = () => {
                     <span className="text-muted-foreground">Status:</span>
                     {getStatusBadge(crianca.status)}
                   </div>
-                  {crianca.cmei !== "-" && (
+                  {crianca.cmei !== "N/A" && (
                     <div className="flex items-center gap-2 text-sm pt-2 border-t border-border">
                       <MapPin className="h-4 w-4 text-primary" />
                       <span className="font-medium text-primary">{crianca.cmei}</span>
@@ -215,14 +206,14 @@ const Criancas = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {criancas.map((crianca) => (
+                  {filteredCriancas.map((crianca) => (
                     <TableRow key={crianca.id}>
                       <TableCell className="font-medium">{crianca.nome}</TableCell>
                       <TableCell>{crianca.responsavel}</TableCell>
                       <TableCell>{crianca.dataNascimento}</TableCell>
                       <TableCell>{crianca.idade}</TableCell>
                       <TableCell>{getStatusBadge(crianca.status)}</TableCell>
-                      <TableCell>{crianca.cmei !== "-" ? crianca.cmei : "N/A"}</TableCell>
+                      <TableCell>{crianca.cmei !== "N/A" ? crianca.cmei : "-"}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
