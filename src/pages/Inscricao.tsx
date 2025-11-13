@@ -248,7 +248,7 @@ const Inscricao = () => {
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <FormLabel htmlFor="cmei-1">1ª Opção de CMEI *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger id="cmei-1">
                               <SelectValue placeholder="Selecione" />
@@ -272,14 +272,13 @@ const Inscricao = () => {
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <FormLabel htmlFor="cmei-2">2ª Opção de CMEI</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger id="cmei-2" disabled={!selectedCmei1}>
                               <SelectValue placeholder="Selecione (opcional)" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {/* Removido o SelectItem com value="" para evitar o erro */}
                             {filteredCmei2Options.map((cmei) => (
                               <SelectItem key={cmei.value} value={cmei.value}>
                                 {cmei.label}
