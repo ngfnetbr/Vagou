@@ -68,8 +68,7 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
 
   // O parâmetro 'data' é garantido como InscricaoFormData pelo zodResolver
   const onSubmit = async (data: InscricaoFormData) => {
-    // Usamos asserção de tipo para garantir que o compilador aceite o tipo completo
-    // O RHF garante que 'data' é InscricaoFormData aqui, mas o TS precisa da asserção para as mutações.
+    // Forçamos a tipagem completa no uso para resolver o erro de compilação
     const finalData = data as InscricaoFormData;
 
     if (onSuccess) {
