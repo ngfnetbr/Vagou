@@ -203,8 +203,6 @@ const DetalhesCrianca = () => {
   const isDesistente = crianca.status === 'Desistente';
   const isRecusada = crianca.status === 'Recusada';
   
-  // isTrancada removido
-  
   const deadlineInfo = isConvocado && crianca.convocacaoDeadline ? (() => {
     const deadlineDate = parseISO(crianca.convocacaoDeadline + 'T00:00:00');
     const today = new Date();
@@ -228,6 +226,11 @@ const DetalhesCrianca = () => {
         isExpired: false,
     };
   })() : null;
+
+  // Formatação da data de nascimento
+  const formattedDataNascimento = crianca.dataNascimento 
+    ? format(parseISO(crianca.dataNascimento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
+    : 'N/A';
 
 
   return (
@@ -495,7 +498,7 @@ const DetalhesCrianca = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <p className="text-sm">Data Nasc.: {crianca.dataNascimento}</p>
+                  <p className="text-sm">Data Nasc.: {formattedDataNascimento}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-muted-foreground font-medium">Sexo:</span>
