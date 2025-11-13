@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Bell, XCircle, Eye, Loader2, Clock, RotateCcw } from "lucide-react";
+import { Search, Download, Bell, XCircle, Eye, Loader2, Clock, RotateCcw, History } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +33,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const Fila = () => {
   const { criancas, isLoading, marcarDesistente, isMarkingDesistente } = useCriancas();
@@ -99,6 +105,10 @@ const Fila = () => {
     return [...convocados, ...sortedFila];
 
   }, [criancas, cmeiFilter, prioridadeFilter, searchTerm]);
+  
+  const historicoCriancas = useMemo(() => {
+    return criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada" || c.status === "Desistente");
+  }, [criancas]);
 
   const stats = useMemo(() => {
     const totalFila = criancas.filter(c => c.status === "Fila de Espera").length;
@@ -150,6 +160,19 @@ const Fila = () => {
         icon: Clock,
         isExpired: false,
     };
+  };
+  
+  const getStatusBadge = (status: Crianca['status']) => {
+    const variants: Record<Crianca['status'], { className: string, text: string }> = {
+      "Matriculada": { className: "bg-secondary text-secondary-foreground", text: "Matriculada" },
+      "Matriculado": { className: "bg-secondary text-secondary-foreground", text: "Matriculado" },
+      "Fila de Espera": { className: "bg-accent/20 text-foreground", text: "Fila de Espera" },
+      "Convocado": { className: "bg-primary/20 text-primary", text: "Convocado" },
+      "Desistente": { className: "bg-destructive/20 text-destructive", text: "Desistente" },
+    };
+    
+    const config = variants[status] || { className: "bg-muted text-muted-foreground", text: status };
+    return <Badge className={config.className}>{config.text}</Badge>;
   };
 
   const handleConvocarClick = (crianca: Crianca) => {
@@ -366,6 +389,62 @@ const Fila = () => {
             </Table>
           </CardContent>
         </Card>
+        
+        {/* Histórico de Matrículas e Desistências */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="historico">
+            <AccordionTrigger className="text-xl font-bold text-foreground hover:no-underline">
+              <div className="flex items-center gap-2">
+                <History className="h-6 w-6 text-primary" />
+                Histórico de Matrículas e Desistências ({historicoCriancas.length})
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <Card>
+                <CardContent className="pt-6">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Criança</TableHead>
+                        <TableHead>Responsável</TableHead>
+                        <TableHead>Status Final</TableHead>
+                        <TableHead>CMEI/Turma</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {historicoCriancas.length > 0 ? (
+                        historicoCriancas.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.nome}</TableCell>
+                            <TableCell>{item.responsavel}</TableCell>
+                            <TableCell>{getStatusBadge(item.status)}</TableCell>
+                            <TableCell>{item.cmei !== "N/A" ? `${item.cmei} (${item.turmaAtual || 'N/A'})` : '-'}</TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => navigate(`/admin/criancas/${item.id}`)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-16 text-center text-muted-foreground">
+                            Nenhum registro de matrícula ou desistência encontrado.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
       
       {criancaToConvoke && (
