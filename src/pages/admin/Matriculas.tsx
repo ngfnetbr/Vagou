@@ -20,6 +20,7 @@ import JustificativaModal from "@/components/JustificativaModal";
 import RealocacaoModal from "@/components/RealocacaoModal"; // Importação atualizada
 import { Crianca, ConvocationData } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
+import { HistoricoMatriculasAccordion } from "@/components/matriculas/HistoricoMatriculasAccordion"; // Caminho corrigido
 
 const mockTurmas = [
   "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Pré I", "Pré II"
@@ -40,6 +41,8 @@ const Matriculas = () => {
     isTransferring,
     solicitarRemanejamento,
     isRequestingRemanejamento,
+    reativarCrianca, // Adicionado para reativação no histórico
+    isReactivating, // Adicionado para reativação no histórico
   } = useCriancas();
   const navigate = useNavigate();
   
@@ -57,31 +60,28 @@ const Matriculas = () => {
   const [currentVagaAction, setCurrentVagaAction] = useState<VagaAction | undefined>(undefined);
 
 
-  const matriculasAtivas = useMemo(() => {
-    let filtered = criancas.filter(c => 
+  const { matriculasAtivas, historicoEncerradas } = useMemo(() => {
+    const matriculasAtivas = criancas.filter(c => 
         c.status === "Matriculado" || 
         c.status === "Matriculada" || 
         c.status === "Remanejamento Solicitado"
+    ).filter(c => {
+        if (cmeiFilter !== "todos" && c.cmei !== cmeiFilter) return false;
+        if (turmaFilter !== "todas" && !c.turmaAtual?.includes(turmaFilter)) return false;
+        if (searchTerm) {
+            const lowerCaseSearch = searchTerm.toLowerCase();
+            if (!c.nome.toLowerCase().includes(lowerCaseSearch) && !c.responsavel.toLowerCase().includes(lowerCaseSearch)) return false;
+        }
+        return true;
+    });
+    
+    // Histórico: Crianças que foram matriculadas e agora são Desistentes ou Recusadas
+    const historicoEncerradas = criancas.filter(c => 
+        (c.status === "Desistente" || c.status === "Recusada") && 
+        c.historico.some(h => h.acao.includes("Matrícula Efetivada"))
     );
 
-    if (cmeiFilter !== "todos") {
-      filtered = filtered.filter(c => c.cmei === cmeiFilter);
-    }
-
-    if (turmaFilter !== "todas") {
-      // Filter by checking if turmaAtual includes the selected turma base name
-      filtered = filtered.filter(c => c.turmaAtual?.includes(turmaFilter));
-    }
-    
-    if (searchTerm) {
-      const lowerCaseSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(c => 
-        c.nome.toLowerCase().includes(lowerCaseSearch) ||
-        c.responsavel.toLowerCase().includes(lowerCaseSearch)
-      );
-    }
-
-    return filtered;
+    return { matriculasAtivas, historicoEncerradas };
   }, [criancas, cmeiFilter, turmaFilter, searchTerm]);
   
   // Get list of unique CMEIs where children are currently matriculated
@@ -190,6 +190,10 @@ const Matriculas = () => {
   
   const handleViewDetails = (id: number) => {
     navigate(`/admin/criancas/${id}`);
+  };
+  
+  const handleReativar = async (id: number) => {
+    await reativarCrianca(id);
   };
   
   if (isLoading) {
@@ -342,6 +346,14 @@ const Matriculas = () => {
             </Table>
           </CardContent>
         </Card>
+        
+        {/* Histórico de Matrículas Encerradas */}
+        <HistoricoMatriculasAccordion
+            historicoEncerradas={historicoEncerradas}
+            isReactivating={isReactivating}
+            handleReativar={handleReativar}
+            getStatusBadge={getStatusBadge}
+        />
       </div>
       
       {/* Modal de Justificativa (Desistente, Remanejamento, Transferir) */}
