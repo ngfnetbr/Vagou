@@ -16,7 +16,8 @@ import Relatorios from "./pages/admin/Relatorios";
 import Configuracoes from "./pages/admin/Configuracoes";
 import Logs from "./pages/Logs";
 import NotFound from "./pages/NotFound";
-import DetalhesTurma from "./pages/admin/DetalhesTurma"; // Importando a nova página
+import DetalhesTurma from "./pages/admin/DetalhesTurma";
+import DetalhesCrianca from "./pages/admin/DetalhesCrianca"; // Importando a nova página
 
 const queryClient = new QueryClient();
 
@@ -38,8 +39,9 @@ const App = () => (
           <Route path="/admin/matriculas" element={<Matriculas />} />
           <Route path="/admin/fila" element={<Fila />} />
           <Route path="/admin/criancas" element={<Criancas />} />
+          <Route path="/admin/criancas/:id" element={<DetalhesCrianca />} /> {/* Nova rota dinâmica */}
           <Route path="/admin/turmas" element={<Turmas />} />
-          <Route path="/admin/turmas/:id" element={<DetalhesTurma />} /> {/* Nova rota dinâmica */}
+          <Route path="/admin/turmas/:id" element={<DetalhesTurma />} />
           <Route path="/admin/convocacoes" element={<Convocacoes />} />
           <Route path="/admin/relatorios" element={<Relatorios />} />
           <Route path="/admin/configuracoes" element={<Configuracoes />} />

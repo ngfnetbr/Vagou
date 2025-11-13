@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, User, Calendar, MapPin, List, LayoutGrid, MoreVertical, Eye, Edit, Loader2 } from "lucide-react";
+import { Search, Plus, User, Calendar, MapPin, List, LayoutGrid, MoreVertical, Eye, Edit, Loader2, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,12 +13,26 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import NovaCriancaModalContent from "@/components/NovaCriancaModal";
 import { useCriancas } from "@/hooks/use-criancas";
 import { Crianca } from "@/lib/mock-data";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 const Criancas = () => {
-  const { criancas, isLoading } = useCriancas();
+  const { criancas, isLoading, deleteCrianca, isDeleting } = useCriancas();
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<"grid" | "list">("grid");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCrianca, setEditingCrianca] = useState<Crianca | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
 
@@ -26,7 +40,6 @@ const Criancas = () => {
     let filtered = criancas;
 
     if (statusFilter !== "todos") {
-      // Note: We need to handle both 'Matriculado' and 'Matriculada' if the filter is generic 'Matriculado'
       if (statusFilter === "Matriculado" || statusFilter === "Matriculada") {
         filtered = filtered.filter(c => c.status === "Matriculado" || c.status === "Matriculada");
       } else {
@@ -49,12 +62,31 @@ const Criancas = () => {
     const variants: Record<Crianca['status'], { variant: "default" | "secondary" | "outline", className: string }> = {
       "Matriculada": { variant: "default", className: "bg-secondary text-secondary-foreground" },
       "Matriculado": { variant: "default", className: "bg-secondary text-secondary-foreground" },
-      "Fila de Espera": { variant: "secondary", className: "" },
-      "Convocado": { variant: "default", className: "bg-accent text-accent-foreground" },
+      "Fila de Espera": { variant: "secondary", className: "bg-accent/20 text-foreground" },
+      "Convocado": { variant: "default", className: "bg-primary/20 text-primary" },
     };
     
     const config = variants[status] || { variant: "outline" as const, className: "" };
     return <Badge variant={config.variant} className={config.className}>{status}</Badge>;
+  };
+
+  const handleEditClick = (crianca: Crianca) => {
+    setEditingCrianca(crianca);
+    setIsModalOpen(true);
+  };
+
+  const handleNewCriancaClick = () => {
+    setEditingCrianca(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingCrianca(undefined);
+  };
+
+  const handleDelete = async (id: number) => {
+    await deleteCrianca(id);
   };
 
   if (isLoading) {
@@ -80,12 +112,16 @@ const Criancas = () => {
             <DialogTrigger asChild>
               <Button 
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                onClick={handleNewCriancaClick}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Criança
               </Button>
             </DialogTrigger>
-            <NovaCriancaModalContent onClose={() => setIsModalOpen(false)} />
+            <NovaCriancaModalContent 
+              onClose={handleModalClose} 
+              initialData={editingCrianca}
+            />
           </Dialog>
         </div>
 
@@ -179,10 +215,22 @@ const Criancas = () => {
                     </div>
                   )}
                   <div className="pt-2 flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => navigate(`/admin/criancas/${crianca.id}`)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
                       Ver Detalhes
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleEditClick(crianca)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Button>
                   </div>
@@ -222,14 +270,42 @@ const Criancas = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(`/admin/criancas/${crianca.id}`)}>
                               <Eye className="mr-2 h-4 w-4" />
                               Ver detalhes
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditClick(crianca)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Editar
                             </DropdownMenuItem>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente a criança 
+                                    <span className="font-semibold"> {crianca.nome} </span>
+                                    e todos os seus registros.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDelete(crianca.id)} 
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    disabled={isDeleting}
+                                  >
+                                    {isDeleting ? "Excluindo..." : "Excluir"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

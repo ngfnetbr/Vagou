@@ -3,24 +3,38 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Trash2 } from "lucide-react";
 import { useCriancas } from "@/hooks/use-criancas";
 import { formSchema, InscricaoFormData } from "@/lib/schemas/inscricao-schema";
 import { CriancaDataForm } from "@/components/forms/CriancaDataForm";
 import { ResponsavelDataForm } from "@/components/forms/ResponsavelDataForm";
 import { EnderecoDataForm } from "@/components/forms/EnderecoDataForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface InscricaoProps {
   onSuccess?: (data: InscricaoFormData) => void;
   isModal?: boolean;
+  initialData?: InscricaoFormData; // Data for editing
+  criancaId?: number; // ID of the child being edited
 }
 
-const Inscricao = ({ onSuccess, isModal = false }: InscricaoProps) => {
-  const { addCrianca, isAdding } = useCriancas();
+const Inscricao = ({ onSuccess, isModal = false, initialData, criancaId }: InscricaoProps) => {
+  const { addCrianca, isAdding, updateCrianca, isUpdating, deleteCrianca, isDeleting } = useCriancas();
+  const isEditing = !!criancaId;
 
   const form = useForm<InscricaoFormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       nomeCrianca: "",
       dataNascimento: "",
       sexo: "feminino",
@@ -52,12 +66,23 @@ const Inscricao = ({ onSuccess, isModal = false }: InscricaoProps) => {
   );
 
   const onSubmit = async (values: InscricaoFormData) => {
+    // A validação Zod garante que 'values' é InscricaoFormData completo aqui.
+    // Não precisamos de cast se o tipo do parâmetro estiver correto.
+
     if (onSuccess) {
       // Admin context: use mutation
       try {
-        await addCrianca(values);
+        if (isEditing && criancaId) {
+          await updateCrianca({ id: criancaId, data: values }); // FIX: Using values directly
+        } else {
+          await addCrianca(values); // FIX: Using values directly
+        }
         onSuccess(values);
-        form.reset();
+        // Note: form.reset() is handled by the parent modal's onClose logic if needed, 
+        // but we reset here for consistency in creation flow.
+        if (!isEditing) {
+          form.reset();
+        }
       } catch (error) {
         // Error handled by useCriancas hook toast
       }
@@ -69,6 +94,18 @@ const Inscricao = ({ onSuccess, isModal = false }: InscricaoProps) => {
       form.reset();
     }
   };
+  
+  const handleDelete = async () => {
+    if (criancaId) {
+      await deleteCrianca(criancaId);
+      if (onSuccess) {
+        // O getValues() pode retornar um tipo parcial, então o cast é necessário aqui.
+        onSuccess(form.getValues() as InscricaoFormData); 
+      }
+    }
+  };
+
+  const isSubmitting = isAdding || isUpdating || isDeleting;
 
   return (
     <div className={isModal ? "p-0" : "container mx-auto px-4 py-6"}>
@@ -96,22 +133,59 @@ const Inscricao = ({ onSuccess, isModal = false }: InscricaoProps) => {
 
             <EnderecoDataForm />
 
-            <div className="flex gap-4">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => form.reset()}>
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                className="flex-1 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                disabled={isAdding}
-              >
-                {isAdding ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                {isAdding ? "Cadastrando..." : (onSuccess ? "Cadastrar Criança" : "Cadastrar")}
-              </Button>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2 pt-4">
+              {isEditing && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      className="w-full sm:w-auto mt-2 sm:mt-0"
+                      disabled={isSubmitting}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir Criança
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente a criança 
+                        <span className="font-semibold"> {form.watch('nomeCrianca')} </span>
+                        e todos os seus registros.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDelete} 
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? "Excluindo..." : "Excluir"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <div className="flex w-full sm:w-auto gap-4 sm:ml-auto">
+                <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={() => form.reset()}>
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1 sm:flex-none bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  {isSubmitting ? "Processando..." : (isEditing ? "Salvar Alterações" : "Cadastrar")}
+                </Button>
+              </div>
             </div>
           </form>
         </FormProvider>
