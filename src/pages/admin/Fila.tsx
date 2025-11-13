@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Bell, XCircle, Eye, Loader2, Clock, RotateCcw, History } from "lucide-react";
+import { Search, Download, Bell, XCircle, Eye, Loader2, Clock, RotateCcw, History, ListRestart } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +41,16 @@ import {
 } from "@/components/ui/accordion";
 
 const Fila = () => {
-  const { criancas, isLoading, marcarDesistente, isMarkingDesistente } = useCriancas();
+  const { 
+    criancas, 
+    isLoading, 
+    marcarDesistente, 
+    isMarkingDesistente,
+    marcarFimDeFila,
+    isMarkingFimDeFila,
+    reativarCrianca,
+    isReactivating,
+  } = useCriancas();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [cmeiFilter, setCmeiFilter] = useState("todos");
@@ -182,6 +191,14 @@ const Fila = () => {
 
   const handleDesistente = async (id: number) => {
     await marcarDesistente(id);
+  };
+  
+  const handleFimDeFila = async (id: number) => {
+    await marcarFimDeFila(id);
+  };
+  
+  const handleReativar = async (id: number) => {
+    await reativarCrianca(id);
   };
 
   if (isLoading) {
@@ -343,6 +360,36 @@ const Fila = () => {
                                 </DropdownMenuItem>
                               )}
                               
+                              {/* Opção de Marcar Fim de Fila (apenas para convocados) */}
+                              {isConvocado && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-accent focus:bg-accent/10 focus:text-accent">
+                                      <ListRestart className="mr-2 h-4 w-4" />
+                                      Marcar Fim de Fila
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmar Fim de Fila?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta ação moverá <span className="font-semibold">{item.nome}</span> para o final da fila de espera, cancelando a convocação atual.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel disabled={isMarkingFimDeFila}>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleFimDeFila(item.id)} 
+                                        className="bg-accent text-accent-foreground hover:bg-accent/90"
+                                        disabled={isMarkingFimDeFila}
+                                      >
+                                        {isMarkingFimDeFila ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirmar Fim de Fila"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                              
                               {/* Opção de Marcar como desistente (sempre disponível para Fila/Convocado) */}
                               {(item.status === "Fila de Espera" || item.status === "Convocado") && (
                                 <AlertDialog>
@@ -421,13 +468,47 @@ const Fila = () => {
                             <TableCell>{getStatusBadge(item.status)}</TableCell>
                             <TableCell>{item.cmei !== "N/A" ? `${item.cmei} (${item.turmaAtual || 'N/A'})` : '-'}</TableCell>
                             <TableCell className="text-right">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => navigate(`/admin/criancas/${item.id}`)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => navigate(`/admin/criancas/${item.id}`)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Ver detalhes
+                                  </DropdownMenuItem>
+                                  {item.status === "Desistente" && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-secondary focus:bg-secondary/10 focus:text-secondary">
+                                          <ListRestart className="mr-2 h-4 w-4" />
+                                          Reativar na Fila
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Confirmar Reativação?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Esta ação reativará <span className="font-semibold">{item.nome}</span> na fila de espera, colocando-a no final da fila.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel disabled={isReactivating}>Cancelar</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => handleReativar(item.id)} 
+                                            className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                                            disabled={isReactivating}
+                                          >
+                                            {isReactivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirmar Reativação"}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </TableCell>
                           </TableRow>
                         ))

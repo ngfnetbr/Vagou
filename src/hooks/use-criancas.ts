@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCriancas, addCriancaFromInscricao, InscricaoFormData, Crianca, updateCrianca, deleteCrianca, getCriancaById, convocarCrianca, marcarDesistente, fetchAvailableTurmas, ConvocationData } from "@/lib/mock-data";
+import { fetchCriancas, addCriancaFromInscricao, InscricaoFormData, Crianca, updateCrianca, deleteCrianca, getCriancaById, convocarCrianca, marcarDesistente, fetchAvailableTurmas, ConvocationData, reativarCrianca, marcarFimDeFila } from "@/lib/mock-data";
 import { toast } from "sonner";
 
 const CRIANCAS_QUERY_KEY = ["criancas"];
@@ -95,6 +95,36 @@ export function useCriancas() {
       });
     },
   });
+  
+  const reativarMutation = useMutation({
+    mutationFn: reativarCrianca,
+    onSuccess: (updatedCrianca) => {
+      queryClient.invalidateQueries({ queryKey: CRIANCAS_QUERY_KEY });
+      toast.success("Criança reativada!", {
+        description: `${updatedCrianca.nome} foi colocada no final da fila de espera.`,
+      });
+    },
+    onError: () => {
+      toast.error("Erro ao reativar criança.", {
+        description: "Tente novamente mais tarde.",
+      });
+    },
+  });
+  
+  const fimDeFilaMutation = useMutation({
+    mutationFn: marcarFimDeFila,
+    onSuccess: (updatedCrianca) => {
+      queryClient.invalidateQueries({ queryKey: CRIANCAS_QUERY_KEY });
+      toast.info("Criança movida para o fim da fila.", {
+        description: `${updatedCrianca.nome} recusou a convocação e foi para o final da fila.`,
+      });
+    },
+    onError: () => {
+      toast.error("Erro ao marcar fim de fila.", {
+        description: "Tente novamente mais tarde.",
+      });
+    },
+  });
 
 
   return {
@@ -111,6 +141,10 @@ export function useCriancas() {
     isConvoking: convocarMutation.isPending,
     marcarDesistente: desistenteMutation.mutateAsync,
     isMarkingDesistente: desistenteMutation.isPending,
+    reativarCrianca: reativarMutation.mutateAsync,
+    isReactivating: reativarMutation.isPending,
+    marcarFimDeFila: fimDeFilaMutation.mutateAsync,
+    isMarkingFimDeFila: fimDeFilaMutation.isPending,
   };
 }
 

@@ -270,7 +270,7 @@ export const getCriancaById = (id: number): Crianca | undefined => {
     return undefined;
 };
 
-// --- New Mock Functions for Convocation ---
+// --- Mock Functions for Convocation ---
 
 export interface ConvocationData {
     cmei: string;
@@ -378,6 +378,68 @@ export const marcarDesistente = async (criancaId: number): Promise<Crianca> => {
                 data: new Date().toISOString().split('T')[0],
                 acao: "Marcado como Desistente",
                 detalhes: `Criança removida da fila e marcada como desistente.`,
+                usuario: "Admin/Gestor",
+            }
+        ]
+    };
+    
+    mockCriancas[index] = updatedCrianca;
+    return updatedCrianca;
+};
+
+export const reativarCrianca = async (criancaId: number): Promise<Crianca> => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const index = mockCriancas.findIndex(c => c.id === criancaId);
+    if (index === -1) throw new Error("Criança não encontrada");
+
+    // Simula a atribuição de posição no final da fila
+    const newPosicaoFila = mockCriancas.filter(c => c.status === "Fila de Espera").length + 1;
+
+    const updatedCrianca = {
+        ...mockCriancas[index],
+        status: "Fila de Espera" as const,
+        cmei: "N/A",
+        turmaAtual: undefined,
+        posicaoFila: newPosicaoFila,
+        convocacaoDeadline: undefined,
+        historico: [
+            ...mockCriancas[index].historico,
+            {
+                data: new Date().toISOString().split('T')[0],
+                acao: "Reativação na Fila",
+                detalhes: `Criança reativada na fila de espera. Posição: #${newPosicaoFila}.`,
+                usuario: "Admin/Gestor",
+            }
+        ]
+    };
+    
+    mockCriancas[index] = updatedCrianca;
+    return updatedCrianca;
+};
+
+export const marcarFimDeFila = async (criancaId: number): Promise<Crianca> => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const index = mockCriancas.findIndex(c => c.id === criancaId);
+    if (index === -1) throw new Error("Criança não encontrada");
+
+    // Simula a atribuição de posição no final da fila
+    const newPosicaoFila = mockCriancas.filter(c => c.status === "Fila de Espera").length + 1;
+
+    const updatedCrianca = {
+        ...mockCriancas[index],
+        status: "Fila de Espera" as const,
+        cmei: "N/A",
+        turmaAtual: undefined,
+        posicaoFila: newPosicaoFila,
+        convocacaoDeadline: undefined,
+        historico: [
+            ...mockCriancas[index].historico,
+            {
+                data: new Date().toISOString().split('T')[0],
+                acao: "Fim de Fila Solicitado",
+                detalhes: `Convocação recusada/expirada e criança movida para o final da fila. Posição: #${newPosicaoFila}.`,
                 usuario: "Admin/Gestor",
             }
         ]
