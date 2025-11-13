@@ -1,5 +1,6 @@
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import Inscricao, { InscricaoFormData } from "@/pages/Inscricao"; // Import Inscricao and its type
+import Inscricao from "@/pages/Inscricao"; // Import Inscricao
+import { InscricaoFormData } from "@/lib/schemas/inscricao-schema"; // Import type from schema file
 
 interface NovaCriancaModalProps {
   onClose: () => void;
