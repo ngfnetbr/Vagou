@@ -11,14 +11,15 @@ const Inscricao = () => {
   return (
     <div className="container mx-auto px-4 py-6"> {/* Ajustado para ser um container interno */}
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
+        {/* Removido o título e a descrição */}
+        {/* <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-3">
             Nova Inscrição
           </h1>
           <p className="text-muted-foreground">
             Preencha os dados abaixo para registrar sua intenção de vaga em um CMEI.
           </p>
-        </div>
+        </div> */}
 
         <form className="space-y-6">
           {/* Dados da Criança */}
