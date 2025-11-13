@@ -9,13 +9,12 @@ import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog"; // Importar Dialog e DialogTrigger
-import NovaCriancaModalContent from "@/components/NovaCriancaModal"; // Importar o conteúdo do modal
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import NovaCriancaModalContent from "@/components/NovaCriancaModal";
 
 
 const Criancas = () => {
-  const [isListView, setIsListView] = useState(false);
-  // O estado isModalOpen não é mais necessário aqui, pois o Dialog gerencia seu próprio estado.
+  const [currentView, setCurrentView] = useState<"grid" | "list">("grid"); // Alterado para 'currentView'
 
   const criancas = [
     { 
@@ -94,7 +93,7 @@ const Criancas = () => {
             <h1 className="text-3xl font-bold text-foreground">Crianças</h1>
             <p className="text-muted-foreground">Cadastro e gerenciamento de todas as crianças do sistema</p>
           </div>
-          <Dialog> {/* O Dialog agora envolve o Trigger e o Content */}
+          <Dialog>
             <DialogTrigger asChild>
               <Button 
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
@@ -103,7 +102,7 @@ const Criancas = () => {
                 Nova Criança
               </Button>
             </DialogTrigger>
-            <NovaCriancaModalContent /> {/* Renderiza o conteúdo do modal */}
+            <NovaCriancaModalContent />
           </Dialog>
         </div>
 
@@ -130,8 +129,12 @@ const Criancas = () => {
               </Select>
               <ToggleGroup 
                 type="single" 
-                defaultValue="grid" 
-                onValueChange={(value) => setIsListView(value === "list")}
+                value={currentView} // Controlado pelo estado
+                onValueChange={(value) => {
+                  if (value) { // Só atualiza se um valor for fornecido (evita deselection)
+                    setCurrentView(value as "grid" | "list");
+                  }
+                }}
                 className="flex-shrink-0"
               >
                 <ToggleGroupItem value="grid" aria-label="Visualizar em grade">
@@ -145,7 +148,7 @@ const Criancas = () => {
           </CardHeader>
         </Card>
 
-        {!isListView ? (
+        {currentView === "grid" ? ( // Renderização condicional
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {criancas.map((crianca) => (
               <Card key={crianca.id} className="hover:shadow-lg transition-shadow">
@@ -247,7 +250,6 @@ const Criancas = () => {
           </Card>
         )}
       </div>
-      {/* O NovaCriancaModal não é mais renderizado aqui, pois seu conteúdo está dentro do Dialog */}
     </AdminLayout>
   );
 };

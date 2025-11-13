@@ -7,25 +7,25 @@ import { Link } from "react-router-dom";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import NovaCmeiModal from "@/components/NovaCmeiModal";
 import { useState } from "react";
-import { toast } from "sonner"; // Importar toast do sonner
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"; // Importar ToggleGroup
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Importar componentes de tabela
+import { toast } from "sonner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"; // Importar DropdownMenu
-import { Badge } from "@/components/ui/badge"; // Importar Badge
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface Cmei {
   id: number;
   nome: string;
   endereco: string;
-  capacidade: number; // Mantido para exibição
-  ocupacao: number;   // Mantido para exibição
-  latitude?: string;  // Adicionado
-  longitude?: string; // Adicionado
+  capacidade: number;
+  ocupacao: number;
+  latitude?: string;
+  longitude?: string;
   telefone?: string;
   email?: string;
   diretor?: string;
@@ -42,17 +42,14 @@ const CMEIs = () => {
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCmei, setEditingCmei] = useState<Omit<Cmei, 'capacidade' | 'ocupacao'> & { id?: number } | undefined>(undefined);
-  const [isListView, setIsListView] = useState(false); // Estado para controlar a visualização
+  const [currentView, setCurrentView] = useState<"grid" | "list">("grid"); // Alterado para 'currentView'
 
   const handleSaveCmei = (data: Omit<Cmei, 'id' | 'capacidade' | 'ocupacao'>) => {
     if (editingCmei?.id) {
-      // Lógica para editar CMEI existente
       setCmeis(cmeis.map(c => c.id === editingCmei.id ? { ...c, ...data } : c));
       toast.success("CMEI atualizado com sucesso!");
     } else {
-      // Lógica para adicionar novo CMEI
       const newId = Math.max(...cmeis.map(c => c.id)) + 1;
-      // Para um novo CMEI, a ocupação e capacidade inicial podem ser 0 ou um valor padrão
       setCmeis([...cmeis, { id: newId, ocupacao: 0, capacidade: 0, ...data }]); 
       toast.success("CMEI cadastrado com sucesso!");
     }
@@ -61,7 +58,6 @@ const CMEIs = () => {
   };
 
   const handleEditClick = (cmei: Cmei) => {
-    // Ao editar, passamos apenas os campos que o modal pode editar
     setEditingCmei({
       id: cmei.id,
       nome: cmei.nome,
@@ -77,7 +73,7 @@ const CMEIs = () => {
   };
 
   const handleNewCmeiClick = () => {
-    setEditingCmei(undefined); // Limpa os dados para um novo CMEI
+    setEditingCmei(undefined);
     setIsModalOpen(true);
   };
 
@@ -119,8 +115,12 @@ const CMEIs = () => {
               </div>
               <ToggleGroup 
                 type="single" 
-                defaultValue="grid" 
-                onValueChange={(value) => setIsListView(value === "list")}
+                value={currentView} // Controlado pelo estado
+                onValueChange={(value) => {
+                  if (value) { // Só atualiza se um valor for fornecido (evita deselection)
+                    setCurrentView(value as "grid" | "list");
+                  }
+                }}
                 className="flex-shrink-0"
               >
                 <ToggleGroupItem value="grid" aria-label="Visualizar em grade">
@@ -134,7 +134,7 @@ const CMEIs = () => {
           </CardHeader>
         </Card>
 
-        {!isListView ? (
+        {currentView === "grid" ? ( // Renderização condicional
           <div className="grid md:grid-cols-2 gap-6">
             {cmeis.map((cmei) => {
               const ocupacaoPercent = cmei.capacidade > 0 ? Math.round((cmei.ocupacao / cmei.capacidade) * 100) : 0;
@@ -200,7 +200,7 @@ const CMEIs = () => {
                     <TableHead className="text-center">Capacidade</TableHead>
                     <TableHead className="text-center">Vagas Ocupadas</TableHead>
                     <TableHead className="text-center">Vagas Disponíveis</TableHead>
-                    <TableHead className="text-center">Ocupação (%)</TableHead> {/* Nova coluna para o badge */}
+                    <TableHead className="text-center">Ocupação (%)</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -212,9 +212,9 @@ const CMEIs = () => {
                         <TableCell className="font-medium">{cmei.nome}</TableCell>
                         <TableCell>{cmei.endereco}</TableCell>
                         <TableCell className="text-center">{cmei.capacidade}</TableCell>
-                        <TableCell className="text-center">{cmei.ocupacao}</TableCell> {/* Apenas o número */}
-                        <TableCell className="text-center">{cmei.capacidade - cmei.ocupacao}</TableCell> {/* Apenas o número */}
-                        <TableCell className="text-center"> {/* Coluna para o badge */}
+                        <TableCell className="text-center">{cmei.ocupacao}</TableCell>
+                        <TableCell className="text-center">{cmei.capacidade - cmei.ocupacao}</TableCell>
+                        <TableCell className="text-center">
                           <Badge className={`text-xs font-normal ${
                             ocupacaoPercent >= 90 
                               ? 'bg-destructive/20 text-destructive' 
