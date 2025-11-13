@@ -109,7 +109,7 @@ interface InscricaoProps {
 const Inscricao = ({ onSuccess, isModal = false }: InscricaoProps) => {
   const { addCrianca, isAdding } = useCriancas();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<InscricaoFormData>({ // FIX APPLIED HERE: Use InscricaoFormData directly
     resolver: zodResolver(formSchema),
     defaultValues: {
       nomeCrianca: "",
