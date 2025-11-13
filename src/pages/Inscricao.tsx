@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Save } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-// O componente Switch não será mais necessário para esses campos, então o import pode ser removido se não for usado em outro lugar.
+import { DatePicker } from "@/components/DatePicker"; // Importando o novo DatePicker
 
 // Funções de máscara
 const formatCpf = (value: string) => {
@@ -101,9 +101,6 @@ const Inscricao = () => {
     (cmei) => cmei.value !== selectedCmei1
   );
 
-  // Removido o item { value: "", label: "Sem segunda opção" } pois o Select.Item não aceita valor de string vazia.
-  // O placeholder do SelectValue já gerencia o estado de 'nenhuma seleção'.
-
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log("Dados do formulário:", values);
     // Aqui você enviaria os dados para o backend
@@ -141,7 +138,11 @@ const Inscricao = () => {
                       <FormItem className="space-y-2">
                         <FormLabel htmlFor="data-nascimento">Data de Nascimento *</FormLabel>
                         <FormControl>
-                          <Input id="data-nascimento" type="date" placeholder="dd/mm/aaaa" {...field} />
+                          <DatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="dd/mm/aaaa"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
