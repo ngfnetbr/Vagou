@@ -23,12 +23,13 @@ import {
 
 interface InscricaoProps {
   onSuccess?: (data: InscricaoFormData) => void;
+  onCancel?: () => void; // Novo prop para lidar com o cancelamento/fechamento
   isModal?: boolean;
   initialData?: InscricaoFormData; // Data for editing
   criancaId?: number; // ID of the child being edited
 }
 
-const Inscricao = ({ onSuccess, isModal = false, initialData, criancaId }: InscricaoProps) => {
+const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaId }: InscricaoProps) => {
   const { addCrianca, isAdding, updateCrianca, isUpdating, deleteCrianca, isDeleting } = useCriancas();
   const isEditing = !!criancaId;
 
@@ -65,21 +66,18 @@ const Inscricao = ({ onSuccess, isModal = false, initialData, criancaId }: Inscr
     (cmei) => cmei.value !== selectedCmei1
   );
 
+  // Tipando o parâmetro values explicitamente como InscricaoFormData
   const onSubmit = async (values: InscricaoFormData) => {
-    // A validação Zod garante que 'values' é InscricaoFormData completo aqui.
-    // Não precisamos de cast se o tipo do parâmetro estiver correto.
-
     if (onSuccess) {
       // Admin context: use mutation
       try {
         if (isEditing && criancaId) {
-          await updateCrianca({ id: criancaId, data: values }); // FIX: Using values directly
+          // O tipo de 'values' é InscricaoFormData aqui, resolvendo o erro.
+          await updateCrianca({ id: criancaId, data: values }); 
         } else {
-          await addCrianca(values); // FIX: Using values directly
+          await addCrianca(values); 
         }
         onSuccess(values);
-        // Note: form.reset() is handled by the parent modal's onClose logic if needed, 
-        // but we reset here for consistency in creation flow.
         if (!isEditing) {
           form.reset();
         }
@@ -99,9 +97,17 @@ const Inscricao = ({ onSuccess, isModal = false, initialData, criancaId }: Inscr
     if (criancaId) {
       await deleteCrianca(criancaId);
       if (onSuccess) {
-        // O getValues() pode retornar um tipo parcial, então o cast é necessário aqui.
+        // O getValues() pode retornar um tipo parcial, o cast é mantido aqui.
         onSuccess(form.getValues() as InscricaoFormData); 
       }
+    }
+  };
+
+  const handleCancelClick = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      form.reset();
     }
   };
 
@@ -170,7 +176,12 @@ const Inscricao = ({ onSuccess, isModal = false, initialData, criancaId }: Inscr
                 </AlertDialog>
               )}
               <div className="flex w-full sm:w-auto gap-4 sm:ml-auto">
-                <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={() => form.reset()}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1 sm:flex-none" 
+                  onClick={handleCancelClick}
+                >
                   Cancelar
                 </Button>
                 <Button 

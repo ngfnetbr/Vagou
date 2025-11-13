@@ -31,8 +31,8 @@ const NovaCriancaModalContent = ({ onClose, initialData }: NovaCriancaModalProps
   const isEditing = !!initialData;
   const defaultValues = isEditing ? mapCriancaToFormData(initialData) : undefined;
 
-  const handleSuccess = (data: InscricaoFormData) => {
-    // Logic after successful submission (handled by Inscricao component's mutation)
+  const handleSuccess = () => {
+    // This handles both successful submission and deletion (via onSuccess in Inscricao)
     onClose();
   };
 
@@ -44,9 +44,10 @@ const NovaCriancaModalContent = ({ onClose, initialData }: NovaCriancaModalProps
           {isEditing ? "Atualize os dados cadastrais da criança." : "Preencha os dados para realizar a inscrição de uma nova criança no sistema."}
         </DialogDescription>
       </DialogHeader>
-      {/* Pass onSuccess handler, isModal flag, and initialData/id for editing */}
+      {/* Pass onSuccess handler, isModal flag, initialData/id for editing, and onClose for cancellation */}
       <Inscricao 
         onSuccess={handleSuccess} 
+        onCancel={onClose} // Passa a função de fechar para o botão Cancelar
         isModal={true} 
         initialData={defaultValues}
         criancaId={initialData?.id}
