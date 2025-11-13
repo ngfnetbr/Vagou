@@ -6,7 +6,6 @@ import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Save, X, Trash2 } from "lucide-react";
@@ -27,7 +26,6 @@ const turmaBaseSchema = z.object({
   nome: z.string().min(1, "Nome da turma é obrigatório."),
   idadeMinima: z.coerce.number().min(0, "Idade mínima deve ser 0 ou maior."),
   idadeMaxima: z.coerce.number().min(0, "Idade máxima deve ser 0 ou maior."),
-  // Capacidade Padrão removida
   descricao: z.string().optional().or(z.literal('')),
 }).refine(data => data.idadeMaxima >= data.idadeMinima, {
   message: "Idade máxima não pode ser menor que a idade mínima.",
@@ -36,28 +34,27 @@ const turmaBaseSchema = z.object({
 
 export type TurmaBaseFormData = z.infer<typeof turmaBaseSchema>;
 
-interface NovaTurmaBaseModalProps {
+interface TurmaBaseModalProps {
   initialData?: TurmaBaseFormData & { id?: number }; // Inclui id para edição
   onSave: (data: TurmaBaseFormData & { id?: number }) => void;
   onClose: () => void;
   onDelete?: (id: number) => void; // Nova prop para exclusão
 }
 
-const NovaTurmaBaseModal = ({ initialData, onSave, onClose, onDelete }: NovaTurmaBaseModalProps) => {
+const TurmaBaseModal = ({ initialData, onSave, onClose, onDelete }: TurmaBaseModalProps) => {
   const form = useForm<TurmaBaseFormData>({
     resolver: zodResolver(turmaBaseSchema),
     defaultValues: initialData || {
       nome: "",
       idadeMinima: 0,
       idadeMaxima: 0,
-      // Capacidade Padrão removida
       descricao: "",
     },
   });
 
   const onSubmit = (values: TurmaBaseFormData) => {
     onSave({ ...values, id: initialData?.id });
-    onClose();
+    // Não fechar o modal aqui, o pai deve controlar o fechamento
   };
 
   const handleDelete = () => {
@@ -66,12 +63,14 @@ const NovaTurmaBaseModal = ({ initialData, onSave, onClose, onDelete }: NovaTurm
     }
   };
 
+  const isEditing = !!initialData?.id;
+
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{initialData ? "Editar Turma Base" : "Nova Turma Base"}</DialogTitle>
+        <DialogTitle>{isEditing ? "Editar Turma Base" : "Nova Turma Base"}</DialogTitle>
         <DialogDescription>
-          {initialData ? "Atualize as informações da turma base." : "Preencha os dados para cadastrar um novo modelo de turma."}
+          {isEditing ? "Atualize as informações da turma base." : "Preencha os dados para cadastrar um novo modelo de turma."}
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
@@ -117,7 +116,6 @@ const NovaTurmaBaseModal = ({ initialData, onSave, onClose, onDelete }: NovaTurm
               )}
             />
           </div>
-          {/* Campo de Capacidade Padrão removido */}
           <FormField
             control={form.control}
             name="descricao"
@@ -170,7 +168,7 @@ const NovaTurmaBaseModal = ({ initialData, onSave, onClose, onDelete }: NovaTurm
               </Button>
               <Button type="submit" className="flex-1 sm:flex-none bg-secondary text-secondary-foreground hover:bg-secondary/90">
                 <Save className="mr-2 h-4 w-4" />
-                {initialData ? "Salvar Alterações" : "Cadastrar Turma"}
+                {isEditing ? "Salvar Alterações" : "Cadastrar Turma"}
               </Button>
             </div>
           </DialogFooter>
@@ -180,4 +178,4 @@ const NovaTurmaBaseModal = ({ initialData, onSave, onClose, onDelete }: NovaTurm
   );
 };
 
-export default NovaTurmaBaseModal;
+export default TurmaBaseModal;

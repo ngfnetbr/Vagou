@@ -4,7 +4,7 @@ import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import NovaTurmaBaseModal, { TurmaBaseFormData } from "@/components/NovaTurmaBaseModal";
+import TurmaBaseModal, { TurmaBaseFormData } from "@/components/TurmaBaseModal";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -119,7 +119,7 @@ const TurmasBase = () => {
               Nova Turma Base
             </Button>
           </DialogTrigger>
-          <NovaTurmaBaseModal
+          <TurmaBaseModal
             initialData={editingTurmaBase}
             onSave={handleSaveTurma}
             onClose={() => setIsModalOpen(false)}
