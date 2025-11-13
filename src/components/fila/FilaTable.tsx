@@ -9,6 +9,7 @@ import { Crianca } from "@/lib/mock-data";
 import { useNavigate } from "react-router-dom";
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
+import { format, differenceInDays, parseISO } from "date-fns";
 
 type JustificativaAction = 'recusada' | 'desistente' | 'fim_de_fila';
 
@@ -24,10 +25,9 @@ interface FilaTableProps {
 
 // Helper functions (copied from Fila.tsx to keep FilaTable self-contained regarding display logic)
 const getDeadlineInfo = (deadline: string) => {
-    const deadlineDate = new Date(deadline + 'T00:00:00');
+    const deadlineDate = parseISO(deadline + 'T00:00:00');
     const today = new Date();
-    const diffTime = deadlineDate.getTime() - today.getTime();
-    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysRemaining = differenceInDays(deadlineDate, today);
     
     const isExpired = daysRemaining < 0;
 

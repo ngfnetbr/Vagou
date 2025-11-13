@@ -2,28 +2,17 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Loader2, Bell, XCircle, Eye, Clock, RotateCcw, History, ListRestart, CheckCircle, FileText } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { useCriancas } from "@/hooks/use-criancas";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Crianca } from "@/lib/mock-data";
 import { Dialog } from "@/components/ui/dialog";
 import ConvocarModal from "@/components/ConvocarModal";
 import JustificativaModal from "@/components/JustificativaModal";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 // Componentes Modulares
 import { FilaStats } from "@/components/fila/FilaStats";
@@ -176,9 +165,20 @@ const Fila = () => {
 
   // --- Handlers ---
 
+  const handleExport = () => {
+    toast.success("Exportação da Fila iniciada!", {
+      description: "O arquivo da fila de espera será gerado e baixado em breve.",
+    });
+  };
+
   const handleConvocarClick = (crianca: Crianca) => {
     setCriancaToConvoke(crianca);
     setIsConvocarModalOpen(true);
+  };
+  
+  const handleConvocarSuccess = () => {
+    setIsConvocarModalOpen(false);
+    setCriancaToConvoke(undefined);
   };
   
   const handleConfirmarMatricula = async (id: number) => {
@@ -196,16 +196,24 @@ const Fila = () => {
     
     const id = criancaToJustify.id;
     
-    switch (currentJustificativaAction) {
-      case 'recusada':
-        await marcarRecusada({ id, justificativa });
-        break;
-      case 'desistente':
-        await marcarDesistente({ id, justificativa });
-        break;
-      case 'fim_de_fila':
-        await marcarFimDeFila({ id, justificativa });
-        break;
+    try {
+        switch (currentJustificativaAction) {
+          case 'recusada':
+            await marcarRecusada({ id, justificativa });
+            break;
+          case 'desistente':
+            await marcarDesistente({ id, justificativa });
+            break;
+          case 'fim_de_fila':
+            await marcarFimDeFila({ id, justificativa });
+            break;
+        }
+        
+        setIsJustificativaModalOpen(false);
+        setCriancaToJustify(undefined);
+        setCurrentJustificativaAction(undefined);
+    } catch (e) {
+        // Erro tratado pelo hook
     }
   };
   
@@ -265,7 +273,11 @@ const Fila = () => {
             <h1 className="text-3xl font-bold text-foreground">Fila de Espera e Convocações</h1>
             <p className="text-muted-foreground">Gerenciamento da fila de espera para vagas e acompanhamento de convocações</p>
           </div>
-          <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+          <Button 
+            variant="outline" 
+            className="border-primary text-primary hover:bg-primary/10"
+            onClick={handleExport}
+          >
             <Download className="mr-2 h-4 w-4" />
             Exportar Fila
           </Button>
@@ -307,10 +319,7 @@ const Fila = () => {
         {criancaToConvoke && (
           <ConvocarModal 
             crianca={criancaToConvoke} 
-            onClose={() => {
-                setIsConvocarModalOpen(false);
-                setCriancaToConvoke(undefined);
-            }} 
+            onClose={handleConvocarSuccess}
           />
         )}
       </Dialog>

@@ -66,17 +66,20 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
     (cmei) => cmei.value !== selectedCmei1
   );
 
-  // O handleSubmit do RHF garante que os dados são válidos e completos (InscricaoFormData)
+  // O parâmetro 'data' é garantido como InscricaoFormData pelo zodResolver
   const onSubmit = async (data: InscricaoFormData) => {
+    // Usamos asserção de tipo para garantir que o compilador aceite o tipo completo
+    const formData = data as InscricaoFormData;
+
     if (onSuccess) {
       // Admin context: use mutation
       try {
         if (isEditing && criancaId) {
-          await updateCrianca({ id: criancaId, data: data }); 
+          await updateCrianca({ id: criancaId, data: formData }); 
         } else {
-          await addCrianca(data); 
+          await addCrianca(formData); 
         }
-        onSuccess(data);
+        onSuccess(formData);
         if (!isEditing) {
           form.reset();
         }
