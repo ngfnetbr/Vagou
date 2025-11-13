@@ -41,7 +41,8 @@ const formatPhone = (value: string) => {
 const cmeiSchema = z.object({
   nome: z.string().min(1, "Nome do CMEI é obrigatório."),
   endereco: z.string().min(1, "Endereço é obrigatório."),
-  capacidade: z.coerce.number().min(1, "Capacidade deve ser um número positivo."),
+  latitude: z.string().optional().or(z.literal('')),
+  longitude: z.string().optional().or(z.literal('')),
   telefone: z
     .string()
     .min(1, "Telefone é obrigatório.")
@@ -66,7 +67,8 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
     defaultValues: initialData || {
       nome: "",
       endereco: "",
-      capacidade: 0,
+      latitude: "",
+      longitude: "",
       telefone: "",
       email: "",
       diretor: "",
@@ -81,7 +83,7 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
   };
 
   return (
-    <DialogContent className="max-w-2xl">
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"> {/* Adicionado max-h e overflow-y-auto para responsividade */}
       <DialogHeader>
         <DialogTitle>{initialData ? "Editar CMEI" : "Novo CMEI"}</DialogTitle>
         <DialogDescription>
@@ -116,19 +118,34 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="capacidade"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Capacidade Total *</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="Ex: 150" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="latitude"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Latitude</FormLabel>
+                  <FormControl>
+                    <Input placeholder="-23.4567" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="longitude"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Longitude</FormLabel>
+                  <FormControl>
+                    <Input placeholder="-46.1234" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}

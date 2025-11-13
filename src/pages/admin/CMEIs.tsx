@@ -13,8 +13,10 @@ interface Cmei {
   id: number;
   nome: string;
   endereco: string;
-  capacidade: number;
-  ocupacao: number;
+  capacidade: number; // Mantido para exibição
+  ocupacao: number;   // Mantido para exibição
+  latitude?: string;  // Adicionado
+  longitude?: string; // Adicionado
   telefone?: string;
   email?: string;
   diretor?: string;
@@ -24,23 +26,24 @@ interface Cmei {
 
 const CMEIs = () => {
   const [cmeis, setCmeis] = useState<Cmei[]>([
-    { id: 1, nome: "CMEI Centro", endereco: "Rua Central, 123", capacidade: 150, ocupacao: 142, telefone: "(44) 9 1234-5678", email: "centro@cmei.com.br", diretor: "Maria Silva", coordenador: "Ana Paula" },
-    { id: 2, nome: "CMEI Norte", endereco: "Av. Norte, 456", capacidade: 120, ocupacao: 115, telefone: "(44) 9 8765-4321", email: "norte@cmei.com.br", diretor: "João Santos", coordenador: "Pedro Lima" },
-    { id: 3, nome: "CMEI Sul", endereco: "Rua Sul, 789", capacidade: 180, ocupacao: 165, telefone: "(44) 9 1122-3344", email: "sul@cmei.com.br", diretor: "Carla Oliveira", coordenador: "Lucas Costa" },
-    { id: 4, nome: "CMEI Leste", endereco: "Av. Leste, 321", capacidade: 140, ocupacao: 128, telefone: "(44) 9 5566-7788", email: "leste@cmei.com.br", diretor: "Beatriz Souza", coordenador: "Gabriel Alves" },
+    { id: 1, nome: "CMEI Centro", endereco: "Rua Central, 123", capacidade: 150, ocupacao: 142, latitude: "-23.5505", longitude: "-46.6333", telefone: "(44) 9 1234-5678", email: "centro@cmei.com.br", diretor: "Maria Silva", coordenador: "Ana Paula" },
+    { id: 2, nome: "CMEI Norte", endereco: "Av. Norte, 456", capacidade: 120, ocupacao: 115, latitude: "-23.4500", longitude: "-46.5500", telefone: "(44) 9 8765-4321", email: "norte@cmei.com.br", diretor: "João Santos", coordenador: "Pedro Lima" },
+    { id: 3, nome: "CMEI Sul", endereco: "Rua Sul, 789", capacidade: 180, ocupacao: 165, latitude: "-23.6500", longitude: "-46.7500", telefone: "(44) 9 1122-3344", email: "sul@cmei.com.br", diretor: "Carla Oliveira", coordenador: "Lucas Costa" },
+    { id: 4, nome: "CMEI Leste", endereco: "Av. Leste, 321", capacidade: 140, ocupacao: 128, latitude: "-23.5000", longitude: "-46.5000", telefone: "(44) 9 5566-7788", email: "leste@cmei.com.br", diretor: "Beatriz Souza", coordenador: "Gabriel Alves" },
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCmei, setEditingCmei] = useState<Cmei | undefined>(undefined);
+  const [editingCmei, setEditingCmei] = useState<Omit<Cmei, 'capacidade' | 'ocupacao'> & { id?: number } | undefined>(undefined);
 
-  const handleSaveCmei = (data: Omit<Cmei, 'id' | 'ocupacao'>) => {
-    if (editingCmei) {
+  const handleSaveCmei = (data: Omit<Cmei, 'id' | 'capacidade' | 'ocupacao'>) => {
+    if (editingCmei?.id) {
       // Lógica para editar CMEI existente
       setCmeis(cmeis.map(c => c.id === editingCmei.id ? { ...c, ...data } : c));
       toast.success("CMEI atualizado com sucesso!");
     } else {
       // Lógica para adicionar novo CMEI
       const newId = Math.max(...cmeis.map(c => c.id)) + 1;
-      setCmeis([...cmeis, { id: newId, ocupacao: 0, ...data }]);
+      // Para um novo CMEI, a ocupação e capacidade inicial podem ser 0 ou um valor padrão
+      setCmeis([...cmeis, { id: newId, ocupacao: 0, capacidade: 0, ...data }]); 
       toast.success("CMEI cadastrado com sucesso!");
     }
     setEditingCmei(undefined);
@@ -48,12 +51,24 @@ const CMEIs = () => {
   };
 
   const handleEditClick = (cmei: Cmei) => {
-    setEditingCmei(cmei);
+    // Ao editar, passamos apenas os campos que o modal pode editar
+    setEditingCmei({
+      id: cmei.id,
+      nome: cmei.nome,
+      endereco: cmei.endereco,
+      latitude: cmei.latitude,
+      longitude: cmei.longitude,
+      telefone: cmei.telefone,
+      email: cmei.email,
+      diretor: cmei.diretor,
+      coordenador: cmei.coordenador,
+      observacoes: cmei.observacoes,
+    });
     setIsModalOpen(true);
   };
 
   const handleNewCmeiClick = () => {
-    setEditingCmei(undefined);
+    setEditingCmei(undefined); // Limpa os dados para um novo CMEI
     setIsModalOpen(true);
   };
 
@@ -99,7 +114,7 @@ const CMEIs = () => {
 
         <div className="grid md:grid-cols-2 gap-6">
           {cmeis.map((cmei) => {
-            const ocupacaoPercent = Math.round((cmei.ocupacao / cmei.capacidade) * 100);
+            const ocupacaoPercent = cmei.capacidade > 0 ? Math.round((cmei.ocupacao / cmei.capacidade) * 100) : 0;
             return (
               <Card key={cmei.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
