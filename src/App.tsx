@@ -11,7 +11,7 @@ import Matriculas from "./pages/admin/Matriculas";
 import Fila from "./pages/admin/Fila";
 import Criancas from "./pages/admin/Criancas";
 import Turmas from "./pages/admin/Turmas";
-import Convocacoes from "./pages/admin/Convocacoes";
+// import Convocacoes from "./pages/admin/Convocacoes"; // Removido
 import Relatorios from "./pages/admin/Relatorios";
 import Configuracoes from "./pages/admin/Configuracoes";
 import Logs from "./pages/Logs";
@@ -42,7 +42,7 @@ const App = () => (
           <Route path="/admin/criancas/:id" element={<DetalhesCrianca />} /> {/* Nova rota dinâmica */}
           <Route path="/admin/turmas" element={<Turmas />} />
           <Route path="/admin/turmas/:id" element={<DetalhesTurma />} />
-          <Route path="/admin/convocacoes" element={<Convocacoes />} />
+          {/* <Route path="/admin/convocacoes" element={<Convocacoes />} /> */} {/* Rota removida */}
           <Route path="/admin/relatorios" element={<Relatorios />} />
           <Route path="/admin/configuracoes" element={<Configuracoes />} />
           

@@ -4,7 +4,6 @@ import {
   Users,
   School,
   ListOrdered,
-  Bell,
   GraduationCap,
   FileText,
   Settings,
@@ -19,7 +18,7 @@ const menuItems = [
   { icon: Users, label: "Crianças", to: "/admin/criancas" },
   { icon: School, label: "CMEIs", to: "/admin/cmeis" },
   { icon: Layers, label: "Turmas", to: "/admin/turmas" },
-  { icon: Bell, label: "Convocações", to: "/admin/convocacoes" },
+  // { icon: Bell, label: "Convocações", to: "/admin/convocacoes" }, // Removido
   { icon: FileText, label: "Relatórios", to: "/admin/relatorios" },
   { icon: Settings, label: "Configurações", to: "/admin/configuracoes" },
   { icon: History, label: "Logs do Sistema", to: "/logs" },
