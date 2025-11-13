@@ -10,7 +10,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Save, X, Trash2 } from "lucide-react"; // Importar Trash2
+import { Save, X, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"; // Importar componentes do AlertDialog
 
 // Função de máscara de telefone (copiada de Inscricao.tsx)
 const formatPhone = (value: string) => {
@@ -218,15 +229,34 @@ const NovaCmeiModal = ({ initialData, onSave, onClose, onDelete }: NovaCmeiModal
           </div>
           <DialogFooter className="pt-4 flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
             {initialData && onDelete && (
-              <Button 
-                type="button" 
-                variant="destructive" 
-                onClick={handleDelete}
-                className="w-full sm:w-auto mt-2 sm:mt-0"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir CMEI
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    className="w-full sm:w-auto mt-2 sm:mt-0"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir CMEI
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso excluirá permanentemente o CMEI 
+                      <span className="font-semibold"> {initialData.nome} </span>
+                      e removerá todos os dados associados.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             <div className="flex w-full sm:w-auto gap-2 mt-2 sm:mt-0">
               <Button type="button" variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
