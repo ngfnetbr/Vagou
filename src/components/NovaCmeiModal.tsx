@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Save, X } from "lucide-react";
+import { Save, X, Trash2 } from "lucide-react"; // Importar Trash2
 
 // Função de máscara de telefone (copiada de Inscricao.tsx)
 const formatPhone = (value: string) => {
@@ -59,9 +59,10 @@ interface NovaCmeiModalProps {
   initialData?: CmeiFormData & { id?: number }; // Inclui id para edição
   onSave: (data: CmeiFormData) => void;
   onClose: () => void;
+  onDelete?: (id: number) => void; // Nova prop para exclusão
 }
 
-const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => {
+const NovaCmeiModal = ({ initialData, onSave, onClose, onDelete }: NovaCmeiModalProps) => {
   const form = useForm<CmeiFormData>({
     resolver: zodResolver(cmeiSchema),
     defaultValues: initialData || {
@@ -79,6 +80,12 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
   const onSubmit = (values: CmeiFormData) => {
     onSave(values);
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (initialData?.id && onDelete) {
+      onDelete(initialData.id);
+    }
   };
 
   return (
@@ -154,7 +161,7 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
                   <FormLabel>Telefone</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="(00) 9 0000-0000" // Removido (opcional)
+                      placeholder="(00) 9 0000-0000"
                       {...field}
                       value={formatPhone(field.value)}
                       onChange={(e) => {
@@ -209,15 +216,28 @@ const NovaCmeiModal = ({ initialData, onSave, onClose }: NovaCmeiModalProps) => 
               )}
             />
           </div>
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              <X className="mr-2 h-4 w-4" />
-              Cancelar
-            </Button>
-            <Button type="submit" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-              <Save className="mr-2 h-4 w-4" />
-              {initialData ? "Salvar Alterações" : "Cadastrar CMEI"}
-            </Button>
+          <DialogFooter className="pt-4 flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
+            {initialData && onDelete && (
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={handleDelete}
+                className="w-full sm:w-auto mt-2 sm:mt-0"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir CMEI
+              </Button>
+            )}
+            <div className="flex w-full sm:w-auto gap-2 mt-2 sm:mt-0">
+              <Button type="button" variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
+                <X className="mr-2 h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button type="submit" className="flex-1 sm:flex-none bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                <Save className="mr-2 h-4 w-4" />
+                {initialData ? "Salvar Alterações" : "Cadastrar CMEI"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </Form>

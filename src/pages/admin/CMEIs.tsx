@@ -42,7 +42,7 @@ const CMEIs = () => {
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCmei, setEditingCmei] = useState<Omit<Cmei, 'capacidade' | 'ocupacao'> & { id?: number } | undefined>(undefined);
-  const [currentView, setCurrentView] = useState<"grid" | "list">("grid"); // Alterado para 'currentView'
+  const [currentView, setCurrentView] = useState<"grid" | "list">("grid");
 
   const handleSaveCmei = (data: Omit<Cmei, 'id' | 'capacidade' | 'ocupacao'>) => {
     if (editingCmei?.id) {
@@ -55,6 +55,12 @@ const CMEIs = () => {
     }
     setEditingCmei(undefined);
     setIsModalOpen(false);
+  };
+
+  const handleDeleteCmei = (id: number) => {
+    setCmeis(cmeis.filter(cmei => cmei.id !== id));
+    toast.success("CMEI excluído com sucesso!");
+    setIsModalOpen(false); // Fecha o modal após a exclusão
   };
 
   const handleEditClick = (cmei: Cmei) => {
@@ -99,6 +105,7 @@ const CMEIs = () => {
               initialData={editingCmei} 
               onSave={handleSaveCmei} 
               onClose={() => setIsModalOpen(false)} 
+              onDelete={handleDeleteCmei} // Passa a função de exclusão
             />
           </Dialog>
         </div>
@@ -115,9 +122,9 @@ const CMEIs = () => {
               </div>
               <ToggleGroup 
                 type="single" 
-                value={currentView} // Controlado pelo estado
+                value={currentView}
                 onValueChange={(value) => {
-                  if (value) { // Só atualiza se um valor for fornecido (evita deselection)
+                  if (value) {
                     setCurrentView(value as "grid" | "list");
                   }
                 }}
@@ -134,7 +141,7 @@ const CMEIs = () => {
           </CardHeader>
         </Card>
 
-        {currentView === "grid" ? ( // Renderização condicional
+        {currentView === "grid" ? (
           <div className="grid md:grid-cols-2 gap-6">
             {cmeis.map((cmei) => {
               const ocupacaoPercent = cmei.capacidade > 0 ? Math.round((cmei.ocupacao / cmei.capacidade) * 100) : 0;
