@@ -66,15 +66,13 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
     (cmei) => cmei.value !== selectedCmei1
   );
 
-  // O parâmetro 'data' é garantido como InscricaoFormData pelo zodResolver
+  // Tipagem explícita para garantir que 'data' é InscricaoFormData completa
   const onSubmit = async (data: InscricaoFormData) => {
-    // O tipo de 'data' é InscricaoFormData devido ao uso do zodResolver
-    // Não precisamos de 'validatedData' ou asserções complexas aqui.
-
     if (onSuccess) {
       // Admin context: use mutation
       try {
         if (isEditing && criancaId) {
+          // Não é mais necessário o 'as InscricaoFormData' se a função for tipada corretamente
           await updateCrianca({ id: criancaId, data }); 
         } else {
           await addCrianca(data); 
