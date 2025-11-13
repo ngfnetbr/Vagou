@@ -325,7 +325,7 @@ const DetalhesCrianca = () => {
               </h3>
               <div className="flex items-start space-x-3">
                 <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
-                <p className="text-sm my-0">
+                <p className="text-sm my-0 leading-tight">
                   {crianca.endereco || 'Não informado'}
                   {crianca.bairro && `, Bairro: ${crianca.bairro}`}
                 </p>

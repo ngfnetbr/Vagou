@@ -190,12 +190,16 @@ export const addCriancaMock = async (data: InscricaoFormData): Promise<Crianca> 
   await new Promise(resolve => setTimeout(resolve, 500)); 
   
   const newId = mockCriancas.length > 0 ? Math.max(...mockCriancas.map(c => c.id)) + 1 : 1;
-  const newCrianca: Crianca = {
+  
+  // Adicionando o cast 'as Crianca' para resolver o erro de tipagem, 
+  // pois sabemos que 'data' contém todos os campos obrigatórios após a validação Zod.
+  const newCrianca = {
     id: newId,
     status: "Fila de Espera",
     historico: [{ data: new Date().toISOString().split('T')[0], acao: "Inscrição Inicial", cmei: data.cmei1 }],
     ...data,
-  };
+  } as Crianca;
+
   mockCriancas.push(newCrianca);
   return newCrianca;
 };
@@ -207,7 +211,7 @@ export const updateCriancaMock = async (id: number, data: InscricaoFormData): Pr
         const updatedCrianca = {
             ...mockCriancas[index],
             ...data,
-        };
+        } as Crianca; // Cast para garantir o tipo de retorno
         mockCriancas[index] = updatedCrianca;
         return updatedCrianca;
     }
