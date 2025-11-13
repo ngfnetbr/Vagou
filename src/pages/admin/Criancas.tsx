@@ -9,10 +9,13 @@ import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DialogTrigger } from "@/components/ui/dialog"; // Importar DialogTrigger
+import NovaCriancaModal from "@/components/NovaCriancaModal"; // Importar o novo modal
 
 
 const Criancas = () => {
   const [isListView, setIsListView] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar o modal
 
   const criancas = [
     { 
@@ -91,10 +94,15 @@ const Criancas = () => {
             <h1 className="text-3xl font-bold text-foreground">Crianças</h1>
             <p className="text-muted-foreground">Cadastro e gerenciamento de todas as crianças do sistema</p>
           </div>
-          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Criança
-          </Button>
+          <DialogTrigger asChild> {/* Envolve o botão com DialogTrigger */}
+            <Button 
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              onClick={() => setIsModalOpen(true)} // Abre o modal
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Criança
+            </Button>
+          </DialogTrigger>
         </div>
 
         <Card>
@@ -237,6 +245,7 @@ const Criancas = () => {
           </Card>
         )}
       </div>
+      <NovaCriancaModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} /> {/* Renderiza o modal */}
     </AdminLayout>
   );
 };
