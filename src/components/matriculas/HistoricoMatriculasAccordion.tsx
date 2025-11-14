@@ -14,25 +14,19 @@ import { ptBR } from "date-fns/locale";
 interface HistoricoMatriculasAccordionProps {
   historicoEncerradas: Crianca[];
   isReactivating: boolean;
-  handleReativar: (id: number) => Promise<void>;
+  handleReativar: (id: string) => Promise<void>; // ID agora é string
   getStatusBadge: (status: Crianca['status']) => JSX.Element;
 }
 
 // Helper para encontrar a data de encerramento (última ação de Desistente/Recusada)
 const getEncerramentoDate = (crianca: Crianca): string => {
-    const finalizationEntry = crianca.historico.find(h => 
-      h.acao.includes("Marcado como Desistente") || 
-      h.acao.includes("Transferência (Mudança de Cidade)") ||
-      h.acao.includes("Convocação Recusada")
-    );
-    if (finalizationEntry) {
-      try {
-        return format(parseISO(finalizationEntry.data), 'dd/MM/yyyy', { locale: ptBR });
-      } catch (e) {
+    // Esta lógica depende da tabela 'historico' que ainda não está totalmente integrada.
+    // Por enquanto, retornamos a data de criação da criança como fallback.
+    try {
+        return format(parseISO(crianca.created_at), 'dd/MM/yyyy', { locale: ptBR });
+    } catch (e) {
         return 'N/A';
-      }
     }
-    return 'N/A';
 };
 
 export const HistoricoMatriculasAccordion = ({
@@ -71,9 +65,9 @@ export const HistoricoMatriculasAccordion = ({
                     historicoEncerradas.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.nome}</TableCell>
-                        <TableCell>{item.responsavel}</TableCell>
+                        <TableCell>{item.responsavel_nome}</TableCell>
                         <TableCell>{getStatusBadge(item.status)}</TableCell>
-                        <TableCell>{item.cmei !== "N/A" ? `${item.cmei} (${item.turmaAtual || 'N/A'})` : '-'}</TableCell>
+                        <TableCell>{item.cmeiNome ? `${item.cmeiNome} (${item.turmaNome || 'N/A'})` : '-'}</TableCell>
                         <TableCell>{getEncerramentoDate(item)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>

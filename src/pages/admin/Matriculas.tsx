@@ -66,11 +66,11 @@ const Matriculas = () => {
         c.status === "Matriculada" || 
         c.status === "Remanejamento Solicitado"
     ).filter(c => {
-        if (cmeiFilter !== "todos" && c.cmei !== cmeiFilter) return false;
-        if (turmaFilter !== "todas" && !c.turmaAtual?.includes(turmaFilter)) return false;
+        if (cmeiFilter !== "todos" && c.cmeiNome !== cmeiFilter) return false;
+        if (turmaFilter !== "todas" && !c.turmaNome?.includes(turmaFilter)) return false;
         if (searchTerm) {
             const lowerCaseSearch = searchTerm.toLowerCase();
-            if (!c.nome.toLowerCase().includes(lowerCaseSearch) && !c.responsavel.toLowerCase().includes(lowerCaseSearch)) return false;
+            if (!c.nome.toLowerCase().includes(lowerCaseSearch) && !c.responsavel_nome.toLowerCase().includes(lowerCaseSearch)) return false;
         }
         return true;
     });
@@ -78,14 +78,14 @@ const Matriculas = () => {
     // Histórico: Crianças que foram matriculadas e agora são Desistentes ou Recusadas
     const historicoEncerradas = criancas.filter(c => 
         (c.status === "Desistente" || c.status === "Recusada") && 
-        c.historico.some(h => h.acao.includes("Matrícula Efetivada"))
+        (c.cmei_atual_id || c.turma_atual_id) // Filtra apenas se houve alguma alocação anterior
     );
 
     return { matriculasAtivas, historicoEncerradas };
   }, [criancas, cmeiFilter, turmaFilter, searchTerm]);
   
   // Get list of unique CMEIs where children are currently matriculated
-  const allCmeiNames = useMemo(() => Array.from(new Set(criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada").map(c => c.cmei))).filter(name => name !== 'N/A'), [criancas]);
+  const allCmeiNames = useMemo(() => Array.from(new Set(criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada").map(c => c.cmeiNome))).filter(name => name), [criancas]);
 
   // --- Handlers para Modais de Vaga (Realocar) ---
   
@@ -95,7 +95,7 @@ const Matriculas = () => {
     setIsVagaModalOpen(true);
   };
   
-  const handleVagaConfirm = async (id: number, data: ConvocationData) => {
+  const handleVagaConfirm = async (id: string, data: ConvocationData) => {
     // Apenas Realocar usa este modal agora
     await realocarCrianca({ id, data });
     
@@ -120,14 +120,14 @@ const Matriculas = () => {
     try {
         switch (currentJustificativaAction) {
           case 'desistente':
-            await marcarDesistente({ id, justificativa });
+            await marcarDesistente(id, justificativa);
             break;
           case 'remanejamento':
-            await solicitarRemanejamento({ id, justificativa });
+            await solicitarRemanejamento(id, justificativa);
             break;
           case 'transferir':
             // Transferir agora é uma ação de saída do sistema (mudança de cidade)
-            await transferirCrianca({ id, justificativa });
+            await transferirCrianca(id, justificativa);
             break;
         }
         
@@ -188,11 +188,11 @@ const Matriculas = () => {
     return <Badge className={config.className}>{config.text}</Badge>;
   };
   
-  const handleViewDetails = (id: number) => {
+  const handleViewDetails = (id: string) => {
     navigate(`/admin/criancas/${id}`);
   };
   
-  const handleReativar = async (id: number) => {
+  const handleReativar = async (id: string) => {
     await reativarCrianca(id);
   };
   
@@ -276,9 +276,9 @@ const Matriculas = () => {
                     matriculasAtivas.map((matricula) => (
                       <TableRow key={matricula.id}>
                         <TableCell className="font-medium">{matricula.nome}</TableCell>
-                        <TableCell>{matricula.responsavel}</TableCell>
-                        <TableCell>{matricula.cmei}</TableCell>
-                        <TableCell>{matricula.turmaAtual || '-'}</TableCell>
+                        <TableCell>{matricula.responsavel_nome}</TableCell>
+                        <TableCell>{matricula.cmeiNome || '-'}</TableCell>
+                        <TableCell>{matricula.turmaNome || '-'}</TableCell>
                         <TableCell>
                           {getStatusBadge(matricula.status)}
                         </TableCell>

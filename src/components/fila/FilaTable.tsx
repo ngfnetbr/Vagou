@@ -16,7 +16,7 @@ type JustificativaAction = 'recusada' | 'desistente' | 'fim_de_fila';
 interface FilaTableProps {
   filteredFila: Crianca[];
   isConfirmingMatricula: boolean;
-  handleConfirmarMatricula: (id: number) => Promise<void>;
+  handleConfirmarMatricula: (id: string) => Promise<void>; // ID agora é string
   handleConvocarClick: (crianca: Crianca) => void;
   handleJustificativaAction: (crianca: Crianca, action: JustificativaAction) => void;
   getPriorityLabel: (crianca: Crianca) => string;
@@ -79,19 +79,19 @@ export const FilaTable = ({
             {filteredFila.length > 0 ? (
               filteredFila.map((item) => {
                 const isConvocado = item.status === "Convocado";
-                const deadlineInfo = isConvocado && item.convocacaoDeadline ? getDeadlineInfo(item.convocacaoDeadline) : null;
+                const deadlineInfo = isConvocado && item.convocacao_deadline ? getDeadlineInfo(item.convocacao_deadline) : null;
                 
                 return (
                   <TableRow key={item.id} className={isConvocado ? "bg-primary/5 hover:bg-primary/10" : ""}>
                     <TableCell className="font-bold text-primary">
-                        {isConvocado ? <Badge className="bg-primary text-primary-foreground">CONV.</Badge> : `#${item.posicaoFila}`}
+                        {isConvocado ? <Badge className="bg-primary text-primary-foreground">CONV.</Badge> : `#${item.posicao_fila}`}
                     </TableCell>
                     <TableCell className="font-medium">{item.nome}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{item.idade}</TableCell>
-                    <TableCell>{item.responsavel}</TableCell>
+                    <TableCell>{item.responsavel_nome}</TableCell>
                     <TableCell>{getInscriptionDate(item)}</TableCell>
                     <TableCell>
-                      <Badge variant={item.programasSociais === "sim" ? "default" : "secondary"}>
+                      <Badge variant={item.programas_sociais ? "default" : "secondary"}>
                         {getPriorityLabel(item)}
                       </Badge>
                     </TableCell>
@@ -132,7 +132,7 @@ export const FilaTable = ({
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmar Matrícula?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Você está confirmando a matrícula de <span className="font-semibold">{item.nome}</span> no CMEI {item.cmei}. Esta ação é irreversível.
+                                      Você está confirmando a matrícula de <span className="font-semibold">{item.nome}</span> no CMEI {item.cmeiNome}. Esta ação é irreversível.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

@@ -46,7 +46,6 @@ const Fila = () => {
   
   // Modais State
   const [isConvocarModalOpen, setIsConvocarModalOpen] = useState(false);
-  const [isJustificativaModalOpen, setIsJustificativaModalOpen] = useState(false);
   const [criancaToConvoke, setCriancaToConvoke] = useState<Crianca | undefined>(undefined);
   const [criancaToJustify, setCriancaToJustify] = useState<Crianca | undefined>(undefined);
   const [currentJustificativaAction, setCurrentJustificativaAction] = useState<JustificativaAction | undefined>(undefined);
@@ -55,37 +54,30 @@ const Fila = () => {
   // --- Helper Functions (kept here as they rely on data/state) ---
 
   const getPriorityLabel = (crianca: Crianca) => {
-    if (crianca.programasSociais === "sim") {
+    if (crianca.programas_sociais) {
       return "Prioridade Social";
     }
-    if (crianca.cmei2) return "Múltipla Opção";
+    if (crianca.cmei2_preferencia) return "Múltipla Opção";
     return "Normal";
   };
 
   const getInscriptionDate = (crianca: Crianca) => {
-    const inscriptionEntry = crianca.historico.find(h => h.acao.includes("Inscrição Inicial"));
-    if (inscriptionEntry) {
-      try {
-        return format(parseISO(inscriptionEntry.data), 'dd/MM/yyyy', { locale: ptBR });
-      } catch (e) {
+    // No Supabase, a data de inscrição inicial é a created_at, mas vamos usar a data do primeiro histórico se disponível
+    // Por enquanto, usamos created_at como fallback
+    try {
+        return format(parseISO(crianca.created_at), 'dd/MM/yyyy', { locale: ptBR });
+    } catch (e) {
         return 'N/A';
-      }
     }
-    return 'N/A';
   };
   
   const getFinalizationDate = (crianca: Crianca) => {
-    const finalizationEntry = crianca.historico.find(h => 
-      h.acao.includes("Matrícula Efetivada") || h.acao.includes("Marcado como Desistente") || h.acao.includes("Convocação Recusada")
-    );
-    if (finalizationEntry) {
-      try {
-        return format(parseISO(finalizationEntry.data), 'dd/MM/yyyy', { locale: ptBR });
-      } catch (e) {
+    // No Supabase, usamos created_at como fallback para a data final
+    try {
+        return format(parseISO(crianca.created_at), 'dd/MM/yyyy', { locale: ptBR });
+    } catch (e) {
         return 'N/A';
-      }
     }
-    return 'N/A';
   };
   
   const getStatusBadge = (status: Crianca['status']) => {
@@ -105,7 +97,7 @@ const Fila = () => {
 
   // --- Data Processing ---
 
-  const allCmeiNames = useMemo(() => Array.from(new Set(criancas.map(c => c.cmei1))).filter(Boolean), [criancas]);
+  const allCmeiNames = useMemo(() => Array.from(new Set(criancas.map(c => c.cmei1_preferencia))).filter(Boolean), [criancas]);
 
   const { filteredFila, historicoCriancas, stats } = useMemo(() => {
     if (!criancas) return { filteredFila: [], historicoCriancas: [], stats: { totalFila: 0, comPrioridade: 0, convocados: 0 } };
@@ -113,45 +105,48 @@ const Fila = () => {
     let filtered = criancas.filter(c => c.status === "Fila de Espera" || c.status === "Convocado");
 
     if (cmeiFilter !== "todos") {
-      filtered = filtered.filter(c => c.cmei1 === cmeiFilter);
+      filtered = filtered.filter(c => c.cmei1_preferencia === cmeiFilter);
     }
 
     if (prioridadeFilter === "prioridade") {
-      filtered = filtered.filter(c => c.programasSociais === "sim");
+      filtered = filtered.filter(c => c.programas_sociais);
     } else if (prioridadeFilter === "normal") {
-      filtered = filtered.filter(c => c.programasSociais === "nao");
+      filtered = filtered.filter(c => !c.programas_sociais);
     }
     
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(c => 
         c.nome.toLowerCase().includes(lowerCaseSearch) ||
-        c.responsavel.toLowerCase().includes(lowerCaseSearch)
+        c.responsavel_nome.toLowerCase().includes(lowerCaseSearch)
       );
     }
 
     const filaDeEspera = filtered.filter(c => c.status === "Fila de Espera");
     const convocados = filtered.filter(c => c.status === "Convocado");
 
+    // Ordenação: Prioridade Social > Data de Nascimento (mais velho primeiro)
     filaDeEspera.sort((a, b) => {
-        if (a.programasSociais === 'sim' && b.programasSociais === 'nao') return -1;
-        if (a.programasSociais === 'nao' && b.programasSociais === 'sim') return 1;
-        return new Date(a.dataNascimento).getTime() - new Date(b.dataNascimento).getTime();
+        if (a.programas_sociais && !b.programas_sociais) return -1;
+        if (!a.programas_sociais && b.programas_sociais) return 1;
+        return new Date(a.data_nascimento).getTime() - new Date(b.data_nascimento).getTime();
     });
 
+    // Simula a atribuição de posição na fila
     const sortedFila = filaDeEspera.map((c, index) => ({
         ...c,
-        posicaoFila: index + 1,
+        posicao_fila: index + 1,
     }));
     
+    // Ordena convocados por prazo mais próximo
     convocados.sort((a, b) => {
-        if (!a.convocacaoDeadline) return 1;
-        if (!b.convocacaoDeadline) return -1;
-        return new Date(a.convocacaoDeadline).getTime() - new Date(b.convocacaoDeadline).getTime();
+        if (!a.convocacao_deadline) return 1;
+        if (!b.convocacao_deadline) return -1;
+        return new Date(a.convocacao_deadline).getTime() - new Date(b.convocacao_deadline).getTime();
     });
 
     const totalFila = criancas.filter(c => c.status === "Fila de Espera").length;
-    const comPrioridade = criancas.filter(c => c.status === "Fila de Espera" && c.programasSociais === "sim").length;
+    const comPrioridade = criancas.filter(c => c.status === "Fila de Espera" && c.programas_sociais).length;
     const totalConvocados = criancas.filter(c => c.status === "Convocado").length;
     
     const historico = criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada" || c.status === "Desistente" || c.status === "Recusada" || c.status === "Remanejamento Solicitado");
@@ -182,7 +177,7 @@ const Fila = () => {
     setCriancaToConvoke(undefined);
   };
   
-  const handleConfirmarMatricula = async (id: number) => {
+  const handleConfirmarMatricula = async (id: string) => {
     await confirmarMatricula(id);
   };
   
@@ -200,13 +195,13 @@ const Fila = () => {
     try {
         switch (currentJustificativaAction) {
           case 'recusada':
-            await marcarRecusada({ id, justificativa });
+            await marcarRecusada(id, justificativa);
             break;
           case 'desistente':
-            await marcarDesistente({ id, justificativa });
+            await marcarDesistente(id, justificativa);
             break;
           case 'fim_de_fila':
-            await marcarFimDeFila({ id, justificativa });
+            await marcarFimDeFila(id, justificativa);
             break;
         }
         
@@ -251,7 +246,7 @@ const Fila = () => {
     }
   };
   
-  const handleReativar = async (id: number) => {
+  const handleReativar = async (id: string) => {
     await reativarCrianca(id);
   };
 

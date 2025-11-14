@@ -8,20 +8,20 @@ interface NovaCriancaModalProps {
   initialData?: Crianca; // Data for editing
 }
 
-// Helper to map Crianca data structure to InscricaoFormData for form default values
+// Helper to map Crianca data structure (DB format) to InscricaoFormData (Form format)
 const mapCriancaToFormData = (crianca: Crianca): InscricaoFormData => ({
   nomeCrianca: crianca.nome,
-  dataNascimento: crianca.dataNascimento,
+  dataNascimento: crianca.data_nascimento,
   sexo: crianca.sexo,
-  programasSociais: crianca.programasSociais,
-  aceitaQualquerCmei: crianca.aceitaQualquerCmei,
-  cmei1: crianca.cmei1,
-  cmei2: crianca.cmei2 || '',
-  nomeResponsavel: crianca.responsavel,
-  cpf: crianca.cpfResponsavel,
-  telefone: crianca.telefoneResponsavel,
-  telefone2: crianca.telefoneResponsavel, // Assuming only one phone is stored in mock, using it for both
-  email: crianca.emailResponsavel || '',
+  programasSociais: crianca.programas_sociais ? 'sim' : 'nao',
+  aceitaQualquerCmei: crianca.aceita_qualquer_cmei ? 'sim' : 'nao',
+  cmei1: crianca.cmei1_preferencia,
+  cmei2: crianca.cmei2_preferencia || '',
+  nomeResponsavel: crianca.responsavel_nome,
+  cpf: crianca.responsavel_cpf,
+  telefone: crianca.responsavel_telefone,
+  telefone2: crianca.responsavel_telefone, // Assuming only one phone is stored, using it for both
+  email: crianca.responsavel_email || '',
   endereco: crianca.endereco || '',
   bairro: crianca.bairro || '',
   observacoes: crianca.observacoes || '',
@@ -50,7 +50,7 @@ const NovaCriancaModalContent = ({ onClose, initialData }: NovaCriancaModalProps
         onCancel={onClose} // Passa a função de fechar para o botão Cancelar
         isModal={true} 
         initialData={defaultValues}
-        criancaId={initialData?.id}
+        criancaId={initialData?.id} // ID agora é string
       />
     </DialogContent>
   );

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Calendar, MapPin, Phone, Mail, Edit, History, Loader2, FileText, CheckCircle, ListOrdered, School, Clock, XCircle, RotateCcw, ListRestart, Bell, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { useCriancaDetails, useCriancas } from "@/hooks/use-criancas";
+import { useCriancaDetails, useCriancas, useCriancaHistorico } from "@/hooks/use-criancas";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import NovaCriancaModalContent from "@/components/NovaCriancaModal";
@@ -31,8 +31,11 @@ type JustificativaAction = 'recusada' | 'desistente' | 'fim_de_fila';
 const DetalhesCrianca = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const criancaId = id ? parseInt(id) : undefined;
-  const { data: crianca, isLoading, error, refetch } = useCriancaDetails(criancaId || 0);
+  const criancaId = id;
+  
+  const { data: crianca, isLoading, error, refetch } = useCriancaDetails(criancaId || '');
+  const { data: historicoData, isLoading: isLoadingHistorico } = useCriancaHistorico(criancaId || '');
+  
   const { 
     marcarFimDeFila, 
     isMarkingFimDeFila, 
@@ -133,13 +136,13 @@ const DetalhesCrianca = () => {
     try {
         switch (currentJustificativaAction) {
           case 'recusada':
-            await marcarRecusada({ id: criancaId, justificativa });
+            await marcarRecusada(criancaId, justificativa);
             break;
           case 'desistente':
-            await marcarDesistente({ id: criancaId, justificativa });
+            await marcarDesistente(criancaId, justificativa);
             break;
           case 'fim_de_fila':
-            await marcarFimDeFila({ id: criancaId, justificativa });
+            await marcarFimDeFila(criancaId, justificativa);
             break;
         }
         refetch();
@@ -203,8 +206,8 @@ const DetalhesCrianca = () => {
   const isDesistente = crianca.status === 'Desistente';
   const isRecusada = crianca.status === 'Recusada';
   
-  const deadlineInfo = isConvocado && crianca.convocacaoDeadline ? (() => {
-    const deadlineDate = parseISO(crianca.convocacaoDeadline + 'T00:00:00');
+  const deadlineInfo = isConvocado && crianca.convocacao_deadline ? (() => {
+    const deadlineDate = parseISO(crianca.convocacao_deadline + 'T00:00:00');
     const today = new Date();
     const daysRemaining = differenceInDays(deadlineDate, today);
     
@@ -228,8 +231,8 @@ const DetalhesCrianca = () => {
   })() : null;
 
   // Formatação da data de nascimento
-  const formattedDataNascimento = crianca.dataNascimento 
-    ? format(parseISO(crianca.dataNascimento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
+  const formattedDataNascimento = crianca.data_nascimento 
+    ? format(parseISO(crianca.data_nascimento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
     : 'N/A';
 
 
@@ -278,7 +281,7 @@ const DetalhesCrianca = () => {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmar Matrícula?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Você está confirmando a matrícula de <span className="font-semibold">{crianca.nome}</span> no CMEI {crianca.cmei}. Esta ação é irreversível.
+                                    Você está confirmando a matrícula de <span className="font-semibold">{crianca.nome}</span> no CMEI {crianca.cmeiNome}. Esta ação é irreversível.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -417,9 +420,9 @@ const DetalhesCrianca = () => {
               {getStatusBadge(crianca.status)}
               <p className="text-sm text-muted-foreground mt-2">
                 {isMatriculado 
-                  ? `Matriculado(a) no ${crianca.cmei}` 
+                  ? `Matriculado(a) no ${crianca.cmeiNome}` 
                   : isConvocado
-                  ? `Convocado(a) para ${crianca.cmei}`
+                  ? `Convocado(a) para ${crianca.cmeiNome}`
                   : isDesistente
                   ? 'Removido(a) da fila por desistência.'
                   : isRecusada
@@ -435,20 +438,20 @@ const DetalhesCrianca = () => {
               <CardTitle className="text-lg">Detalhes da Vaga</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {isMatriculado && crianca.turmaAtual ? (
+              {isMatriculado && crianca.turmaNome ? (
                 <div className="flex items-center gap-2">
                   <School className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-medium">Turma: {crianca.turmaAtual}</p>
+                  <p className="text-sm font-medium">Turma: {crianca.turmaNome}</p>
                 </div>
-              ) : isFila && crianca.posicaoFila !== undefined ? (
+              ) : isFila && crianca.posicao_fila !== undefined ? (
                 <div className="flex items-center gap-2">
                   <ListOrdered className="h-4 w-4 text-accent" />
-                  <p className="text-sm font-medium">Posição na Fila: #{crianca.posicaoFila}</p>
+                  <p className="text-sm font-medium">Posição na Fila: #{crianca.posicao_fila}</p>
                 </div>
-              ) : isConvocado && crianca.turmaAtual ? (
+              ) : isConvocado && crianca.turmaNome ? (
                 <div className="flex items-center gap-2">
                   <School className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-medium">Vaga Ofertada: {crianca.turmaAtual}</p>
+                  <p className="text-sm font-medium">Vaga Ofertada: {crianca.turmaNome}</p>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhuma turma ou posição na fila definida.</p>
@@ -472,9 +475,9 @@ const DetalhesCrianca = () => {
                 </p>
               )}
               <div className="flex items-center gap-2 mt-2">
-                <CheckCircle className={`h-4 w-4 ${crianca.aceitaQualquerCmei === 'sim' ? 'text-secondary' : 'text-destructive'}`} />
+                <CheckCircle className={`h-4 w-4 ${crianca.aceita_qualquer_cmei ? 'text-secondary' : 'text-destructive'}`} />
                 <p className="text-sm text-muted-foreground">
-                  Aceita qualquer CMEI: <span className="font-medium capitalize">{crianca.aceitaQualquerCmei === 'sim' ? 'Sim' : 'Não'}</span>
+                  Aceita qualquer CMEI: <span className="font-medium capitalize">{crianca.aceita_qualquer_cmei ? 'Sim' : 'Não'}</span>
                 </p>
               </div>
             </CardContent>
@@ -506,8 +509,8 @@ const DetalhesCrianca = () => {
                 </div>
                 <div className="space-y-2 pt-2">
                   <h4 className="font-semibold text-sm">Preferências de CMEI:</h4>
-                  <p className="text-sm">1ª Opção: <span className="font-medium">{crianca.cmei1}</span></p>
-                  {crianca.cmei2 && <p className="text-sm">2ª Opção: <span className="font-medium">{crianca.cmei2}</span></p>}
+                  <p className="text-sm">1ª Opção: <span className="font-medium">{crianca.cmei1_preferencia}</span></p>
+                  {crianca.cmei2_preferencia && <p className="text-sm">2ª Opção: <span className="font-medium">{crianca.cmei2_preferencia}</span></p>}
                 </div>
               </div>
 
@@ -516,20 +519,20 @@ const DetalhesCrianca = () => {
                 <h3 className="text-lg font-semibold text-primary">Responsável</h3>
                 <div className="flex items-center gap-3">
                   <User className="h-5 w-5 text-muted-foreground" />
-                  <p className="font-medium">{crianca.responsavel}</p>
+                  <p className="font-medium">{crianca.responsavel_nome}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-muted-foreground font-medium">CPF:</span>
-                  <p className="text-sm">{crianca.cpfResponsavel}</p>
+                  <p className="text-sm">{crianca.responsavel_cpf}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="h-5 w-5 text-muted-foreground" />
-                  <p className="text-sm">{crianca.telefoneResponsavel}</p>
+                  <p className="text-sm">{crianca.responsavel_telefone}</p>
                 </div>
-                {crianca.emailResponsavel && (
+                {crianca.responsavel_email && (
                   <div className="flex items-center gap-3">
                     <Mail className="h-5 w-5 text-muted-foreground" />
-                    <p className="text-sm">{crianca.emailResponsavel}</p>
+                    <p className="text-sm">{crianca.responsavel_email}</p>
                   </div>
                 )}
               </div>
@@ -567,23 +570,31 @@ const DetalhesCrianca = () => {
             <CardDescription>Registro de todas as ações importantes no sistema.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ol className="relative border-l border-border ml-2 space-y-6">
-              {crianca.historico.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map((entry, index) => (
-                <li key={index} className="ml-6">
-                  <span className="absolute flex items-center justify-center w-3 h-3 bg-primary rounded-full -left-1.5 ring-4 ring-background"></span>
-                  <div className="p-3 bg-card border border-border rounded-lg shadow-sm">
-                    <time className="mb-1 text-xs font-normal leading-none text-muted-foreground">
-                      {format(parseISO(entry.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
-                    </time>
-                    <h3 className="text-base font-semibold text-foreground mt-1">{entry.acao}</h3>
-                    <p className="text-sm font-normal text-muted-foreground">{entry.detalhes}</p>
-                    <p className="text-xs mt-1 text-gray-500">Usuário: {entry.usuario}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            {crianca.historico.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">Nenhum histórico encontrado.</p>
+            {isLoadingHistorico ? (
+                <div className="flex justify-center items-center h-24">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <p className="ml-3 text-lg text-muted-foreground">Carregando histórico...</p>
+                </div>
+            ) : (
+                <ol className="relative border-l border-border ml-2 space-y-6">
+                {historicoData && historicoData.length > 0 ? (
+                    historicoData.map((entry, index) => (
+                    <li key={index} className="ml-6">
+                        <span className="absolute flex items-center justify-center w-3 h-3 bg-primary rounded-full -left-1.5 ring-4 ring-background"></span>
+                        <div className="p-3 bg-card border border-border rounded-lg shadow-sm">
+                        <time className="mb-1 text-xs font-normal leading-none text-muted-foreground">
+                            {format(parseISO(entry.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                        </time>
+                        <h3 className="text-base font-semibold text-foreground mt-1">{entry.acao}</h3>
+                        <p className="text-sm font-normal text-muted-foreground">{entry.detalhes}</p>
+                        <p className="text-xs mt-1 text-gray-500">Usuário: {entry.usuario}</p>
+                        </div>
+                    </li>
+                    ))
+                ) : (
+                    <p className="text-center text-muted-foreground py-4">Nenhum histórico encontrado.</p>
+                )}
+                </ol>
             )}
           </CardContent>
         </Card>

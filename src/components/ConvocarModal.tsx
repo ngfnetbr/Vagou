@@ -25,6 +25,7 @@ import {
 
 // Schema for Convocation Form
 const convocarSchema = z.object({
+  // O valor do select será uma string combinada: "cmei_id|turma_id"
   cmeiTurma: z.string().min(1, "Selecione um CMEI e Turma disponíveis."),
 });
 
@@ -47,15 +48,15 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
   });
 
   const onSubmit = async (values: ConvocarFormData) => {
-    // values.cmeiTurma is a combined string: "CMEI Nome|Turma Nome"
-    const [cmei, turma] = values.cmeiTurma.split('|');
+    // values.cmeiTurma is a combined string: "cmei_id|turma_id"
+    const [cmei_id, turma_id] = values.cmeiTurma.split('|');
     
-    if (!cmei || !turma) {
+    if (!cmei_id || !turma_id) {
         toast.error("Erro de seleção", { description: "Formato de CMEI/Turma inválido." });
         return;
     }
 
-    const convocationData: ConvocationData = { cmei, turma };
+    const convocationData: ConvocationData = { cmei_id, turma_id };
 
     try {
         await convocarCrianca({ id: crianca.id, data: convocationData });
@@ -65,8 +66,8 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
     }
   };
   
-  const preferredCmeis = [crianca.cmei1, crianca.cmei2].filter(Boolean);
-  const isReconvocacao = crianca.status === 'Convocado' && crianca.convocacaoDeadline && new Date(crianca.convocacaoDeadline) < new Date();
+  const preferredCmeis = [crianca.cmei1_preferencia, crianca.cmei2_preferencia].filter(Boolean);
+  const isReconvocacao = crianca.status === 'Convocado' && crianca.convocacao_deadline && new Date(crianca.convocacao_deadline) < new Date();
 
   const modalTitle = isReconvocacao ? `Reconvocar ${crianca.nome}` : `Convocar ${crianca.nome}`;
   const modalDescription = isReconvocacao 
@@ -85,9 +86,9 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
       <div className="space-y-3 text-sm p-3 bg-muted/50 rounded-lg border border-border">
         <p className="font-semibold">Preferências da Criança:</p>
         <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-            <li>1ª Opção: {crianca.cmei1}</li>
-            {crianca.cmei2 && <li>2ª Opção: {crianca.cmei2}</li>}
-            <li>Aceita qualquer CMEI: <span className="font-medium capitalize">{crianca.aceitaQualquerCmei}</span></li>
+            <li>1ª Opção: {crianca.cmei1_preferencia}</li>
+            {crianca.cmei2_preferencia && <li>2ª Opção: {crianca.cmei2_preferencia}</li>}
+            <li>Aceita qualquer CMEI: <span className="font-medium capitalize">{crianca.aceita_qualquer_cmei ? 'sim' : 'nao'}</span></li>
         </ul>
       </div>
 
@@ -116,7 +117,7 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
                             return (
                                 <SelectItem 
                                     key={index} 
-                                    value={`${turma.cmei}|${turma.turma}`}
+                                    value={`${turma.cmei_id}|${turma.turma_id}`} // Usando IDs
                                     className={isPreferred ? "font-semibold text-primary" : ""}
                                 >
                                     {label}

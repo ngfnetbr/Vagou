@@ -26,7 +26,7 @@ interface InscricaoProps {
   onCancel?: () => void; // Novo prop para lidar com o cancelamento/fechamento
   isModal?: boolean;
   initialData?: InscricaoFormData; // Data for editing
-  criancaId?: number; // ID of the child being edited
+  criancaId?: string; // ID of the child being edited (UUID)
 }
 
 const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaId }: InscricaoProps) => {
@@ -70,7 +70,7 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
   const onSubmit = async (data: InscricaoFormData) => {
     if (onSuccess) {
       try {
-        // Usando 'data' diretamente, pois o zodResolver garante que é InscricaoFormData
+        // Usamos 'data' diretamente, pois o zodResolver garante que é InscricaoFormData
         const completeData = data;
         
         if (isEditing && criancaId) {

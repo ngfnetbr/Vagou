@@ -15,6 +15,7 @@ import { useMemo } from "react";
 
 // Schema for Realocation Form
 const vagaSchema = z.object({
+  // O valor do select será uma string combinada: "cmei_id|turma_id"
   cmeiTurma: z.string().min(1, "Selecione uma Turma disponível."),
 });
 
@@ -23,7 +24,7 @@ type VagaFormData = z.infer<typeof vagaSchema>;
 interface RealocacaoModalProps {
   crianca: Crianca;
   onClose: () => void;
-  onConfirm: (criancaId: number, data: ConvocationData) => Promise<void>;
+  onConfirm: (criancaId: string, data: ConvocationData) => Promise<void>; // ID agora é string
   isPending: boolean;
 }
 
@@ -39,14 +40,15 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
   });
 
   const onSubmit = async (values: VagaFormData) => {
-    const [cmei, turma] = values.cmeiTurma.split('|');
+    // values.cmeiTurma is a combined string: "cmei_id|turma_id"
+    const [cmei_id, turma_id] = values.cmeiTurma.split('|');
     
-    if (!cmei || !turma) {
+    if (!cmei_id || !turma_id) {
         toast.error("Erro de seleção", { description: "Formato de CMEI/Turma inválido." });
         return;
     }
 
-    const convocationData: ConvocationData = { cmei, turma };
+    const convocationData: ConvocationData = { cmei_id, turma_id };
 
     try {
         await onConfirm(crianca.id, convocationData);
@@ -56,15 +58,16 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
     }
   };
   
-  const currentCmei = crianca.cmei;
+  const currentCmeiId = crianca.cmei_atual_id;
   
   // Filtra apenas turmas DENTRO do CMEI atual para Realocação
   const filteredTurmas = useMemo(() => {
-      if (!availableTurmas) return [];
+      if (!availableTurmas || !currentCmeiId) return [];
       
-      return availableTurmas.filter(t => t.cmei === currentCmei);
+      // Filtra turmas que pertencem ao CMEI atual da criança
+      return availableTurmas.filter(t => t.cmei_id === currentCmeiId);
       
-  }, [availableTurmas, currentCmei]);
+  }, [availableTurmas, currentCmeiId]);
 
 
   return (
@@ -72,13 +75,13 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
       <DialogHeader>
         <DialogTitle>Realocar {crianca.nome}</DialogTitle>
         <DialogDescription>
-          Selecione a nova turma dentro do CMEI {crianca.cmei} para realocar a criança.
+          Selecione a nova turma dentro do CMEI {crianca.cmeiNome} para realocar a criança.
         </DialogDescription>
       </DialogHeader>
       
       <div className="space-y-3 text-sm p-3 bg-muted/50 rounded-lg border border-border">
         <p className="font-semibold">Localização Atual:</p>
-        <p className="text-muted-foreground">{crianca.cmei} ({crianca.turmaAtual})</p>
+        <p className="text-muted-foreground">{crianca.cmeiNome} ({crianca.turmaNome})</p>
       </div>
 
       <Form {...form}>
@@ -102,11 +105,11 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
                         filteredTurmas.map((turma, index) => {
                             const label = `${turma.turma} (${turma.vagas} vagas)`;
                             
-                            // O valor deve incluir o CMEI para a função onConfirm
+                            // O valor deve incluir o CMEI e a Turma ID
                             return (
                                 <SelectItem 
                                     key={index} 
-                                    value={`${turma.cmei}|${turma.turma}`}
+                                    value={`${turma.cmei_id}|${turma.turma_id}`}
                                 >
                                     {label}
                                 </SelectItem>

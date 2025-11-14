@@ -51,7 +51,7 @@ const Criancas = () => {
       const lowerCaseSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(c => 
         c.nome.toLowerCase().includes(lowerCaseSearch) ||
-        c.responsavel.toLowerCase().includes(lowerCaseSearch)
+        c.responsavel_nome.toLowerCase().includes(lowerCaseSearch)
       );
     }
 
@@ -88,7 +88,7 @@ const Criancas = () => {
     setEditingCrianca(undefined);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     await deleteCrianca(id);
   };
 
@@ -134,7 +134,7 @@ const Criancas = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Buscar por nome da criança..." 
+                  placeholder="Buscar por nome da criança ou responsável..." 
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -203,20 +203,20 @@ const Criancas = () => {
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Data Nasc.:</span>
-                    <span className="font-medium">{crianca.dataNascimento}</span>
+                    <span className="font-medium">{crianca.data_nascimento}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Responsável:</span>
-                    <span className="font-medium">{crianca.responsavel}</span>
+                    <span className="font-medium">{crianca.responsavel_nome}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Status:</span>
                     {getStatusBadge(crianca.status)}
                   </div>
-                  {crianca.cmei !== "N/A" && (
+                  {crianca.cmeiNome && (
                     <div className="flex items-center gap-2 text-sm pt-2 border-t border-border">
                       <MapPin className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-primary">{crianca.cmei}</span>
+                      <span className="font-medium text-primary">{crianca.cmeiNome}</span>
                     </div>
                   )}
                   <div className="pt-2 flex gap-2">
@@ -262,11 +262,11 @@ const Criancas = () => {
                   {filteredCriancas.map((crianca) => (
                     <TableRow key={crianca.id}>
                       <TableCell className="font-medium">{crianca.nome}</TableCell>
-                      <TableCell>{crianca.responsavel}</TableCell>
-                      <TableCell>{crianca.dataNascimento}</TableCell>
+                      <TableCell>{crianca.responsavel_nome}</TableCell>
+                      <TableCell>{crianca.data_nascimento}</TableCell>
                       <TableCell>{crianca.idade}</TableCell>
                       <TableCell>{getStatusBadge(crianca.status)}</TableCell>
-                      <TableCell>{crianca.cmei !== "N/A" ? crianca.cmei : "-"}</TableCell>
+                      <TableCell>{crianca.cmeiNome || "-"}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

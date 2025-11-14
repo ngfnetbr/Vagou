@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 interface HistoricoAccordionProps {
   historicoCriancas: Crianca[];
   isReactivating: boolean;
-  handleReativar: (id: number) => Promise<void>;
+  handleReativar: (id: string) => Promise<void>; // ID agora é string
   getStatusBadge: (status: Crianca['status']) => JSX.Element;
   getFinalizationDate: (crianca: Crianca) => string;
 }
@@ -54,9 +54,9 @@ export const HistoricoAccordion = ({
                     historicoCriancas.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.nome}</TableCell>
-                        <TableCell>{item.responsavel}</TableCell>
+                        <TableCell>{item.responsavel_nome}</TableCell>
                         <TableCell>{getStatusBadge(item.status)}</TableCell>
-                        <TableCell>{item.cmei !== "N/A" ? `${item.cmei} (${item.turmaAtual || 'N/A'})` : '-'}</TableCell>
+                        <TableCell>{item.cmeiNome ? `${item.cmeiNome} (${item.turmaNome || 'N/A'})` : '-'}</TableCell>
                         <TableCell>{getFinalizationDate(item)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
