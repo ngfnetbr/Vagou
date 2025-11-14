@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import TurmaBaseModal, { TurmaBaseFormInput } from "@/components/TurmaBaseModal";
-import { useTurmasBase } from "@/hooks/use-turmas-base"; // Importando o hook
+import { useTurmasBase, TurmaBase as TurmaBaseHookType } from "@/hooks/use-turmas-base"; // Importando o tipo do hook
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +19,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Definindo a interface local para TurmaBase (usando o tipo do hook)
-interface TurmaBase extends TurmaBaseFormInput {
-  id: number;
-}
+// Usamos o tipo importado do hook, que já reflete a estrutura do Supabase.
+interface TurmaBase extends TurmaBaseHookType {}
 
 const TurmasBase = () => {
   const { 
@@ -38,12 +37,12 @@ const TurmasBase = () => {
   const [editingTurmaBase, setEditingTurmaBase] = useState<TurmaBase | undefined>(undefined);
 
   const handleEditClick = (turma: TurmaBase) => {
-    // Mapeia TurmaBase (com id_minima_meses) para TurmaBaseFormInput (com idadeMinima)
+    // Mapeia TurmaBase (com idade_minima_meses) para TurmaBaseFormInput (com idadeMinima)
     setEditingTurmaBase({
         id: turma.id,
         nome: turma.nome,
-        idadeMinima: turma.idade_minima_meses,
-        idadeMaxima: turma.idade_maxima_meses,
+        idadeMinima: turma.idade_minima_meses, // Corrigido
+        idadeMaxima: turma.idade_maxima_meses, // Corrigido
         descricao: turma.descricao || "",
     });
     setIsModalOpen(true);

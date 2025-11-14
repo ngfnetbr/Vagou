@@ -2,12 +2,12 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, User, Plus, Edit, Eye, Trash2, MoreVertical, List, LayoutGrid } from "lucide-react";
+import { Users, User, Plus, Edit, Eye, Trash2, MoreVertical, List, LayoutGrid, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import NovaTurmaModal, { NovaTurmaFormData } from "@/components/NovaTurmaModal";
+import NovaTurmaModal, { NovaTurmaFormInput } from "@/components/NovaTurmaModal";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -28,80 +28,37 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useTurmas } from "@/hooks/use-turmas";
+import { useCMEIs } from "@/hooks/use-cmeis";
+import { useTurmasBase } from "@/hooks/use-turmas-base";
 
-interface Turma {
-  id: number;
-  cmei: string;
-  nome: string; // Ex: Berçário I - Sala A
+// Definindo a interface de Turma com dados de relacionamento para exibição
+interface TurmaDisplay {
+  id: string;
+  cmeiNome: string;
+  turmaBaseNome: string;
+  nomeCompleto: string; // Ex: Berçário I - Sala A
   capacidade: number;
   ocupacao: number;
-  alunos: string[];
-  turmaBaseId: number;
-  sala: string; // Alterado de 'turno' para 'sala'
+  sala: string;
+  turma_base_id: number;
+  cmei_id: string;
+  // Mock de alunos removido, usaremos ocupacao
 }
-
-// Dados mockados de Turmas Base (para seleção no modal)
-const mockTurmasBase = [
-  { id: 1, nome: "Berçário I" },
-  { id: 2, nome: "Berçário II" },
-  { id: 3, nome: "Maternal I" },
-  { id: 4, nome: "Maternal II" },
-  { id: 5, nome: "Pré I" },
-  { id: 6, nome: "Pré II" },
-];
-
-// Dados mockados iniciais (ajustados para o novo formato)
-const initialTurmasData: Turma[] = [
-  {
-    id: 1,
-    cmei: "CMEI Centro",
-    nome: "Berçário I - Sala A",
-    capacidade: 15,
-    ocupacao: 15,
-    alunos: ["Ana Silva", "João Pedro", "Maria Clara", "Lucas Silva", "Beatriz Costa", "Felipe Souza", "Giovana Lima", "Henrique Rocha", "Isadora Mendes", "Júlia Nunes", "Kevin Pires", "Lívia Martins", "Matheus Gomes", "Nicole Ferreira", "Otávio Barbosa"],
-    turmaBaseId: 1,
-    sala: "A",
-  },
-  {
-    id: 2,
-    cmei: "CMEI Centro",
-    nome: "Maternal I - Sala B",
-    capacidade: 20,
-    ocupacao: 18,
-    alunos: ["Carlos Eduardo", "Julia Santos", "Pedro Henrique", "Laura Oliveira", "Ricardo Alves", "Samanta Dias", "Thiago Vieira", "Vitória Castro", "Wallace Neves", "Xavier Rocha", "Yasmin Lopes", "Zoe Pereira", "Alice Ribeiro", "Bruno Fernandes", "Cecília Gonzaga", "Daniela Pinho", "Enzo Queiroz", "Fernanda Ramos"],
-    turmaBaseId: 3,
-    sala: "B",
-  },
-  {
-    id: 3,
-    cmei: "CMEI Norte",
-    nome: "Maternal II - Sala A",
-    capacidade: 20,
-    ocupacao: 19,
-    alunos: ["Rafaela Lima", "Gabriel Costa", "Isabela Silva", "Miguel Santos", "Heloísa Almeida", "Igor Barbosa", "Janaína Carvalho", "Kauã Dantas", "Larissa Evangelista", "Marcelo Freitas", "Natália Guedes", "Osvaldo Horta", "Patrícia Iunes", "Quiteria Jardim", "Renato Kley", "Silvia Lemos", "Tadeu Moura", "Úrsula Nogueira", "Vitor Oliveira"],
-    turmaBaseId: 4,
-    sala: "A",
-  },
-  {
-    id: 4,
-    cmei: "CMEI Norte",
-    nome: "Pré I - Sala C",
-    capacidade: 25,
-    ocupacao: 22,
-    alunos: ["Sofia Alves", "Davi Oliveira", "Helena Costa", "Arthur Silva", "Bernardo Ferreira", "Clara Gomes", "Eduardo Henrique", "Giovanna Iara", "Hugo Jesus", "Ingrid Kelly", "Joaquim Lima", "Kátia Mendes", "Luiz Neto", "Mirella Ortiz", "Nuno Prado", "Olívia Quintela", "Paulo Rocha", "Quésia Santos", "Rafael Toledo", "Sara Uchoa", "Téo Viana", "Ulisses Xavier"],
-    turmaBaseId: 5,
-    sala: "C",
-  },
-];
 
 const Turmas = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const cmeiFilterParam = searchParams.get("cmei");
+  
+  // Hooks de dados
+  const { turmas, isLoading: isLoadingTurmas, deleteTurma, isDeleting } = useTurmas();
+  const { cmeis, isLoading: isLoadingCmeis } = useCMEIs();
+  const { turmasBase, isLoading: isLoadingTurmasBase } = useTurmasBase();
+  
   const [selectedCmei, setSelectedCmei] = useState<string>(cmeiFilterParam || "todos");
-  const [turmas, setTurmas] = useState<Turma[]>(initialTurmasData);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTurma, setEditingTurma] = useState<Turma | undefined>(undefined);
+  const [editingTurma, setEditingTurma] = useState<TurmaDisplay | undefined>(undefined);
   const [currentView, setCurrentView] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
@@ -120,64 +77,66 @@ const Turmas = () => {
     setSearchParams(searchParams);
   };
 
-  const allCmeiNames = Array.from(new Set(initialTurmasData.map(data => data.cmei)));
-  const cmeiOptions = allCmeiNames.map(name => ({ value: name, label: name }));
+  // Mapeamento de dados para exibição
+  const turmasDisplay: TurmaDisplay[] = useMemo(() => {
+    if (!turmas || !cmeis || !turmasBase) return [];
 
-  const filteredTurmas = turmas.filter(turma => selectedCmei === "todos" || turma.cmei === selectedCmei);
+    const cmeiMap = new Map(cmeis.map(c => [c.id, c.nome]));
+    const turmaBaseMap = new Map(turmasBase.map(t => [t.id, t.nome]));
+
+    return turmas.map(turma => ({
+      id: turma.id,
+      cmeiNome: cmeiMap.get(turma.cmei_id) || 'CMEI Desconhecido',
+      turmaBaseNome: turmaBaseMap.get(turma.turma_base_id) || 'Modelo Desconhecido',
+      nomeCompleto: turma.nome,
+      capacidade: turma.capacidade,
+      ocupacao: turma.ocupacao,
+      sala: turma.sala,
+      turma_base_id: turma.turma_base_id,
+      cmei_id: turma.cmei_id,
+    }));
+  }, [turmas, cmeis, turmasBase]);
+
+  const allCmeiNames = useMemo(() => cmeis.map(c => c.nome), [cmeis]);
+  const cmeiOptions = useMemo(() => cmeis.map(c => ({ value: c.id, label: c.nome })), [cmeis]);
+  const turmaBaseOptions = useMemo(() => turmasBase.map(t => ({ id: t.id, nome: t.nome })), [turmasBase]);
+
+  const filteredTurmas = turmasDisplay.filter(turma => {
+    if (selectedCmei === "todos") return true;
+    
+    // Filtra pelo nome do CMEI, se o filtro for um nome (vindo da URL)
+    if (cmeiFilterParam && selectedCmei === cmeiFilterParam) {
+        return turma.cmeiNome === selectedCmei;
+    }
+    
+    // Filtra pelo ID do CMEI, se o filtro for um ID (vindo do Select)
+    const selectedCmeiObject = cmeis.find(c => c.id === selectedCmei);
+    if (selectedCmeiObject) {
+        return turma.cmei_id === selectedCmei;
+    }
+    
+    // Fallback para o caso de o filtro ser um nome (vindo da URL)
+    return turma.cmeiNome === selectedCmei;
+  });
 
   const groupedTurmas = filteredTurmas.reduce((acc, turma) => {
-    if (!acc[turma.cmei]) {
-      acc[turma.cmei] = [];
+    if (!acc[turma.cmeiNome]) {
+      acc[turma.cmeiNome] = [];
     }
-    acc[turma.cmei].push(turma);
+    acc[turma.cmeiNome].push(turma);
     return acc;
-  }, {} as Record<string, Turma[]>);
+  }, {} as Record<string, TurmaDisplay[]>);
 
-  const handleSaveTurma = (data: NovaTurmaFormData & { id?: number }) => {
-    const baseTurma = mockTurmasBase.find(t => String(t.id) === data.turmaBaseId);
-    // Nome da turma agora usa a Sala
-    const nomeCompleto = `${baseTurma?.nome || 'Turma'} - Sala ${data.sala}`;
-
-    if (data.id) {
-      // Edição
-      setTurmas(turmas.map(t => t.id === data.id ? { 
-        ...t, 
-        capacidade: data.capacidade, 
-        sala: data.sala,
-        nome: nomeCompleto,
-      } : t));
-      toast.success("Turma atualizada com sucesso!");
-    } else {
-      // Nova turma
-      const newId = turmas.length > 0 ? Math.max(...turmas.map(t => t.id)) + 1 : 1;
-      setTurmas([...turmas, { 
-        id: newId, 
-        cmei: data.cmei, 
-        nome: nomeCompleto,
-        capacidade: data.capacidade, 
-        ocupacao: 0,
-        alunos: [],
-        turmaBaseId: Number(data.turmaBaseId),
-        sala: data.sala,
-      }]);
-      toast.success("Turma cadastrada com sucesso!");
-    }
-    setEditingTurma(undefined);
+  const handleDeleteTurma = async (id: string) => {
+    await deleteTurma(id);
     setIsModalOpen(false);
   };
 
-  const handleDeleteTurma = (id: number) => {
-    setTurmas(turmas.filter(turma => turma.id !== id));
-    toast.success("Turma excluída com sucesso!");
-    setIsModalOpen(false);
-  };
-
-  const handleEditClick = (turma: Turma) => {
+  const handleEditClick = (turma: TurmaDisplay) => {
     setEditingTurma({
       ...turma,
-      turmaBaseId: turma.turmaBaseId,
-      cmei: turma.cmei,
-      nome: turma.nome,
+      cmei_id: turma.cmei_id,
+      turma_base_id: turma.turma_base_id,
       capacidade: turma.capacidade,
       sala: turma.sala,
     });
@@ -189,26 +148,32 @@ const Turmas = () => {
     setIsModalOpen(true);
   };
   
-  const handleViewAllClick = (turma: Turma) => {
+  const handleViewAllClick = (turma: TurmaDisplay) => {
+    // Passamos o objeto TurmaDisplay para a página de detalhes
     navigate(`/admin/turmas/${turma.id}`, { state: { turma } });
   };
 
-  const getInitialDataForModal = () => {
+  const getInitialDataForModal = (): NovaTurmaFormInput & { id?: string } | undefined => {
     if (editingTurma) {
       return {
         id: editingTurma.id,
-        cmei: editingTurma.cmei,
-        turmaBaseId: String(editingTurma.turmaBaseId),
-        nome: editingTurma.nome,
+        cmei_id: editingTurma.cmei_id,
+        turma_base_id: editingTurma.turma_base_id,
         capacidade: editingTurma.capacidade,
-        sala: editingTurma.sala as NovaTurmaFormData['sala'],
+        sala: editingTurma.sala as NovaTurmaFormInput['sala'],
       };
     }
-    // Preenche o CMEI se houver um filtro ativo
-    return cmeiFilterParam && cmeiFilterParam !== "todos" ? { cmei: cmeiFilterParam } : undefined;
+    // Preenche o CMEI se houver um filtro ativo (buscamos o ID do CMEI pelo nome)
+    if (cmeiFilterParam && cmeiFilterParam !== "todos") {
+        const cmeiObj = cmeis.find(c => c.nome === cmeiFilterParam);
+        if (cmeiObj) {
+            return { cmei_id: cmeiObj.id, turma_base_id: 0, capacidade: 0, sala: "A" };
+        }
+    }
+    return undefined;
   };
 
-  const renderTurmaActions = (turma: Turma) => (
+  const renderTurmaActions = (turma: TurmaDisplay) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm">
@@ -226,7 +191,7 @@ const Turmas = () => {
         </DropdownMenuItem>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive" disabled={isDeleting}>
               <Trash2 className="mr-2 h-4 w-4" />
               Excluir Turma
             </DropdownMenuItem>
@@ -236,14 +201,14 @@ const Turmas = () => {
               <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
                 Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
-                <span className="font-semibold"> {turma.nome} </span>
-                do CMEI {turma.cmei}.
+                <span className="font-semibold"> {turma.nomeCompleto} </span>
+                do CMEI {turma.cmeiNome}.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeleteTurma(turma.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Excluir
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDeleteTurma(turma.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
+                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Excluir"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -262,17 +227,16 @@ const Turmas = () => {
         
         <div className="grid md:grid-cols-2 gap-6">
           {turmasList.map((turma) => {
-            const ocupacaoPercent = Math.round((turma.ocupacao / turma.capacidade) * 100);
-            const baseTurma = mockTurmasBase.find(t => t.id === turma.turmaBaseId);
+            const ocupacaoPercent = turma.capacidade > 0 ? Math.round((turma.ocupacao / turma.capacidade) * 100) : 0;
             
             return (
               <Card key={turma.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-lg">{turma.nome}</CardTitle>
+                      <CardTitle className="text-lg">{turma.nomeCompleto}</CardTitle>
                       <CardDescription className="mt-1">
-                        {turma.ocupacao} / {turma.capacidade} alunos ({baseTurma?.nome})
+                        {turma.ocupacao} / {turma.capacidade} alunos ({turma.turmaBaseNome})
                       </CardDescription>
                     </div>
                     <Badge variant={ocupacaoPercent === 100 ? "default" : "secondary"}>
@@ -282,32 +246,15 @@ const Turmas = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground">Alunos Matriculados</h4>
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                      {turma.alunos.slice(0, 5).map((aluno, alunoIndex) => (
-                        <div 
-                          key={alunoIndex}
-                          className="flex items-center justify-between p-2 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-foreground">Ocupação</h4>
+                    <div className="flex items-center justify-between p-2 border border-border rounded-lg">
+                        <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{aluno}</span>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            Ver
-                          </Button>
+                            <span className="text-sm">Vagas Livres: {turma.capacidade - turma.ocupacao}</span>
                         </div>
-                      ))}
-                      {turma.alunos.length > 5 && (
-                        <p className="text-xs text-muted-foreground text-center py-2">
-                          + {turma.alunos.length - 5} alunos
-                        </p>
-                      )}
-                      {turma.alunos.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-2">
-                          Nenhum aluno matriculado nesta turma.
-                        </p>
-                      )}
+                        <Badge variant={turma.capacidade - turma.ocupacao === 0 ? "destructive" : "secondary"}>
+                            {turma.ocupacao} Ocupadas
+                        </Badge>
                     </div>
                   </div>
                   
@@ -319,47 +266,10 @@ const Turmas = () => {
                       onClick={() => handleViewAllClick(turma)}
                     >
                       <Eye className="mr-2 h-4 w-4" />
-                      Ver Todos
+                      Ver Detalhes
                     </Button>
                     
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-1/2">
-                          <MoreVertical className="mr-2 h-4 w-4" />
-                          Gerenciar
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditClick(turma)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar Turma
-                        </DropdownMenuItem>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir Turma
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
-                                <span className="font-semibold"> {turma.nome} </span>
-                                do CMEI {turma.cmei}.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteTurma(turma.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {renderTurmaActions(turma)}
                   </div>
                 </CardContent>
               </Card>
@@ -387,7 +297,7 @@ const Turmas = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                {/* Removendo a coluna CMEI, pois será o agrupador */}
+                <TableHead>CMEI</TableHead>
                 <TableHead>Turma</TableHead>
                 <TableHead>Modelo Base</TableHead>
                 <TableHead className="text-center">Capacidade</TableHead>
@@ -397,34 +307,22 @@ const Turmas = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(groupedTurmas).map(([cmeiName, turmasList]) => (
-                <>
-                  <TableRow key={cmeiName} className="bg-muted/50 hover:bg-muted/50">
-                    <TableCell colSpan={6} className="font-bold text-primary text-lg">
-                      {cmeiName}
-                    </TableCell>
-                  </TableRow>
-                  {turmasList.map((turma) => {
-                    const baseTurma = mockTurmasBase.find(t => t.id === turma.turmaBaseId);
-                    
-                    return (
-                      <TableRow key={turma.id}>
-                        <TableCell className="font-medium">{turma.nome}</TableCell>
-                        <TableCell>{baseTurma?.nome}</TableCell>
-                        <TableCell className="text-center">{turma.capacidade}</TableCell>
-                        <TableCell className="text-center">{turma.ocupacao}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={turma.capacidade - turma.ocupacao === 0 ? "destructive" : "secondary"}>
-                            {turma.capacidade - turma.ocupacao}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {renderTurmaActions(turma)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </>
+              {filteredTurmas.map((turma) => (
+                <TableRow key={turma.id}>
+                  <TableCell className="font-medium">{turma.cmeiNome}</TableCell>
+                  <TableCell>{turma.nomeCompleto}</TableCell>
+                  <TableCell>{turma.turmaBaseNome}</TableCell>
+                  <TableCell className="text-center">{turma.capacidade}</TableCell>
+                  <TableCell className="text-center">{turma.ocupacao}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={turma.capacidade - turma.ocupacao === 0 ? "destructive" : "secondary"}>
+                      {turma.capacidade - turma.ocupacao}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {renderTurmaActions(turma)}
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
@@ -432,6 +330,19 @@ const Turmas = () => {
       </Card>
     );
   };
+  
+  const isLoadingData = isLoadingTurmas || isLoadingCmeis || isLoadingTurmasBase;
+
+  if (isLoadingData) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-lg text-muted-foreground">Carregando dados de turmas...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -453,10 +364,7 @@ const Turmas = () => {
             </DialogTrigger>
             <NovaTurmaModal
               initialData={getInitialDataForModal()}
-              onSave={handleSaveTurma}
               onClose={() => setIsModalOpen(false)}
-              cmeiOptions={cmeiOptions}
-              turmaBaseOptions={mockTurmasBase}
             />
           </Dialog>
         </div>
@@ -470,8 +378,8 @@ const Turmas = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os CMEIs</SelectItem>
-                  {allCmeiNames.map(name => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  {cmeis.map(cmei => (
+                    <SelectItem key={cmei.id} value={cmei.id}>{cmei.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -495,8 +403,6 @@ const Turmas = () => {
             </div>
           </CardHeader>
         </Card>
-
-        {/* A verificação de turmas vazias agora é feita dentro de renderTurmasList e renderTurmasGrid */}
         
         {currentView === "grid" ? renderTurmasGrid() : renderTurmasList()}
         

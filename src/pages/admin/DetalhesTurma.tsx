@@ -2,25 +2,53 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, User, MapPin, Users, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, User, MapPin, Users, Edit, Trash2, Loader2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import NovaTurmaModal, { NovaTurmaFormInput } from "@/components/NovaTurmaModal";
+import { useState } from "react";
+import { useTurmas } from "@/hooks/use-turmas";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-interface TurmaDetails {
-  id: number;
-  cmei: string;
-  nome: string;
+// Interface de dados de exibição (TurmaDisplay)
+interface TurmaDisplay {
+  id: string;
+  cmeiNome: string;
+  turmaBaseNome: string;
+  nomeCompleto: string;
   capacidade: number;
   ocupacao: number;
-  alunos: string[];
-  turmaBaseId: number;
   sala: string;
+  turma_base_id: number;
+  cmei_id: string;
 }
+
+// Mock de alunos (temporário, até integrarmos a tabela 'criancas')
+const mockAlunos = [
+    "Ana Silva", "João Pedro", "Maria Clara", "Lucas Silva", "Beatriz Costa", 
+    "Felipe Souza", "Giovana Lima", "Henrique Rocha", "Isadora Mendes", "Júlia Nunes", 
+    "Kevin Pires", "Lívia Martins", "Matheus Gomes", "Nicole Ferreira", "Otávio Barbosa"
+];
+
 
 const DetalhesTurma = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const turma = location.state?.turma as TurmaDetails | undefined;
+  const turma = location.state?.turma as TurmaDisplay | undefined;
+  const { deleteTurma, isDeleting } = useTurmas();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!turma) {
     return (
@@ -41,30 +69,91 @@ const DetalhesTurma = () => {
       </AdminLayout>
     );
   }
+  
+  // Mock: Usamos a ocupação real, mas a lista de alunos é mockada
+  const alunosNaTurma = mockAlunos.slice(0, turma.ocupacao);
 
-  const ocupacaoPercent = Math.round((turma.ocupacao / turma.capacidade) * 100);
+  const ocupacaoPercent = turma.capacidade > 0 ? Math.round((turma.ocupacao / turma.capacidade) * 100) : 0;
   const vagasDisponiveis = turma.capacidade - turma.ocupacao;
+  
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    // Não precisamos de refetch aqui, pois a edição é feita na página Turmas.tsx
+    // Se a edição for bem-sucedida, o usuário deve ser redirecionado ou a página deve ser atualizada manualmente.
+    // Por simplicidade, vamos apenas fechar o modal.
+  };
+  
+  const handleEditClick = () => {
+    setIsModalOpen(true);
+  };
+  
+  const handleDelete = async () => {
+    await deleteTurma(turma.id);
+    navigate('/admin/turmas');
+  };
+  
+  const getInitialDataForModal = (): NovaTurmaFormInput & { id?: string } => ({
+    id: turma.id,
+    cmei_id: turma.cmei_id,
+    turma_base_id: turma.turma_base_id,
+    capacidade: turma.capacidade,
+    sala: turma.sala as NovaTurmaFormInput['sala'],
+  });
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{turma.nome}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{turma.nomeCompleto}</h1>
             <p className="text-muted-foreground flex items-center gap-2">
               <MapPin className="h-4 w-4" />
-              {turma.cmei}
+              {turma.cmeiNome}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => navigate(-1)}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para Turmas
             </Button>
-            <Button variant="outline" className="text-primary border-primary hover:bg-primary/10">
-              <Edit className="mr-2 h-4 w-4" />
-              Editar Turma
-            </Button>
+            
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="text-primary border-primary hover:bg-primary/10" onClick={handleEditClick}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar Turma
+                    </Button>
+                </DialogTrigger>
+                <NovaTurmaModal
+                    initialData={getInitialDataForModal()}
+                    onClose={handleModalClose}
+                />
+            </Dialog>
+            
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeleting}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
+                            <span className="font-semibold"> {turma.nomeCompleto} </span>
+                            e removerá todos os dados associados.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
+                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Excluir"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -95,7 +184,7 @@ const DetalhesTurma = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">ID {turma.turmaBaseId}</div>
+              <div className="text-2xl font-bold">{turma.turmaBaseNome}</div>
               <p className="text-xs text-muted-foreground">Faixa etária correspondente</p>
             </CardContent>
           </Card>
@@ -103,8 +192,8 @@ const DetalhesTurma = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Lista Completa de Alunos ({turma.alunos.length})</CardTitle>
-            <CardDescription>Todos os alunos matriculados nesta turma.</CardDescription>
+            <CardTitle>Lista de Alunos ({alunosNaTurma.length})</CardTitle>
+            <CardDescription>Alunos atualmente matriculados nesta turma.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -117,7 +206,7 @@ const DetalhesTurma = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {turma.alunos.map((aluno, index) => (
+                {alunosNaTurma.map((aluno, index) => (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell className="flex items-center gap-2">
@@ -134,7 +223,7 @@ const DetalhesTurma = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {turma.alunos.length === 0 && (
+                {alunosNaTurma.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
                       Nenhum aluno matriculado nesta turma.

@@ -70,15 +70,13 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
   const onSubmit = async (data: InscricaoFormData) => {
     if (onSuccess) {
       try {
-        // Usamos 'data' diretamente, mas forçamos a tipagem para a chamada da mutação
+        // Usando 'data' diretamente, pois o zodResolver garante que é InscricaoFormData
         const completeData = data;
         
         if (isEditing && criancaId) {
-          // Asserção de tipo para garantir que a mutação receba o tipo esperado
-          await updateCrianca({ id: criancaId, data: completeData as InscricaoFormData }); 
+          await updateCrianca({ id: criancaId, data: completeData }); 
         } else {
-          // Asserção de tipo para garantir que a mutação receba o tipo esperado
-          await addCrianca(completeData as InscricaoFormData); 
+          await addCrianca(completeData); 
         }
         onSuccess(completeData);
         if (!isEditing) {
