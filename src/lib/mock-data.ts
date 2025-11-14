@@ -138,12 +138,34 @@ const mapFormToDb = (data: InscricaoFormData) => {
     };
 };
 
+// Função para obter o email do usuário logado ou 'sistema'
+const getLoggedUser = async (): Promise<string> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user ? user.email || 'usuário desconhecido' : 'sistema';
+};
+
+// Função para registrar uma entrada no histórico
+const registerHistorico = async (criancaId: string, acao: string, detalhes: string) => {
+    const usuario = await getLoggedUser();
+    const { error } = await supabase
+        .from('historico')
+        .insert({
+            crianca_id: criancaId,
+            acao: acao,
+            detalhes: detalhes,
+            usuario: usuario,
+            data: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+        });
+        
+    if (error) {
+        console.error("Erro ao registrar histórico:", error);
+        // Não lançamos erro aqui para não interromper a mutação principal
+    }
+};
+
 // --- Funções de API (Supabase) ---
 
 export const fetchCriancas = async (): Promise<Crianca[]> => {
-  // Em um sistema real, faríamos um JOIN para buscar os nomes de CMEI e Turma.
-  // Por enquanto, faremos um SELECT simples e deixaremos o mapeamento de nomes para o frontend,
-  // mas vamos buscar os dados de CMEI e Turma para preencher cmeiNome e turmaNome.
   const { data, error } = await supabase
     .from('criancas')
     .select(`
@@ -157,7 +179,6 @@ export const fetchCriancas = async (): Promise<Crianca[]> => {
     throw new Error(error.message);
   }
   
-  // Mapeia os dados do DB para o formato Crianca do frontend
   return data.map(mapDbToCrianca);
 };
 
@@ -184,9 +205,6 @@ export const getCriancaById = async (id: string): Promise<Crianca | undefined> =
 export const addCriancaFromInscricao = async (data: InscricaoFormData): Promise<Crianca> => {
   const payload = mapFormToDb(data);
   
-  // TODO: Implementar lógica de atribuição de posição na fila (posicao_fila)
-  // Por enquanto, inserimos com posicao_fila = null.
-  
   const { data: newCriancaDb, error } = await supabase
     .from('criancas')
     .insert([payload])
@@ -201,7 +219,10 @@ export const addCriancaFromInscricao = async (data: InscricaoFormData): Promise<
     throw new Error(`Erro ao cadastrar criança: ${error.message}`);
   }
   
-  return mapDbToCrianca(newCriancaDb);
+  const newCrianca = mapDbToCrianca(newCriancaDb);
+  await registerHistorico(newCrianca.id, "Inscrição Realizada", `Nova inscrição para ${newCrianca.nome}. Status: Fila de Espera.`);
+  
+  return newCrianca;
 };
 
 export const updateCrianca = async (id: string, data: InscricaoFormData): Promise<Crianca> => {
@@ -229,10 +250,16 @@ export const updateCrianca = async (id: string, data: InscricaoFormData): Promis
         throw new Error(`Erro ao atualizar criança: ${error.message}`);
     }
     
-    return mapDbToCrianca(updatedCriancaDb);
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Dados Cadastrais Atualizados", `Dados de ${updatedCrianca.nome} atualizados.`);
+    
+    return updatedCrianca;
 };
 
 export const deleteCrianca = async (id: string): Promise<void> => {
+    // Buscamos o nome antes de deletar para o histórico
+    const crianca = await getCriancaById(id);
+    
     const { error } = await supabase
         .from('criancas')
         .delete()
@@ -240,6 +267,10 @@ export const deleteCrianca = async (id: string): Promise<void> => {
 
     if (error) {
         throw new Error(`Erro ao excluir criança: ${error.message}`);
+    }
+    
+    if (crianca) {
+        await registerHistorico(id, "Criança Excluída", `Registro de ${crianca.nome} excluído permanentemente do sistema.`);
     }
 };
 
@@ -285,9 +316,10 @@ export const convocarCrianca = async (criancaId: string, data: ConvocationData):
         throw new Error(`Erro ao convocar criança: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Convocação Enviada", `Convocado(a) para ${updatedCrianca.cmeiNome} - ${updatedCrianca.turmaNome}. Prazo até ${deadline}.`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const confirmarMatricula = async (criancaId: string): Promise<Crianca> => {
@@ -310,9 +342,10 @@ export const confirmarMatricula = async (criancaId: string): Promise<Crianca> =>
         throw new Error(`Erro ao confirmar matrícula: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Matrícula Confirmada", `Matrícula efetivada no CMEI ${updatedCrianca.cmeiNome} - ${updatedCrianca.turmaNome}.`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const marcarRecusada = async (criancaId: string, justificativa: string): Promise<Crianca> => {
@@ -335,9 +368,10 @@ export const marcarRecusada = async (criancaId: string, justificativa: string): 
         throw new Error(`Erro ao marcar recusa: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Convocação Recusada", `Recusa de convocação para ${updatedCrianca.cmeiNome}. Justificativa: ${justificativa}`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const marcarDesistente = async (criancaId: string, justificativa: string): Promise<Crianca> => {
@@ -362,9 +396,10 @@ export const marcarDesistente = async (criancaId: string, justificativa: string)
         throw new Error(`Erro ao marcar desistente: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Desistência Registrada", `Criança marcada como desistente. Justificativa: ${justificativa}`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
@@ -391,9 +426,10 @@ export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
         throw new Error(`Erro ao reativar criança: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Reativação na Fila", `${updatedCrianca.nome} reativado(a) na fila de espera.`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const marcarFimDeFila = async (criancaId: string, justificativa: string): Promise<Crianca> => {
@@ -420,9 +456,10 @@ export const marcarFimDeFila = async (criancaId: string, justificativa: string):
         throw new Error(`Erro ao marcar fim de fila: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Fim de Fila", `Convocação recusada, ${updatedCrianca.nome} movido(a) para o fim da fila. Justificativa: ${justificativa}`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const realocarCrianca = async (criancaId: string, data: ConvocationData): Promise<Crianca> => {
@@ -444,9 +481,10 @@ export const realocarCrianca = async (criancaId: string, data: ConvocationData):
         throw new Error(`Erro ao realocar criança: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Realocação de Turma", `Realocado(a) para ${updatedCrianca.cmeiNome} - ${updatedCrianca.turmaNome}.`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const transferirCrianca = async (criancaId: string, justificativa: string): Promise<Crianca> => {
@@ -471,9 +509,10 @@ export const transferirCrianca = async (criancaId: string, justificativa: string
         throw new Error(`Erro ao transferir criança: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Transferência (Mudança de Cidade)", `Matrícula encerrada por transferência. Justificativa: ${justificativa}`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 export const solicitarRemanejamento = async (criancaId: string, justificativa: string): Promise<Crianca> => {
@@ -494,15 +533,14 @@ export const solicitarRemanejamento = async (criancaId: string, justificativa: s
         throw new Error(`Erro ao solicitar remanejamento: ${error.message}`);
     }
     
-    // TODO: Adicionar registro no histórico (tabela 'historico')
+    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
+    await registerHistorico(updatedCrianca.id, "Solicitação de Remanejamento", `Remanejamento solicitado. Justificativa: ${justificativa}`);
     
-    return mapDbToCrianca(updatedCriancaDb);
+    return updatedCrianca;
 };
 
 // --- Funções de Suporte (Mockadas anteriormente) ---
 
-// Mock list of CMEIs and their available turmas (simplified)
-// Esta função será mantida, mas adaptada para usar IDs reais e buscar dados de turmas
 export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: string, turma: string, vagas: number, cmei_id: string, turma_id: string }[]> => {
     // 1. Buscar a criança para obter preferências
     const crianca = await getCriancaById(criancaId);
@@ -536,13 +574,10 @@ export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: s
     let availableTurmas = turmasDb
         .filter(t => t.capacidade > t.ocupacao) // Deve ter vagas
         .filter(t => {
-            // Correção do Erro 1: A asserção de tipo deve ser feita no objeto retornado pelo JOIN, não no array.
-            // Usamos 'as any' para contornar a limitação do TS com resultados de JOINs aninhados do Supabase
             const base = (t.turmas_base as any) as { idade_minima_meses: number, idade_maxima_meses: number };
             return ageInMonths >= base.idade_minima_meses && ageInMonths <= base.idade_maxima_meses;
         })
         .map(t => ({
-            // Correção do Erro 2: A asserção de tipo deve ser feita no objeto retornado pelo JOIN, não no array.
             cmei: ((t.cmeis as any) as { nome: string }).nome,
             turma: t.nome,
             vagas: t.capacidade - t.ocupacao,
@@ -579,7 +614,6 @@ export type { Crianca };
 // Exporta a tipagem ConvocationData (já definida acima)
 
 // Exporta a tipagem para o histórico (se necessário, mas vamos usar a tabela 'historico' real)
-// Por enquanto, mantemos a interface HistoricoEntry para compatibilidade com o frontend.
 export interface HistoricoEntry {
   data: string; // YYYY-MM-DD
   acao: string;
@@ -587,7 +621,7 @@ export interface HistoricoEntry {
   usuario: string;
 }
 
-// Mock de histórico (será substituído pela tabela 'historico' real em breve)
+// Busca o histórico real da criança
 export const fetchHistoricoCrianca = async (criancaId: string): Promise<HistoricoEntry[]> => {
     const { data, error } = await supabase
         .from('historico')

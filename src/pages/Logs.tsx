@@ -4,99 +4,46 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, Download, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { useHistoricoGeral } from "@/hooks/use-historico"; // Importando o novo hook
+import { HistoricoEntry } from "@/lib/mock-data"; // Importando a tipagem
+import { Button } from "@/components/ui/button"; // Importação adicionada
 
-interface LogEntry {
-  id: number;
-  timestamp: string;
-  usuario: string;
-  acao: string;
-  detalhes: string;
-  tipo: "success" | "info" | "warning" | "error";
+// Tipagem local para Logs (usando HistoricoEntry)
+interface LogEntry extends HistoricoEntry {
+  id: number; // Mantendo id para key, embora o DB use bigint/UUID
+  timestamp: string; // Usaremos created_at para isso
+  tipo: "success" | "info" | "warning" | "error"; // Tipo inferido da ação
 }
 
-const mockLogs: LogEntry[] = [
-  {
-    id: 1,
-    timestamp: "07/11/2025 14:32:15",
-    usuario: "admin@cidade.gov.br",
-    acao: "Matrícula criada",
-    detalhes: "Nova matrícula: Ana Silva Santos - CMEI Centro",
-    tipo: "success"
-  },
-  {
-    id: 2,
-    timestamp: "07/11/2025 14:15:42",
-    usuario: "gestor@cmei-norte.gov.br",
-    acao: "Convocação enviada",
-    detalhes: "Convocação enviada para Carlos Eduardo Silva",
-    tipo: "info"
-  },
-  {
-    id: 3,
-    timestamp: "07/11/2025 13:58:20",
-    usuario: "admin@cidade.gov.br",
-    acao: "CMEI atualizado",
-    detalhes: "Capacidade do CMEI Sul alterada de 180 para 200",
-    tipo: "warning"
-  },
-  {
-    id: 4,
-    timestamp: "07/11/2025 13:45:10",
-    usuario: "sistema",
-    acao: "Backup automático",
-    detalhes: "Backup diário realizado com sucesso",
-    tipo: "success"
-  },
-  {
-    id: 5,
-    timestamp: "07/11/2025 12:30:05",
-    usuario: "gestor@cmei-leste.gov.br",
-    acao: "Transferência aprovada",
-    detalhes: "Transferência de Lucas Oliveira de CMEI Norte para CMEI Leste",
-    tipo: "info"
-  },
-  {
-    id: 6,
-    timestamp: "07/11/2025 11:20:33",
-    usuario: "admin@cidade.gov.br",
-    acao: "Usuário criado",
-    detalhes: "Novo gestor cadastrado: gestor@cmei-oeste.gov.br",
-    tipo: "success"
-  },
-  {
-    id: 7,
-    timestamp: "07/11/2025 10:15:22",
-    usuario: "admin@cidade.gov.br",
-    acao: "Importação de dados",
-    detalhes: "45 crianças importadas via planilha",
-    tipo: "success"
-  },
-  {
-    id: 8,
-    timestamp: "07/11/2025 09:05:11",
-    usuario: "sistema",
-    acao: "Tentativa de login falha",
-    detalhes: "Tentativa de login com credenciais inválidas",
-    tipo: "error"
-  },
-  {
-    id: 9,
-    timestamp: "07/11/2025 08:00:00",
-    usuario: "admin@cidade.gov.br",
-    acao: "Configuração alterada",
-    detalhes: "Prazo de resposta de convocação alterado para 5 dias",
-    tipo: "warning"
-  },
-];
-
 const Logs = () => {
+  const { logs: rawLogs, isLoading, error } = useHistoricoGeral();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAcao, setFilterAcao] = useState("todas");
   const [filterTipo, setFilterTipo] = useState("todos");
+
+  // Mapeia logs do DB para o formato de exibição e infere o tipo
+  const mappedLogs: LogEntry[] = useMemo(() => {
+    return rawLogs.map((log, index) => {
+      let tipo: LogEntry['tipo'] = "info";
+      if (log.acao.includes("Confirmada") || log.acao.includes("Matrícula") || log.acao.includes("Cadastrada") || log.acao.includes("Reativação")) {
+        tipo = "success";
+      } else if (log.acao.includes("Recusada") || log.acao.includes("Desistência") || log.acao.includes("Transferência") || log.acao.includes("Excluída")) {
+        tipo = "error";
+      } else if (log.acao.includes("Atualizados") || log.acao.includes("Remanejamento") || log.acao.includes("Fim de Fila")) {
+        tipo = "warning";
+      }
+      
+      return {
+        ...log,
+        id: index, // Usando index como fallback para key
+        timestamp: new Date(log.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        tipo: tipo,
+      };
+    });
+  }, [rawLogs]);
 
   const getTipoBadge = (tipo: LogEntry['tipo']) => {
     const variants: Record<LogEntry['tipo'], { className: string, label: string }> = {
@@ -112,7 +59,7 @@ const Logs = () => {
   };
 
   const filteredLogs = useMemo(() => {
-    return mockLogs.filter(log => {
+    return mappedLogs.filter(log => {
       // 1. Filtrar por termo de busca
       const matchesSearch = searchTerm.toLowerCase() === "" ||
         log.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,21 +76,43 @@ const Logs = () => {
       // 3. Filtrar por tipo de ação (mais genérico, baseado na ação)
       if (filterAcao === "todas") return true;
 
-      if (filterAcao === "matricula" && log.acao.toLowerCase().includes("matrícula")) return true;
+      if (filterAcao === "matricula" && (log.acao.toLowerCase().includes("matrícula") || log.acao.toLowerCase().includes("realocação"))) return true;
       if (filterAcao === "convocacao" && log.acao.toLowerCase().includes("convocação")) return true;
-      if (filterAcao === "usuario" && log.acao.toLowerCase().includes("usuário")) return true;
-      if (filterAcao === "cmei" && log.acao.toLowerCase().includes("cmei")) return true;
+      if (filterAcao === "cadastro" && log.acao.toLowerCase().includes("inscrição")) return true;
+      if (filterAcao === "status" && (log.acao.toLowerCase().includes("desistência") || log.acao.toLowerCase().includes("recusada") || log.acao.toLowerCase().includes("reativação"))) return true;
       if (filterAcao === "sistema" && log.usuario.toLowerCase() === "sistema") return true;
       
       return false;
     });
-  }, [searchTerm, filterAcao, filterTipo]);
+  }, [searchTerm, filterAcao, filterTipo, mappedLogs]);
 
   const handleExport = () => {
     toast.success("Exportação de logs iniciada!", {
       description: "O arquivo de logs será gerado e baixado em breve.",
     });
   };
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-lg text-muted-foreground">Carregando logs do sistema...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
+  
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="text-center p-8 bg-destructive/10 border border-destructive rounded-lg">
+          <p className="text-destructive font-semibold">Erro ao carregar logs: {error.message}</p>
+          <p className="text-sm text-destructive/80 mt-2">Verifique a conexão com o Supabase e as políticas de RLS da tabela 'historico'.</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -182,10 +151,10 @@ const Logs = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todas">Todas as ações</SelectItem>
-                    <SelectItem value="matricula">Matrículas</SelectItem>
+                    <SelectItem value="cadastro">Inscrição/Cadastro</SelectItem>
+                    <SelectItem value="matricula">Matrículas/Realocação</SelectItem>
                     <SelectItem value="convocacao">Convocações</SelectItem>
-                    <SelectItem value="usuario">Usuários</SelectItem>
-                    <SelectItem value="cmei">CMEIs</SelectItem>
+                    <SelectItem value="status">Status/Desistência</SelectItem>
                     <SelectItem value="sistema">Sistema</SelectItem>
                   </SelectContent>
                 </Select>
