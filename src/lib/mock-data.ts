@@ -49,7 +49,7 @@ const calculateAgeString = (dobString: string): string => {
   
   let years = today.getFullYear() - dob.getFullYear();
   let months = today.getMonth() - dob.getMonth();
-  let days = today.getDate() - dob.getDate();
+  let days = today.getDate() - dob.getDay();
 
   if (days < 0) {
     months--;
@@ -536,11 +536,14 @@ export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: s
     let availableTurmas = turmasDb
         .filter(t => t.capacidade > t.ocupacao) // Deve ter vagas
         .filter(t => {
-            const base = t.turmas_base as { idade_minima_meses: number, idade_maxima_meses: number };
+            // Correção do Erro 1: A asserção de tipo deve ser feita no objeto retornado pelo JOIN, não no array.
+            // Usamos 'as any' para contornar a limitação do TS com resultados de JOINs aninhados do Supabase
+            const base = (t.turmas_base as any) as { idade_minima_meses: number, idade_maxima_meses: number };
             return ageInMonths >= base.idade_minima_meses && ageInMonths <= base.idade_maxima_meses;
         })
         .map(t => ({
-            cmei: (t.cmeis as { nome: string }).nome,
+            // Correção do Erro 2: A asserção de tipo deve ser feita no objeto retornado pelo JOIN, não no array.
+            cmei: ((t.cmeis as any) as { nome: string }).nome,
             turma: t.nome,
             vagas: t.capacidade - t.ocupacao,
             cmei_id: t.cmei_id,

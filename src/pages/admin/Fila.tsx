@@ -47,6 +47,7 @@ const Fila = () => {
   // Modais State
   const [isConvocarModalOpen, setIsConvocarModalOpen] = useState(false);
   const [criancaToConvoke, setCriancaToConvoke] = useState<Crianca | undefined>(undefined);
+  const [isJustificativaModalOpen, setIsJustificativaModalOpen] = useState(false); // Estado Faltante
   const [criancaToJustify, setCriancaToJustify] = useState<Crianca | undefined>(undefined);
   const [currentJustificativaAction, setCurrentJustificativaAction] = useState<JustificativaAction | undefined>(undefined);
 
@@ -195,13 +196,13 @@ const Fila = () => {
     try {
         switch (currentJustificativaAction) {
           case 'recusada':
-            await marcarRecusada(id, justificativa);
+            await marcarRecusada({ id, justificativa });
             break;
           case 'desistente':
-            await marcarDesistente(id, justificativa);
+            await marcarDesistente({ id, justificativa });
             break;
           case 'fim_de_fila':
-            await marcarFimDeFila(id, justificativa);
+            await marcarFimDeFila({ id, justificativa });
             break;
         }
         

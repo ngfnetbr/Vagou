@@ -3,6 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, GraduationCap, ListOrdered, TrendingUp, Loader2 } from "lucide-react";
 import { useCriancas } from "@/hooks/use-criancas";
 import { useMemo } from "react";
+import { Crianca } from "@/lib/mock-data"; // Importando Crianca
+
+// Mock de histórico para o Dashboard (será substituído pela tabela 'historico' real)
+const mockHistoricoRecente = [
+    { data: "07/11/2025", acao: "Matrícula Confirmada", detalhes: "Ana Silva matriculada no CMEI Centro" },
+    { data: "07/11/2025", acao: "Convocação Enviada", detalhes: "Convocação para João Pedro" },
+    { data: "06/11/2025", acao: "CMEI Atualizado", detalhes: "Capacidade do CMEI Sul alterada" },
+    { data: "05/11/2025", acao: "Nova Inscrição", detalhes: "Maria Clara adicionada à fila" },
+    { data: "04/11/2025", acao: "Usuário Criado", detalhes: "Novo gestor cadastrado" },
+];
 
 const Dashboard = () => {
   const { criancas, isLoading } = useCriancas();
@@ -115,55 +125,56 @@ const Dashboard = () => {
           })}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Convocações Pendentes ({convocacoesPendentes.length})</CardTitle>
-              <CardDescription>Convocações aguardando confirmação ou prazo expirado</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {convocacoesPendentes.slice(0, 5).map((crianca) => (
-                  <div key={crianca.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div>
-                      <p className="font-medium text-foreground">{crianca.nome}</p>
-                      <p className="text-sm text-muted-foreground">{crianca.cmei} ({crianca.turmaAtual})</p>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Convocações Pendentes ({convocacoesPendentes.length})</CardTitle>
+                <CardDescription>Convocações aguardando confirmação ou prazo expirado</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {convocacoesPendentes.slice(0, 5).map((crianca) => (
+                    <div key={crianca.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div>
+                        <p className="font-medium text-foreground">{crianca.nome}</p>
+                        <p className="text-sm text-muted-foreground">{crianca.cmeiNome} ({crianca.turmaNome})</p>
+                      </div>
+                      <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                        Pendente
+                      </span>
                     </div>
-                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                      Pendente
-                    </span>
-                  </div>
-                ))}
-                {convocacoesPendentes.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">Nenhuma convocação pendente.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  {convocacoesPendentes.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhuma convocação pendente.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Atividades Recentes</CardTitle>
-              <CardDescription>Últimas ações no sistema (Mock)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {criancas.flatMap(c => c.historico)
-                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
-                    .slice(0, 5)
-                    .map((atividade, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 border border-border rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{atividade.acao}</p>
-                      <p className="text-sm text-muted-foreground">{atividade.detalhes}</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Atividades Recentes</CardTitle>
+                <CardDescription>Últimas ações no sistema (Mock)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Usando mock de histórico temporário */}
+                  {mockHistoricoRecente.map((atividade, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 border border-border rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{atividade.acao}</p>
+                        <p className="text-sm text-muted-foreground">{atividade.detalhes}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">{atividade.data}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">{atividade.data}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  ))}
+                  {mockHistoricoRecente.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade recente.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
       </div>
     </AdminLayout>
   );

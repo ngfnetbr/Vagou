@@ -136,13 +136,13 @@ const DetalhesCrianca = () => {
     try {
         switch (currentJustificativaAction) {
           case 'recusada':
-            await marcarRecusada(criancaId, justificativa);
+            await marcarRecusada({ id: criancaId, justificativa });
             break;
           case 'desistente':
-            await marcarDesistente(criancaId, justificativa);
+            await marcarDesistente({ id: criancaId, justificativa });
             break;
           case 'fim_de_fila':
-            await marcarFimDeFila(criancaId, justificativa);
+            await marcarFimDeFila({ id: criancaId, justificativa });
             break;
         }
         refetch();

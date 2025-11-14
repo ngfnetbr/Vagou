@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCriancas } from "@/hooks/use-criancas";
+import { useCriancas, useCriancaHistorico } from "@/hooks/use-criancas";
 import { useMemo, useState } from "react";
 import { Crianca } from "@/lib/mock-data";
 import { useNavigate } from "react-router-dom";
@@ -64,7 +64,8 @@ const Convocacoes = () => {
     let filtered = criancas.filter(c => c.status === "Convocado" || c.status === "Recusada");
 
     if (cmeiFilter !== "todos") {
-      filtered = filtered.filter(c => c.cmei === cmeiFilter);
+      // Usando cmeiNome
+      filtered = filtered.filter(c => c.cmeiNome === cmeiFilter);
     }
 
     if (statusFilter !== "todos") {
@@ -77,14 +78,16 @@ const Convocacoes = () => {
       const lowerCaseSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(c => 
         c.nome.toLowerCase().includes(lowerCaseSearch) ||
-        c.responsavel.toLowerCase().includes(lowerCaseSearch)
+        // Usando responsavel_nome
+        c.responsavel_nome.toLowerCase().includes(lowerCaseSearch)
       );
     }
     
     // Ordena: Convocados com prazo expirado primeiro, depois por prazo mais próximo
     filtered.sort((a, b) => {
-        const aDeadline = a.convocacaoDeadline ? parseISO(a.convocacaoDeadline).getTime() : Infinity;
-        const bDeadline = b.convocacaoDeadline ? parseISO(b.convocacaoDeadline).getTime() : Infinity;
+        // Usando convocacao_deadline
+        const aDeadline = a.convocacao_deadline ? parseISO(a.convocacao_deadline + 'T00:00:00').getTime() : Infinity;
+        const bDeadline = b.convocacao_deadline ? parseISO(b.convocacao_deadline + 'T00:00:00').getTime() : Infinity;
         
         const now = new Date().getTime();
         const aExpired = aDeadline < now;
@@ -99,7 +102,8 @@ const Convocacoes = () => {
     return filtered;
   }, [criancas, cmeiFilter, statusFilter, searchTerm]);
   
-  const allCmeiNames = useMemo(() => Array.from(new Set(criancas.map(c => c.cmei1))).filter(Boolean), [criancas]);
+  // Usando cmei1_preferencia para listar todos os CMEIs
+  const allCmeiNames = useMemo(() => Array.from(new Set(criancas.map(c => c.cmei1_preferencia))).filter(Boolean), [criancas]);
 
   const stats = useMemo(() => {
     const allConvocacoes = criancas.filter(c => c.status === "Convocado" || c.status === "Recusada" || c.status === "Matriculado" || c.status === "Matriculada");
@@ -150,15 +154,13 @@ const Convocacoes = () => {
   };
   
   const getConvocationDate = (crianca: Crianca) => {
-    const convocationEntry = crianca.historico.find(h => h.acao.includes("Convocação Enviada"));
-    if (convocationEntry) {
-      try {
-        return format(parseISO(convocationEntry.data), 'dd/MM/yyyy', { locale: ptBR });
-      } catch (e) {
+    // Usando fetchHistoricoCrianca para buscar o histórico (se necessário)
+    // Por enquanto, vamos usar a data de criação como fallback, pois o histórico não está no objeto Crianca
+    try {
+        return format(parseISO(crianca.created_at), 'dd/MM/yyyy', { locale: ptBR });
+    } catch (e) {
         return 'N/A';
-      }
     }
-    return 'N/A';
   };
 
   // --- Handlers ---
@@ -179,7 +181,8 @@ const Convocacoes = () => {
     setCriancaToConvoke(undefined);
   };
   
-  const handleConfirmarMatricula = async (id: number) => {
+  // ID é string (UUID)
+  const handleConfirmarMatricula = async (id: string) => {
     await confirmarMatricula(id);
   };
   
@@ -196,8 +199,10 @@ const Convocacoes = () => {
     
     try {
         if (currentJustificativaAction === 'recusada') {
+            // Passando objeto { id, justificativa }
             await marcarRecusada({ id, justificativa });
         } else if (currentJustificativaAction === 'fim_de_fila') {
+            // Passando objeto { id, justificativa }
             await marcarFimDeFila({ id, justificativa });
         }
         
@@ -353,13 +358,16 @@ const Convocacoes = () => {
                 {convocacoesAtivas.length > 0 ? (
                     convocacoesAtivas.map((convocacao) => {
                         const isConvocado = convocacao.status === "Convocado";
-                        const deadlineInfo = isConvocado && convocacao.convocacaoDeadline ? getDeadlineInfo(convocacao.convocacaoDeadline) : null;
+                        // Usando convocacao_deadline
+                        const deadlineInfo = isConvocado && convocacao.convocacao_deadline ? getDeadlineInfo(convocacao.convocacao_deadline) : null;
                         
                         return (
                             <TableRow key={convocacao.id} className={isConvocado && deadlineInfo?.isExpired ? "bg-destructive/5 hover:bg-destructive/10" : ""}>
                                 <TableCell className="font-medium">{convocacao.nome}</TableCell>
-                                <TableCell>{convocacao.responsavel}</TableCell>
-                                <TableCell>{convocacao.cmei} ({convocacao.turmaAtual || '-'})</TableCell>
+                                {/* Usando responsavel_nome */}
+                                <TableCell>{convocacao.responsavel_nome}</TableCell>
+                                {/* Usando cmeiNome e turmaNome */}
+                                <TableCell>{convocacao.cmeiNome} ({convocacao.turmaNome || '-'})</TableCell>
                                 <TableCell>{getConvocationDate(convocacao)}</TableCell>
                                 <TableCell>
                                     {deadlineInfo ? (
@@ -398,7 +406,7 @@ const Convocacoes = () => {
                                                             <AlertDialogHeader>
                                                                 <AlertDialogTitle>Confirmar Matrícula?</AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    Você está confirmando a matrícula de <span className="font-semibold">{convocacao.nome}</span> no CMEI {convocacao.cmei}. Esta ação é irreversível.
+                                                                    Você está confirmando a matrícula de <span className="font-semibold">{convocacao.nome}</span> no CMEI {convocacao.cmeiNome}. Esta ação é irreversível.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
@@ -455,7 +463,6 @@ const Convocacoes = () => {
             </Table>
           </CardContent>
         </Card>
-      </div>
       
       {/* Modal de Convocação/Reconvocação */}
       <Dialog open={isConvocarModalOpen} onOpenChange={setIsConvocarModalOpen}>

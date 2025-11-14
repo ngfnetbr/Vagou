@@ -34,7 +34,7 @@ const TurmasBase = () => {
   } = useTurmasBase();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTurmaBase, setEditingTurmaBase] = useState<TurmaBase | undefined>(undefined);
+  const [editingTurmaBase, setEditingTurmaBase] = useState<(TurmaBaseFormInput & { id: number }) | undefined>(undefined);
 
   const handleEditClick = (turma: TurmaBase) => {
     // Mapeia TurmaBase (com idade_minima_meses) para TurmaBaseFormInput (com idadeMinima)

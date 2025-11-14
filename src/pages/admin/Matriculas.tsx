@@ -67,7 +67,7 @@ const Matriculas = () => {
         c.status === "Remanejamento Solicitado"
     ).filter(c => {
         if (cmeiFilter !== "todos" && c.cmeiNome !== cmeiFilter) return false;
-        if (turmaFilter !== "todas" && !c.turmaNome?.includes(turmaFilter)) return false;
+        if (turmaFilter !== "todas" && c.turmaNome && c.turmaNome.includes(turmaFilter)) return false; // Corrigido: verifica se turmaNome existe antes de usar includes
         if (searchTerm) {
             const lowerCaseSearch = searchTerm.toLowerCase();
             if (!c.nome.toLowerCase().includes(lowerCaseSearch) && !c.responsavel_nome.toLowerCase().includes(lowerCaseSearch)) return false;
@@ -120,14 +120,14 @@ const Matriculas = () => {
     try {
         switch (currentJustificativaAction) {
           case 'desistente':
-            await marcarDesistente(id, justificativa);
+            await marcarDesistente({ id, justificativa });
             break;
           case 'remanejamento':
-            await solicitarRemanejamento(id, justificativa);
+            await solicitarRemanejamento({ id, justificativa });
             break;
           case 'transferir':
             // Transferir agora é uma ação de saída do sistema (mudança de cidade)
-            await transferirCrianca(id, justificativa);
+            await transferirCrianca({ id, justificativa });
             break;
         }
         

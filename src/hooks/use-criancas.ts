@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { InscricaoFormData } from "@/lib/schemas/inscricao-schema"; // Importação corrigida
 import { 
     fetchCriancas, 
     addCriancaFromInscricao, 
-    InscricaoFormData, 
     Crianca, 
     updateCrianca, 
     deleteCrianca, 
