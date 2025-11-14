@@ -71,13 +71,15 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
     if (onSuccess) {
       // Admin context: use mutation
       try {
+        // Usando asserção de tipo para resolver o erro de inferência do TS
+        const formData = data as InscricaoFormData;
+        
         if (isEditing && criancaId) {
-          // Não é mais necessário o 'as InscricaoFormData' se a função for tipada corretamente
-          await updateCrianca({ id: criancaId, data }); 
+          await updateCrianca({ id: criancaId, data: formData }); 
         } else {
-          await addCrianca(data); 
+          await addCrianca(formData); 
         }
-        onSuccess(data);
+        onSuccess(formData);
         if (!isEditing) {
           form.reset();
         }
