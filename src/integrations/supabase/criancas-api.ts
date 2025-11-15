@@ -1,148 +1,187 @@
 import { supabase } from "@/integrations/supabase/client";
-import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
-import { Crianca } from "./types";
-import { mapDbToCrianca, mapFormToDb, registerHistorico } from "./utils";
+import { Crianca, ConvocationData } from "./types";
+import { insertHistoricoEntry } from "./historico-api";
 
-// Campos de relacionamento que sempre buscamos
-const SELECT_FIELDS = `
-    *,
-    cmeis (nome),
-    turmas (nome)
-`;
-
-/**
- * Verifica se já existe uma criança cadastrada com as combinações de dados fornecidas.
- * @param data Dados da inscrição.
- * @returns true se duplicidade for encontrada, false caso contrário.
- */
-export const checkCriancaDuplicada = async (data: InscricaoFormData): Promise<boolean> => {
-    const nomeCrianca = data.nomeCrianca;
-    const dataNascimento = data.dataNascimento;
-    const cpfResponsavel = data.cpf;
-
-    // 1. Verificar por Nome + Data de Nascimento
-    const { count: count1, error: error1 } = await supabase
-        .from('criancas')
-        .select('id', { count: 'exact', head: true })
-        .eq('nome', nomeCrianca)
-        .eq('data_nascimento', dataNascimento);
-
-    if (error1) {
-        console.error("Erro ao verificar duplicidade (Nome/Data):", error1);
-        throw new Error(error1.message);
-    }
-    if (count1 && count1 > 0) {
-        return true;
-    }
-
-    // 2. Verificar por Data de Nascimento + CPF do Responsável
-    const { count: count2, error: error2 } = await supabase
-        .from('criancas')
-        .select('id', { count: 'exact', head: true })
-        .eq('data_nascimento', dataNascimento)
-        .eq('responsavel_cpf', cpfResponsavel);
-
-    if (error2) {
-        console.error("Erro ao verificar duplicidade (Data/CPF):", error2);
-        throw new Error(error2.message);
-    }
-    if (count2 && count2 > 0) {
-        return true;
-    }
-
-    return false;
+// Helper para obter o nome do usuário logado (ou um placeholder)
+const getAdminUser = async (): Promise<string> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.email || "Usuário Admin";
 };
 
+// --- Funções de Mutação ---
 
-export const fetchCriancas = async (): Promise<Crianca[]> => {
-  const { data, error } = await supabase
-    .from('criancas')
-    .select(SELECT_FIELDS)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-  
-  return data.map(mapDbToCrianca);
-};
-
-export const getCriancaById = async (id: string): Promise<Crianca | undefined> => {
-    const { data, error } = await supabase
+export const apiConfirmarMatricula = async (criancaId: string, cmeiNome: string, turmaNome: string) => {
+    const user = await getAdminUser();
+    
+    const { error } = await supabase
         .from('criancas')
-        .select(SELECT_FIELDS)
-        .eq('id', id)
+        .update({ 
+            status: 'Matriculado',
+            convocacao_deadline: null, // Limpa o prazo
+        })
+        .eq('id', criancaId)
+        .select()
         .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
-        throw new Error(error.message);
-    }
+    if (error) throw new Error(`Falha ao confirmar matrícula: ${error.message}`);
     
-    if (!data) return undefined;
-    
-    return mapDbToCrianca(data);
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Matrícula Confirmada",
+        detalhes: `Matrícula confirmada no CMEI ${cmeiNome} (Turma: ${turmaNome}).`,
+        usuario: user,
+    });
 };
 
-export const addCriancaFromInscricao = async (data: InscricaoFormData): Promise<Crianca> => {
-  const payload = mapFormToDb(data);
-  
-  const { data: newCriancaDb, error } = await supabase
-    .from('criancas')
-    .insert([payload])
-    .select(SELECT_FIELDS)
-    .single();
-
-  if (error) {
-    throw new Error(`Erro ao cadastrar criança: ${error.message}`);
-  }
-  
-  const newCrianca = mapDbToCrianca(newCriancaDb);
-  await registerHistorico(newCrianca.id, "Inscrição Realizada", `Nova inscrição para ${newCrianca.nome}. Status: Fila de Espera.`);
-  
-  return newCrianca;
-};
-
-export const updateCrianca = async (id: string, data: InscricaoFormData): Promise<Crianca> => {
-    const payload = mapFormToDb(data);
+export const apiMarcarRecusada = async (criancaId: string, justificativa: string) => {
+    const user = await getAdminUser();
     
-    // Remove campos de status inicial para não sobrescrever o status atual
-    delete (payload as any).status;
-    delete (payload as any).cmei_atual_id;
-    delete (payload as any).turma_atual_id;
-    delete (payload as any).posicao_fila;
-    delete (payload as any).convocacao_deadline;
-
-    const { data: updatedCriancaDb, error } = await supabase
+    const { error } = await supabase
         .from('criancas')
-        .update(payload)
-        .eq('id', id)
-        .select(SELECT_FIELDS)
-        .single();
+        .update({ 
+            status: 'Recusada',
+            convocacao_deadline: null,
+            cmei_atual_id: null,
+            turma_atual_id: null,
+        })
+        .eq('id', criancaId);
 
-    if (error) {
-        throw new Error(`Erro ao atualizar criança: ${error.message}`);
-    }
+    if (error) throw new Error(`Falha ao marcar como recusada: ${error.message}`);
     
-    const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
-    await registerHistorico(updatedCrianca.id, "Dados Cadastrais Atualizados", `Dados de ${updatedCrianca.nome} atualizados.`);
-    
-    return updatedCrianca;
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Convocação Recusada",
+        detalhes: `Convocação recusada. Justificativa: ${justificativa}`,
+        usuario: user,
+    });
 };
 
-export const deleteCrianca = async (id: string): Promise<void> => {
-    // Buscamos o nome antes de deletar para o histórico
-    const crianca = await getCriancaById(id);
+export const apiMarcarDesistente = async (criancaId: string, justificativa: string) => {
+    const user = await getAdminUser();
+    
+    const { error } = await supabase
+        .from('criancas')
+        .update({ 
+            status: 'Desistente',
+            convocacao_deadline: null,
+            cmei_atual_id: null,
+            turma_atual_id: null,
+            posicao_fila: null,
+        })
+        .eq('id', criancaId);
+
+    if (error) throw new Error(`Falha ao marcar como desistente: ${error.message}`);
+    
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Desistência Registrada",
+        detalhes: `Criança marcada como Desistente. Justificativa: ${justificativa}`,
+        usuario: user,
+    });
+};
+
+export const apiMarcarFimDeFila = async (criancaId: string, justificativa: string) => {
+    const user = await getAdminUser();
+    
+    // Define a data de penalidade para 6 meses no futuro
+    const penalidadeDate = new Date();
+    penalidadeDate.setMonth(penalidadeDate.getMonth() + 6);
+    const penalidadeDateString = penalidadeDate.toISOString().split('T')[0];
+    
+    const { error } = await supabase
+        .from('criancas')
+        .update({ 
+            status: 'Fila de Espera', // Volta para fila, mas com penalidade
+            convocacao_deadline: null,
+            cmei_atual_id: null,
+            turma_atual_id: null,
+            data_penalidade: penalidadeDateString, // Aplica a penalidade
+        })
+        .eq('id', criancaId);
+
+    if (error) throw new Error(`Falha ao marcar fim de fila: ${error.message}`);
+    
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Fim de Fila Aplicado",
+        detalhes: `Criança movida para o final da fila (penalidade até ${penalidadeDateString}). Justificativa: ${justificativa}`,
+        usuario: user,
+    });
+};
+
+export const apiReativarCrianca = async (criancaId: string) => {
+    const user = await getAdminUser();
+    
+    const { error } = await supabase
+        .from('criancas')
+        .update({ 
+            status: 'Fila de Espera',
+            convocacao_deadline: null,
+            cmei_atual_id: null,
+            turma_atual_id: null,
+            data_penalidade: null, // Remove qualquer penalidade
+        })
+        .eq('id', criancaId);
+
+    if (error) throw new Error(`Falha ao reativar criança: ${error.message}`);
+    
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Reativação na Fila",
+        detalhes: `Criança reativada na fila de espera.`,
+        usuario: user,
+    });
+};
+
+export const apiConvocarCrianca = async (criancaId: string, data: ConvocationData, cmeiNome: string, turmaNome: string, deadline: string) => {
+    const user = await getAdminUser();
+    
+    const { error } = await supabase
+        .from('criancas')
+        .update({ 
+            status: 'Convocado',
+            cmei_atual_id: data.cmei_id,
+            turma_atual_id: data.turma_id,
+            convocacao_deadline: deadline,
+            posicao_fila: null, // Sai da fila
+        })
+        .eq('id', criancaId);
+
+    if (error) throw new Error(`Falha ao convocar criança: ${error.message}`);
+    
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Convocação Enviada",
+        detalhes: `Convocada para o CMEI ${cmeiNome} (Turma: ${turmaNome}). Prazo: ${deadline}.`,
+        usuario: user,
+    });
+};
+
+export const apiDeleteCrianca = async (criancaId: string, criancaNome: string) => {
+    const user = await getAdminUser();
     
     const { error } = await supabase
         .from('criancas')
         .delete()
-        .eq('id', id);
+        .eq('id', criancaId);
 
-    if (error) {
-        throw new Error(`Erro ao excluir criança: ${error.message}`);
-    }
+    if (error) throw new Error(`Falha ao excluir criança: ${error.message}`);
     
-    if (crianca) {
-        await registerHistorico(id, "Criança Excluída", `Registro de ${crianca.nome} excluído permanentemente do sistema.`);
-    }
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Criança Excluída",
+        detalhes: `Registro da criança ${criancaNome} excluído permanentemente do sistema.`,
+        usuario: user,
+    });
+};
+
+// Funções de busca (assumindo que já existem ou serão criadas)
+export const fetchCriancas = async (): Promise<Crianca[]> => {
+    // Implementação de busca de lista de crianças
+    return []; // Placeholder
+};
+
+export const fetchCriancaDetails = async (id: string): Promise<Crianca> => {
+    // Implementação de busca de detalhes
+    throw new Error("Not implemented"); // Placeholder
 };

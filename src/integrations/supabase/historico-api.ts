@@ -1,6 +1,33 @@
 import { supabase } from "@/integrations/supabase/client";
 import { HistoricoEntry } from "./types";
 
+// Define a estrutura mínima para inserção
+interface NewHistoricoEntry {
+    crianca_id: string;
+    acao: string;
+    detalhes: string;
+    usuario: string; // Quem realizou a ação (e.g., nome do usuário logado ou 'Sistema')
+}
+
+// Função para inserir um novo registro no histórico
+export const insertHistoricoEntry = async (entry: NewHistoricoEntry) => {
+    // A coluna 'data' e 'created_at' são preenchidas automaticamente pelo DB (DEFAULT CURRENT_DATE e NOW())
+    const { error } = await supabase
+        .from('historico')
+        .insert({
+            crianca_id: entry.crianca_id,
+            acao: entry.acao,
+            detalhes: entry.detalhes,
+            usuario: entry.usuario,
+        });
+
+    if (error) {
+        console.error("Erro ao registrar histórico:", error);
+        // Não lançamos erro aqui para não interromper a operação principal, mas registramos.
+    }
+};
+
+
 // Busca o histórico real da criança
 export const fetchHistoricoCrianca = async (criancaId: string): Promise<HistoricoEntry[]> => {
     const { data, error } = await supabase
