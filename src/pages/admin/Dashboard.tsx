@@ -1,23 +1,17 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, ListOrdered, TrendingUp, Loader2 } from "lucide-react";
+import { Users, GraduationCap, ListOrdered, TrendingUp, Loader2, History } from "lucide-react";
 import { useCriancas } from "@/hooks/use-criancas";
+import { useHistoricoGeral } from "@/hooks/use-historico"; // Importando hook de histórico
 import { useMemo } from "react";
-import { Crianca } from "@/integrations/supabase/types"; // Importando Crianca do novo local
+import { Crianca } from "@/integrations/supabase/types";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Dashboard = () => {
-  const { criancas, isLoading } = useCriancas();
+  const { criancas, isLoading: isLoadingCriancas } = useCriancas();
+  const { logs: historicoRecente, isLoading: isLoadingHistorico } = useHistoricoGeral();
   
-  // Mock de histórico para o Dashboard (será substituído pela tabela 'historico' real)
-  const mockHistoricoRecente = [
-      { data: "07/11/2025", acao: "Matrícula Confirmada", detalhes: "Ana Silva matriculada no CMEI Centro" },
-      { data: "07/11/2025", acao: "Convocação Enviada", detalhes: "Convocação para João Pedro" },
-      { data: "06/11/2025", acao: "CMEI Atualizado", detalhes: "Capacidade do CMEI Sul alterada" },
-      { data: "05/11/2025", acao: "Nova Inscrição", detalhes: "Maria Clara adicionada à fila" },
-      { data: "04/11/2025", acao: "Usuário Criado", detalhes: "Novo gestor cadastrado" },
-  ];
-
-
   const { totalCriancas, matriculasAtivas, filaEspera, convocacoesPendentes, taxaOcupacao } = useMemo(() => {
     if (!criancas || criancas.length === 0) {
       return {
@@ -35,6 +29,7 @@ const Dashboard = () => {
     const convocacoesPendentes = criancas.filter(c => c.status === "Convocado");
     
     // Mock de capacidade total (assumindo 900 vagas totais para o cálculo de ocupação)
+    // Em um sistema real, isso viria da soma das capacidades dos CMEIs/Turmas
     const capacidadeTotal = 900; 
     const ocupacao = Math.round((matriculasAtivas / capacidadeTotal) * 100);
     const taxaOcupacao = `${ocupacao}%`;
@@ -83,7 +78,7 @@ const Dashboard = () => {
     },
   ];
   
-  if (isLoading) {
+  if (isLoadingCriancas || isLoadingHistorico) {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-96">
@@ -154,22 +149,26 @@ const Dashboard = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Atividades Recentes</CardTitle>
-                <CardDescription>Últimas ações no sistema (Mock)</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    Atividades Recentes
+                </CardTitle>
+                <CardDescription>Últimas ações registradas no sistema</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Usando mock de histórico temporário */}
-                  {mockHistoricoRecente.map((atividade, i) => (
+                  {historicoRecente.slice(0, 5).map((atividade, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 border border-border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium text-foreground">{atividade.acao}</p>
                         <p className="text-sm text-muted-foreground">{atividade.detalhes}</p>
                       </div>
-                      <span className="text-xs text-muted-foreground flex-shrink-0">{atividade.data}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        {format(parseISO(atividade.data), 'dd/MM/yyyy', { locale: ptBR })}
+                      </span>
                     </div>
                   ))}
-                  {mockHistoricoRecente.length === 0 && (
+                  {historicoRecente.length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade recente.</p>
                   )}
                 </div>

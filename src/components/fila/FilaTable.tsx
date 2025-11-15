@@ -85,10 +85,8 @@ export const FilaTable = ({
                 const isFilaEspera = item.status === "Fila de Espera";
                 const deadlineExpired = isDeadlineExpired(item.convocacao_deadline);
                 
-                // Lógica para exibir o badge de penalidade (apenas se for prioritário E penalizado)
-                const isPenalizedPrioritario = isFilaEspera && item.data_penalidade && item.programas_sociais;
-                const isPenalized = isPenalizedPrioritario; 
-                
+                // Lógica para exibir o badge de penalidade: se está na fila E tem data de penalidade
+                const isPenalized = isFilaEspera && !!item.data_penalidade;
                 const penalidadeDate = formatPenalidadeDate(item.data_penalidade);
                 
                 return (
@@ -113,7 +111,7 @@ export const FilaTable = ({
                             <CountdownTimer deadline={item.convocacao_deadline} />
                         ) : isPenalized && penalidadeDate ? (
                             <Badge variant="destructive" className="bg-destructive/20 text-destructive w-fit flex justify-center items-center mx-auto">
-                                Solicit. Fim de Fila ({penalidadeDate})
+                                Fim de Fila ({penalidadeDate})
                             </Badge>
                         ) : (
                             <Badge variant="secondary" className="w-fit flex justify-center items-center mx-auto">Fila de Espera</Badge>

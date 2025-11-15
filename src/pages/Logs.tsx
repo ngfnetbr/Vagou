@@ -7,9 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Download, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { useHistoricoGeral } from "@/hooks/use-historico"; // Importando o novo hook
-import { HistoricoEntry } from "@/integrations/supabase/criancas"; // Importando a tipagem do novo local
-import { Button } from "@/components/ui/button"; // Importação adicionada
+import { useHistoricoGeral } from "@/hooks/use-historico";
+import { HistoricoEntry } from "@/integrations/supabase/types"; // Importando a tipagem correta
+import { Button } from "@/components/ui/button";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 // Tipagem local para Logs (usando HistoricoEntry)
 interface LogEntry extends HistoricoEntry {
@@ -36,10 +38,14 @@ const Logs = () => {
         tipo = "warning";
       }
       
+      // Usamos parseISO para garantir que a data seja interpretada corretamente
+      const date = parseISO(log.data + 'T00:00:00'); 
+      const timestamp = format(date, 'dd/MM/yyyy HH:mm:ss', { locale: ptBR });
+      
       return {
         ...log,
         id: index, // Usando index como fallback para key
-        timestamp: new Date(log.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        timestamp: timestamp,
         tipo: tipo,
       };
     });
