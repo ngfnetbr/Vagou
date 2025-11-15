@@ -10,6 +10,50 @@ const SELECT_FIELDS = `
     turmas (nome)
 `;
 
+/**
+ * Verifica se já existe uma criança cadastrada com as combinações de dados fornecidas.
+ * @param data Dados da inscrição.
+ * @returns true se duplicidade for encontrada, false caso contrário.
+ */
+export const checkCriancaDuplicada = async (data: InscricaoFormData): Promise<boolean> => {
+    const nomeCrianca = data.nomeCrianca;
+    const dataNascimento = data.dataNascimento;
+    const cpfResponsavel = data.cpf;
+
+    // 1. Verificar por Nome + Data de Nascimento
+    const { count: count1, error: error1 } = await supabase
+        .from('criancas')
+        .select('id', { count: 'exact', head: true })
+        .eq('nome', nomeCrianca)
+        .eq('data_nascimento', dataNascimento);
+
+    if (error1) {
+        console.error("Erro ao verificar duplicidade (Nome/Data):", error1);
+        throw new Error(error1.message);
+    }
+    if (count1 && count1 > 0) {
+        return true;
+    }
+
+    // 2. Verificar por Data de Nascimento + CPF do Responsável
+    const { count: count2, error: error2 } = await supabase
+        .from('criancas')
+        .select('id', { count: 'exact', head: true })
+        .eq('data_nascimento', dataNascimento)
+        .eq('responsavel_cpf', cpfResponsavel);
+
+    if (error2) {
+        console.error("Erro ao verificar duplicidade (Data/CPF):", error2);
+        throw new Error(error2.message);
+    }
+    if (count2 && count2 > 0) {
+        return true;
+    }
+
+    return false;
+};
+
+
 export const fetchCriancas = async (): Promise<Crianca[]> => {
   const { data, error } = await supabase
     .from('criancas')

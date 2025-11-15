@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
 import { toast } from "sonner";
 import { Crianca, ConvocationData, HistoricoEntry } from "@/integrations/supabase/types";
-import { fetchCriancas, getCriancaById, addCriancaFromInscricao, updateCrianca, deleteCrianca } from "@/integrations/supabase/criancas-api";
+import { fetchCriancas, getCriancaById, addCriancaFromInscricao, updateCrianca, deleteCrianca, checkCriancaDuplicada } from "@/integrations/supabase/criancas-api";
 import { convocarCrianca, marcarDesistente, reativarCrianca, marcarFimDeFila, confirmarMatricula, marcarRecusada, realocarCrianca, transferirCrianca, solicitarRemanejamento } from "@/integrations/supabase/status-mutations";
 import { fetchAvailableTurmas } from "@/integrations/supabase/vagas-api";
 import { fetchHistoricoCrianca } from "@/integrations/supabase/historico-api";
@@ -13,13 +13,17 @@ const CRIANCAS_QUERY_KEY = ["criancas"];
 export function useCriancas() {
   const queryClient = useQueryClient();
 
-  const { data: criancas, isLoading, error } = useQuery<Crianca[]>({
-    queryKey: CRIANCAS_QUERY_KEY,
-    queryFn: fetchCriancas,
-  });
-
   const addMutation = useMutation({
-    mutationFn: addCriancaFromInscricao,
+    mutationFn: async (data: InscricaoFormData) => {
+      // 1. Verificar duplicidade antes de inserir
+      const isDuplicate = await checkCriancaDuplicada(data);
+      if (isDuplicate) {
+        throw new Error("Cadastro duplicado. Uma criança com o mesmo nome/data de nascimento ou data de nascimento/CPF do responsável já está cadastrada.");
+      }
+      
+      // 2. Inserir se não for duplicado
+      return addCriancaFromInscricao(data);
+    },
     onSuccess: (newCrianca) => {
       queryClient.invalidateQueries({ queryKey: CRIANCAS_QUERY_KEY });
       toast.success("Criança cadastrada com sucesso!", {
@@ -31,6 +35,11 @@ export function useCriancas() {
         description: e.message || "Tente novamente mais tarde.",
       });
     },
+  });
+
+  const { data: criancas, isLoading, error } = useQuery<Crianca[]>({
+    queryKey: CRIANCAS_QUERY_KEY,
+    queryFn: fetchCriancas,
   });
 
   const updateMutation = useMutation({
