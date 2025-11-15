@@ -2,7 +2,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, MapPin, Users, Edit, Eye, List, LayoutGrid, MoreVertical, Loader2 } from "lucide-react";
+import { Plus, Search, MapPin, Users, Edit, Eye, List, LayoutGrid, MoreVertical, Loader2, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import NovaCmeiModal from "@/components/NovaCmeiModal";
@@ -15,11 +15,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useCMEIs, Cmei } from "@/hooks/use-cmeis"; // Importar hook e tipagem
+import { toast } from "sonner"; // Importando toast
 
 const CMEIs = () => {
-  const { cmeis, isLoading, error } = useCMEIs();
+  const { cmeis, isLoading, error, deleteCmei, isDeleting } = useCMEIs();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCmei, setEditingCmei] = useState<Cmei | undefined>(undefined);
   const [currentView, setCurrentView] = useState<"grid" | "list">("grid");
@@ -39,6 +51,16 @@ const CMEIs = () => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingCmei(undefined);
+  };
+  
+  const handleDeleteCmei = async (id: string, nome: string) => {
+    try {
+        await deleteCmei(id);
+    } catch (e: any) {
+        toast.error("Falha na Exclusão", {
+            description: e.message,
+        });
+    }
   };
 
   const filteredCmeis = cmeis.filter(cmei => 
@@ -67,6 +89,54 @@ const CMEIs = () => {
       </AdminLayout>
     );
   }
+  
+  const renderCmeiActions = (cmei: Cmei) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleEditClick(cmei)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Editar
+        </DropdownMenuItem>
+        <Link to={`/admin/turmas?cmei=${encodeURIComponent(cmei.nome)}`}>
+          <DropdownMenuItem>
+            <Eye className="mr-2 h-4 w-4" />
+            Ver Turmas
+          </DropdownMenuItem>
+        </Link>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive" disabled={isDeleting}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente o CMEI 
+                <span className="font-semibold"> {cmei.nome} </span>
+                e removerá todos os dados associados.
+                <p className="mt-2 text-sm text-destructive font-semibold">A exclusão só é permitida se o CMEI não possuir turmas ou crianças matriculadas/convocadas.</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDeleteCmei(cmei.id, cmei.nome)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
+                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
 
   return (
     <AdminLayout>
@@ -226,25 +296,7 @@ const CMEIs = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEditClick(cmei)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <Link to={`/admin/turmas?cmei=${encodeURIComponent(cmei.nome)}`}>
-                                <DropdownMenuItem>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Ver Turmas
-                                </DropdownMenuItem>
-                              </Link>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {renderCmeiActions(cmei)}
                         </TableCell>
                       </TableRow>
                     );
