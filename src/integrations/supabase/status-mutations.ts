@@ -109,21 +109,7 @@ export const marcarDesistente = async (criancaId: string, justificativa: string)
 };
 
 export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
-    // 1. Buscar a criança para verificar a prioridade social
-    const { data: crianca, error: fetchError } = await supabase
-        .from('criancas')
-        .select('programas_sociais')
-        .eq('id', criancaId)
-        .single();
-        
-    if (fetchError || !crianca) {
-        throw new Error(`Erro ao buscar dados da criança para reativação: ${fetchError?.message || 'Criança não encontrada'}`);
-    }
-    
-    // 2. Determinar a penalidade:
-    // Se tem prioridade social, data_penalidade = NULL (mantém a posição relativa na categoria prioritária).
-    // Se NÃO tem prioridade social, data_penalidade = NOW() (vai para o final absoluto da fila).
-    const penalidade = crianca.programas_sociais ? null : new Date().toISOString();
+    // Reativação manual deve retornar a criança à fila com sua prioridade original (limpando a penalidade)
     
     const { data: updatedCriancaDb, error } = await supabase
         .from('criancas')
@@ -132,7 +118,7 @@ export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
             cmei_atual_id: null,
             turma_atual_id: null,
             convocacao_deadline: null,
-            data_penalidade: penalidade, // Aplica penalidade se não for prioritário
+            data_penalidade: null, // Sempre limpa a penalidade na reativação manual
         })
         .eq('id', criancaId)
         .select(SELECT_FIELDS)
@@ -143,8 +129,7 @@ export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
     }
     
     const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
-    const penalidadeMsg = penalidade ? ' (movida para o final da fila)' : ' (mantendo prioridade)';
-    await registerHistorico(updatedCrianca.id, "Reativação na Fila", `${updatedCrianca.nome} reativado(a) na fila de espera${penalidadeMsg}.`);
+    await registerHistorico(updatedCrianca.id, "Reativação na Fila", `${updatedCrianca.nome} reativado(a) na fila de espera.`);
     
     return updatedCrianca;
 };
@@ -158,7 +143,7 @@ export const marcarFimDeFila = async (criancaId: string, justificativa: string):
             cmei_atual_id: null,
             turma_atual_id: null,
             convocacao_deadline: null,
-            data_penalidade: new Date().toISOString(), // Aplica penalidade de tempo
+            data_penalidade: new Date().toISOString(), // Aplica penalidade de tempo (reset de prioridade temporal)
         })
         .eq('id', criancaId)
         .select(SELECT_FIELDS)
@@ -169,7 +154,7 @@ export const marcarFimDeFila = async (criancaId: string, justificativa: string):
     }
     
     const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
-    await registerHistorico(updatedCrianca.id, "Fim de Fila", `Convocação recusada, ${updatedCrianca.nome} movido(a) para o fim da fila. Justificativa: ${justificativa}`);
+    await registerHistorico(updatedCrianca.id, "Fim de Fila Aplicado", `Convocação recusada, ${updatedCrianca.nome} movido(a) para o fim da fila.`);
     
     return updatedCrianca;
 };

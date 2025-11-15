@@ -3,6 +3,7 @@ import { Crianca, ConvocationData } from "./types";
 import { insertHistoricoEntry } from "./historico-api";
 import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
 import { mapFormToDb, mapDbToCrianca } from "./utils";
+import { format, parseISO } from "date-fns";
 
 // Helper para obter o nome do usuário logado (ou um placeholder)
 const getAdminUser = async (): Promise<string> => {
@@ -148,6 +149,31 @@ export const apiConfirmarMatricula = async (criancaId: string, cmeiNome: string,
     });
 };
 
+export const apiConvocarCrianca = async (criancaId: string, data: ConvocationData, cmeiNome: string, turmaNome: string, deadline: string) => {
+    const user = await getAdminUser();
+    
+    const { error } = await supabase
+        .from('criancas')
+        .update({
+            status: "Convocado",
+            cmei_atual_id: data.cmei_id,
+            turma_atual_id: data.turma_id,
+            posicao_fila: null,
+            convocacao_deadline: deadline,
+            data_penalidade: null, // Limpa penalidade ao convocar
+        })
+        .eq('id', criancaId);
+
+    if (error) throw new Error(`Erro ao convocar criança: ${error.message}`);
+    
+    await insertHistoricoEntry({
+        crianca_id: criancaId,
+        acao: "Convocação Enviada",
+        detalhes: `Convocado(a) para ${cmeiNome} - ${turmaNome}. Prazo até ${format(parseISO(deadline + 'T00:00:00'), 'dd/MM/yyyy')}.`,
+        usuario: user,
+    });
+};
+
 export const apiMarcarRecusada = async (criancaId: string, justificativa: string) => {
     const user = await getAdminUser();
     
@@ -200,19 +226,18 @@ export const apiMarcarDesistente = async (criancaId: string, justificativa: stri
 export const apiMarcarFimDeFila = async (criancaId: string, justificativa: string) => {
     const user = await getAdminUser();
     
-    // Define a data de penalidade para 6 meses no futuro
-    // NOTA: O trigger de fila recalcula a posição, mas a penalidade deve ser aplicada aqui.
-    // Usamos a data atual para a penalidade, pois o trigger usa data_penalidade ASC NULLS FIRST.
+    // Aplica a data/hora atual na data_penalidade. O trigger de fila usará este timestamp
+    // como o novo critério temporal para colocar a criança no final da fila.
     const penalidadeDateString = new Date().toISOString();
     
     const { error } = await supabase
         .from('criancas')
         .update({ 
-            status: 'Fila de Espera', // Volta para fila, mas com penalidade
+            status: 'Fila de Espera', // Volta para fila, mas com penalidade temporal
             convocacao_deadline: null,
             cmei_atual_id: null,
             turma_atual_id: null,
-            data_penalidade: penalidadeDateString, // Aplica a penalidade
+            data_penalidade: penalidadeDateString, // Aplica a penalidade temporal
         })
         .eq('id', criancaId);
 
@@ -221,7 +246,7 @@ export const apiMarcarFimDeFila = async (criancaId: string, justificativa: strin
     await insertHistoricoEntry({
         crianca_id: criancaId,
         acao: "Fim de Fila Aplicado",
-        detalhes: `Criança movida para o fim da fila (penalidade aplicada). Justificativa: ${justificativa}`,
+        detalhes: `Criança movida para o fim da fila. Justificativa: ${justificativa}`,
         usuario: user,
     });
 };
@@ -236,7 +261,7 @@ export const apiReativarCrianca = async (criancaId: string) => {
             convocacao_deadline: null,
             cmei_atual_id: null,
             turma_atual_id: null,
-            data_penalidade: null, // Remove qualquer penalidade
+            data_penalidade: null, // Sempre limpa a penalidade na reativação manual
         })
         .eq('id', criancaId);
 
@@ -250,26 +275,35 @@ export const apiReativarCrianca = async (criancaId: string) => {
     });
 };
 
-export const apiConvocarCrianca = async (criancaId: string, data: ConvocationData, cmeiNome: string, turmaNome: string, deadline: string) => {
+export const apiDeleteCrianca = async (criancaId: string, criancaNome: string) => {
     const user = await getAdminUser();
+    
+    // 1. Verificar se a criança está em status ativo (Fila, Convocado, Matriculado)
+    const { data: crianca, error: fetchError } = await supabase
+        .from('criancas')
+        .select('status')
+        .eq('id', criancaId)
+        .single();
+        
+    if (fetchError || !crianca) {
+        // Se não encontrar, pode ser que já tenha sido excluída ou o ID esteja errado.
+        // Permitimos a exclusão se não for encontrada, mas logamos o erro.
+        console.warn(`Tentativa de exclusão de criança não encontrada: ${criancaId}`);
+    } else if (['Fila de Espera', 'Convocado', 'Matriculado', 'Matriculada', 'Remanejamento Solicitado'].includes(crianca.status)) {
+        throw new Error(`Não é possível excluir. A criança está em status ativo: ${crianca.status}.`);
+    }
     
     const { error } = await supabase
         .from('criancas')
-        .update({ 
-            status: 'Convocado',
-            cmei_atual_id: data.cmei_id,
-            turma_atual_id: data.turma_id,
-            convocacao_deadline: deadline,
-            posicao_fila: null, // Sai da fila
-        })
+        .delete()
         .eq('id', criancaId);
 
-    if (error) throw new Error(`Falha ao convocar criança: ${error.message}`);
+    if (error) throw new Error(`Falha ao excluir criança: ${error.message}`);
     
     await insertHistoricoEntry({
         crianca_id: criancaId,
-        acao: "Convocação Enviada",
-        detalhes: `Convocada para o CMEI ${cmeiNome} (Turma: ${turmaNome}). Prazo: ${deadline}.`,
+        acao: "Criança Excluída",
+        detalhes: `Registro da criança ${criancaNome} excluído permanentemente do sistema.`,
         usuario: user,
     });
 };
@@ -336,39 +370,6 @@ export const apiSolicitarRemanejamento = async (criancaId: string, justificativa
         crianca_id: criancaId,
         acao: "Solicitação de Remanejamento",
         detalhes: `Remanejamento solicitado. Justificativa: ${justificativa}`,
-        usuario: user,
-    });
-};
-
-export const apiDeleteCrianca = async (criancaId: string, criancaNome: string) => {
-    const user = await getAdminUser();
-    
-    // 1. Verificar se a criança está em status ativo (Fila, Convocado, Matriculado)
-    const { data: crianca, error: fetchError } = await supabase
-        .from('criancas')
-        .select('status')
-        .eq('id', criancaId)
-        .single();
-        
-    if (fetchError || !crianca) {
-        // Se não encontrar, pode ser que já tenha sido excluída ou o ID esteja errado.
-        // Permitimos a exclusão se não for encontrada, mas logamos o erro.
-        console.warn(`Tentativa de exclusão de criança não encontrada: ${criancaId}`);
-    } else if (['Fila de Espera', 'Convocado', 'Matriculado', 'Matriculada', 'Remanejamento Solicitado'].includes(crianca.status)) {
-        throw new Error(`Não é possível excluir. A criança está em status ativo: ${crianca.status}.`);
-    }
-    
-    const { error } = await supabase
-        .from('criancas')
-        .delete()
-        .eq('id', criancaId);
-
-    if (error) throw new Error(`Falha ao excluir criança: ${error.message}`);
-    
-    await insertHistoricoEntry({
-        crianca_id: criancaId,
-        acao: "Criança Excluída",
-        detalhes: `Registro da criança ${criancaNome} excluído permanentemente do sistema.`,
         usuario: user,
     });
 };
