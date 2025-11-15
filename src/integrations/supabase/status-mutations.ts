@@ -109,7 +109,21 @@ export const marcarDesistente = async (criancaId: string, justificativa: string)
 };
 
 export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
-    // A posição na fila será atualizada pelo trigger handle_fila_recalculation
+    // 1. Buscar a criança para verificar a prioridade social
+    const { data: crianca, error: fetchError } = await supabase
+        .from('criancas')
+        .select('programas_sociais')
+        .eq('id', criancaId)
+        .single();
+        
+    if (fetchError || !crianca) {
+        throw new Error(`Erro ao buscar dados da criança para reativação: ${fetchError?.message || 'Criança não encontrada'}`);
+    }
+    
+    // 2. Determinar a penalidade:
+    // Se tem prioridade social, data_penalidade = NULL (mantém a posição relativa na categoria prioritária).
+    // Se NÃO tem prioridade social, data_penalidade = NOW() (vai para o final absoluto da fila).
+    const penalidade = crianca.programas_sociais ? null : new Date().toISOString();
     
     const { data: updatedCriancaDb, error } = await supabase
         .from('criancas')
@@ -118,7 +132,7 @@ export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
             cmei_atual_id: null,
             turma_atual_id: null,
             convocacao_deadline: null,
-            data_penalidade: null, // Limpa penalidade ao reativar
+            data_penalidade: penalidade, // Aplica penalidade se não for prioritário
         })
         .eq('id', criancaId)
         .select(SELECT_FIELDS)
@@ -129,7 +143,8 @@ export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
     }
     
     const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
-    await registerHistorico(updatedCrianca.id, "Reativação na Fila", `${updatedCrianca.nome} reativado(a) na fila de espera.`);
+    const penalidadeMsg = penalidade ? ' (movida para o final da fila)' : ' (mantendo prioridade)';
+    await registerHistorico(updatedCrianca.id, "Reativação na Fila", `${updatedCrianca.nome} reativado(a) na fila de espera${penalidadeMsg}.`);
     
     return updatedCrianca;
 };
