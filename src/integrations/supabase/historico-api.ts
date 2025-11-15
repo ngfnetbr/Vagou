@@ -11,7 +11,7 @@ interface NewHistoricoEntry {
 
 // Função para inserir um novo registro no histórico
 export const insertHistoricoEntry = async (entry: NewHistoricoEntry) => {
-    // A coluna 'data' e 'created_at' são preenchidas automaticamente pelo DB (DEFAULT CURRENT_DATE e NOW())
+    // A coluna 'data' (date only) e 'created_at' (timestamp) são preenchidas automaticamente pelo DB
     const { error } = await supabase
         .from('historico')
         .insert({
@@ -34,7 +34,7 @@ export const fetchHistoricoCrianca = async (criancaId: string): Promise<Historic
         .from('historico')
         .select('data, acao, detalhes, usuario, created_at') // Incluindo created_at
         .eq('crianca_id', criancaId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }); // Ordena pelo timestamp completo
         
     if (error) {
         console.error("Erro ao buscar histórico:", error);
@@ -56,7 +56,7 @@ export const fetchHistoricoGeral = async (): Promise<HistoricoEntry[]> => {
     const { data, error } = await supabase
         .from('historico')
         .select('data, acao, detalhes, usuario, created_at') // Incluindo created_at
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }); // Ordena pelo timestamp completo
 
     if (error) {
         throw new Error(error.message);

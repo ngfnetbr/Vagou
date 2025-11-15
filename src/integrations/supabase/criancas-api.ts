@@ -201,9 +201,9 @@ export const apiMarcarFimDeFila = async (criancaId: string, justificativa: strin
     const user = await getAdminUser();
     
     // Define a data de penalidade para 6 meses no futuro
-    const penalidadeDate = new Date();
-    penalidadeDate.setMonth(penalidadeDate.getMonth() + 6);
-    const penalidadeDateString = penalidadeDate.toISOString().split('T')[0];
+    // NOTA: O trigger de fila recalcula a posição, mas a penalidade deve ser aplicada aqui.
+    // Usamos a data atual para a penalidade, pois o trigger usa data_penalidade ASC NULLS FIRST.
+    const penalidadeDateString = new Date().toISOString();
     
     const { error } = await supabase
         .from('criancas')
@@ -221,7 +221,7 @@ export const apiMarcarFimDeFila = async (criancaId: string, justificativa: strin
     await insertHistoricoEntry({
         crianca_id: criancaId,
         acao: "Fim de Fila Aplicado",
-        detalhes: `Criança movida para o final da fila (penalidade até ${penalidadeDateString}). Justificativa: ${justificativa}`,
+        detalhes: `Criança movida para o fim da fila (penalidade aplicada). Justificativa: ${justificativa}`,
         usuario: user,
     });
 };
@@ -351,10 +351,10 @@ export const apiDeleteCrianca = async (criancaId: string, criancaNome: string) =
         .single();
         
     if (fetchError || !crianca) {
-        throw new Error("Criança não encontrada.");
-    }
-    
-    if (['Fila de Espera', 'Convocado', 'Matriculado', 'Matriculada'].includes(crianca.status)) {
+        // Se não encontrar, pode ser que já tenha sido excluída ou o ID esteja errado.
+        // Permitimos a exclusão se não for encontrada, mas logamos o erro.
+        console.warn(`Tentativa de exclusão de criança não encontrada: ${criancaId}`);
+    } else if (['Fila de Espera', 'Convocado', 'Matriculado', 'Matriculada', 'Remanejamento Solicitado'].includes(crianca.status)) {
         throw new Error(`Não é possível excluir. A criança está em status ativo: ${crianca.status}.`);
     }
     
