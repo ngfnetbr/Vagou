@@ -8,6 +8,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { DatePicker } from "@/components/DatePicker";
 import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { useAgeInMonths } from "@/hooks/use-age-in-months"; // Importando o novo hook
 
 interface CriancaDataFormProps {
   cmeiOptions: { value: string; label: string }[];
@@ -16,7 +19,12 @@ interface CriancaDataFormProps {
 }
 
 export const CriancaDataForm = ({ cmeiOptions, filteredCmei2Options, selectedCmei1 }: CriancaDataFormProps) => {
-  const { control } = useFormContext<InscricaoFormData>();
+  const { control, watch } = useFormContext<InscricaoFormData>();
+  
+  const dataNascimento = watch("dataNascimento");
+  const ageInMonths = useAgeInMonths(dataNascimento);
+  
+  const isUnderSixMonths = ageInMonths !== null && ageInMonths < 6;
 
   return (
     <Card>
@@ -52,6 +60,16 @@ export const CriancaDataForm = ({ cmeiOptions, filteredCmei2Options, selectedCme
                   />
                 </FormControl>
                 <FormMessage />
+                
+                {isUnderSixMonths && (
+                    <Alert variant="default" className="bg-accent/10 border-accent text-foreground">
+                        <AlertCircle className="h-4 w-4 text-accent" />
+                        <AlertTitle>Atenção à Idade Mínima</AlertTitle>
+                        <AlertDescription>
+                            Crianças abaixo de 6 meses de idade continuarão em lista de espera, mesmo que sua vez chegue, pois a idade mínima para início no CMEI é 6 meses.
+                        </AlertDescription>
+                    </Alert>
+                )}
               </FormItem>
             )}
           />
