@@ -18,7 +18,7 @@ export function useCriancas() {
       // 1. Verificar duplicidade antes de inserir
       const isDuplicate = await checkCriancaDuplicada(data);
       if (isDuplicate) {
-        throw new Error("Já existe um cadastro no sistema com o mesmo nome e data de nascimento, ou com a mesma data de nascimento e CPF do responsável. Verifique os dados e tente novamente.");
+        throw new Error("Já existe um cadastro no sistema com os dados informados.");
       }
       
       // 2. Inserir se não for duplicado
