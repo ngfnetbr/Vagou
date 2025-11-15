@@ -51,7 +51,12 @@ export const CriancaDataForm = ({ cmeiOptions, filteredCmei2Options, selectedCme
             name="dataNascimento"
             render={({ field }) => (
               <FormItem className="space-y-2">
-                <FormLabel htmlFor="data-nascimento">Data de Nascimento *</FormLabel>
+                <FormLabel htmlFor="data-nascimento">
+                  Data de Nascimento *
+                  {isUnderSixMonths && (
+                    <span className="ml-2 text-sm font-normal text-red-500">(Menor de 6 meses)</span>
+                  )}
+                </FormLabel>
                 <FormControl>
                   <DatePicker
                     value={field.value}
