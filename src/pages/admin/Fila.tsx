@@ -126,19 +126,9 @@ const Fila = () => {
     const filaDeEspera = filtered.filter(c => c.status === "Fila de Espera");
     const convocados = filtered.filter(c => c.status === "Convocado");
 
-    // Ordenação: Prioridade Social > Data de Nascimento (mais velho primeiro)
-    filaDeEspera.sort((a, b) => {
-        if (a.programas_sociais && !b.programas_sociais) return -1;
-        if (!a.programas_sociais && b.programas_sociais) return 1;
-        return new Date(a.data_nascimento).getTime() - new Date(b.data_nascimento).getTime();
-    });
+    // Ordenação da Fila de Espera: Usa a posição calculada pelo DB (posicao_fila)
+    filaDeEspera.sort((a, b) => (a.posicao_fila || Infinity) - (b.posicao_fila || Infinity));
 
-    // Simula a atribuição de posição na fila
-    const sortedFila = filaDeEspera.map((c, index) => ({
-        ...c,
-        posicao_fila: index + 1,
-    }));
-    
     // Ordena convocados por prazo mais próximo
     convocados.sort((a, b) => {
         if (!a.convocacao_deadline) return 1;
@@ -146,6 +136,9 @@ const Fila = () => {
         return new Date(a.convocacao_deadline).getTime() - new Date(b.convocacao_deadline).getTime();
     });
 
+    // A posição na fila é agora o campo posicao_fila do DB, não precisamos simular a atribuição de posição
+    const sortedFila = filaDeEspera;
+    
     const totalFila = criancas.filter(c => c.status === "Fila de Espera").length;
     const comPrioridade = criancas.filter(c => c.status === "Fila de Espera" && c.programas_sociais).length;
     const totalConvocados = criancas.filter(c => c.status === "Convocado").length;
@@ -216,6 +209,7 @@ const Fila = () => {
   
   const getJustificativaProps = (action: JustificativaAction) => {
     const criancaNome = criancaToJustify?.nome || 'a criança';
+    
     const isPending = action === 'recusada' ? isMarkingRecusada : 
                       action === 'desistente' ? isMarkingDesistente : 
                       isMarkingFimDeFila;
