@@ -1,14 +1,12 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, GraduationCap, ListOrdered, TrendingUp, Loader2 } from "lucide-react";
-import { useCriancas, useCriancaHistorico } from "@/hooks/use-criancas";
+import { useCriancas } from "@/hooks/use-criancas";
 import { useMemo } from "react";
-import { Crianca } from "@/integrations/supabase/criancas"; // Importando Crianca do novo local
+import { Crianca } from "@/integrations/supabase/types"; // Importando Crianca do novo local
 
 const Dashboard = () => {
   const { criancas, isLoading } = useCriancas();
-  // Usando useCriancaHistorico para buscar logs gerais (embora o hook useHistoricoGeral seja mais apropriado para o Logs.tsx)
-  // Para o dashboard, vamos manter o mock de histórico por enquanto, mas remover o import de Crianca do mock-data.
   
   // Mock de histórico para o Dashboard (será substituído pela tabela 'historico' real)
   const mockHistoricoRecente = [
@@ -49,7 +47,7 @@ const Dashboard = () => {
       taxaOcupacao,
     };
   }, [criancas]);
-
+  
   const stats = [
     {
       title: "Total de Crianças",

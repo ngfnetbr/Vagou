@@ -21,6 +21,9 @@ export interface Cmei {
 // Tipagem para dados de formulário (sem campos gerados automaticamente)
 export type CmeiFormData = Omit<Cmei, 'id' | 'capacidade' | 'ocupacao' | 'created_at'>;
 
+// Tipagem para dados de seed (inclui capacidade para a lógica de seed)
+export type CmeiSeedData = Omit<Cmei, 'id' | 'ocupacao' | 'created_at'>;
+
 const CMEIS_QUERY_KEY = ["cmeis"];
 
 // --- Funções de API (Supabase) ---

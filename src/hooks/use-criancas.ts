@@ -1,27 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { InscricaoFormData } from "@/lib/schemas/inscricao-schema"; // Importação corrigida
-import { 
-    fetchCriancas, 
-    addCriancaFromInscricao, 
-    Crianca, 
-    updateCrianca, 
-    deleteCrianca, 
-    getCriancaById, 
-    convocarCrianca, 
-    marcarDesistente, 
-    fetchAvailableTurmas, 
-    ConvocationData, 
-    reativarCrianca, 
-    marcarFimDeFila, 
-    confirmarMatricula, 
-    marcarRecusada, 
-    realocarCrianca, 
-    transferirCrianca, 
-    solicitarRemanejamento,
-    fetchHistoricoCrianca,
-    HistoricoEntry, // Importando HistoricoEntry
-} from "@/integrations/supabase/criancas"; // Caminho atualizado
+import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
 import { toast } from "sonner";
+import { Crianca, ConvocationData, HistoricoEntry } from "@/integrations/supabase/types";
+import { fetchCriancas, getCriancaById, addCriancaFromInscricao, updateCrianca, deleteCrianca } from "@/integrations/supabase/criancas-api";
+import { convocarCrianca, marcarDesistente, reativarCrianca, marcarFimDeFila, confirmarMatricula, marcarRecusada, realocarCrianca, transferirCrianca, solicitarRemanejamento } from "@/integrations/supabase/status-mutations";
+import { fetchAvailableTurmas } from "@/integrations/supabase/vagas-api";
+import { fetchHistoricoCrianca } from "@/integrations/supabase/historico-api";
+
 
 const CRIANCAS_QUERY_KEY = ["criancas"];
 

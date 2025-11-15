@@ -17,17 +17,17 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import JustificativaModal from "@/components/JustificativaModal";
-import RealocacaoModal from "@/components/RealocacaoModal"; // Importação atualizada
-import { Crianca, ConvocationData } from "@/integrations/supabase/criancas"; // Importação atualizada
+import RealocacaoModal from "@/components/RealocacaoModal";
+import { Crianca, ConvocationData } from "@/integrations/supabase/types"; // Importação atualizada
 import { Badge } from "@/components/ui/badge";
-import { HistoricoMatriculasAccordion } from "@/components/matriculas/HistoricoMatriculasAccordion"; // Caminho corrigido
+import { HistoricoMatriculasAccordion } from "@/components/matriculas/HistoricoMatriculasAccordion";
 
 const mockTurmas = [
   "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Pré I", "Pré II"
 ];
 
-type JustificativaAction = 'desistente' | 'remanejamento' | 'transferir'; // 'trancar' removido
-type VagaAction = 'realocar'; // 'transferir' removido daqui
+type JustificativaAction = 'desistente' | 'remanejamento' | 'transferir';
+type VagaAction = 'realocar';
 
 const Matriculas = () => {
   const { 
@@ -41,8 +41,8 @@ const Matriculas = () => {
     isTransferring,
     solicitarRemanejamento,
     isRequestingRemanejamento,
-    reativarCrianca, // Adicionado para reativação no histórico
-    isReactivating, // Adicionado para reativação no histórico
+    reativarCrianca,
+    isReactivating,
   } = useCriancas();
   const navigate = useNavigate();
   
@@ -374,7 +374,7 @@ const Matriculas = () => {
       {/* Modal de Realocação (Apenas Realocar usa este modal agora) */}
       <Dialog open={isVagaModalOpen} onOpenChange={setIsVagaModalOpen}>
         {criancaToVaga && currentVagaAction && (
-          <RealocacaoModal // Nome do componente atualizado
+          <RealocacaoModal
             crianca={criancaToVaga}
             onConfirm={handleVagaConfirm}
             onClose={() => {

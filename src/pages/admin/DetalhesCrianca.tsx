@@ -12,8 +12,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import ConvocarModal from "@/components/ConvocarModal"; // Importar ConvocarModal
-import JustificativaModal from "@/components/JustificativaModal"; // Importar JustificativaModal
+import ConvocarModal from "@/components/ConvocarModal";
+import JustificativaModal from "@/components/JustificativaModal";
+import { Crianca } from "@/integrations/supabase/types"; // Importação atualizada
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,8 +94,8 @@ const DetalhesCrianca = () => {
     );
   }
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { className: string, text: string }> = {
+  const getStatusBadge = (status: Crianca['status']) => {
+    const variants: Record<Crianca['status'], { className: string, text: string }> = {
       "Matriculada": { className: "bg-secondary text-secondary-foreground", text: "Matriculada" },
       "Matriculado": { className: "bg-secondary text-secondary-foreground", text: "Matriculado" },
       "Fila de Espera": { className: "bg-accent/20 text-foreground", text: "Fila de Espera" },

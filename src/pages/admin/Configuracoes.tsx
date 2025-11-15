@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Save, Settings2, Loader2 } from "lucide-react";
+import { Save, Settings2, Loader2, Database, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Importar from "@/pages/parametros/Importar";
 import TurmasBase from "@/pages/parametros/TurmasBase";
@@ -14,7 +14,23 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { DatePicker } from "@/components/DatePicker"; // Importando DatePicker
+import { DatePicker } from "@/components/DatePicker";
+import { runSeed, clearAllData } from "@/lib/utils/seed-data"; // Importando funções de seed
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react"; // Importando useState
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 // Esquema de validação para as configurações
 const configSchema = z.object({
@@ -31,6 +47,9 @@ const configSchema = z.object({
 
 const Configuracoes = () => {
   const { config, isLoading, error, updateConfiguracoes, isUpdating } = useConfiguracoes();
+  const queryClient = useQueryClient();
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const form = useForm<ConfiguracoesFormData>({
     resolver: zodResolver(configSchema),
@@ -50,6 +69,40 @@ const Configuracoes = () => {
 
   const onSubmit = async (data: ConfiguracoesFormData) => {
     await updateConfiguracoes(data);
+  };
+  
+  const handleRunSeed = async () => {
+    setIsSeeding(true);
+    try {
+      await runSeed();
+      toast.success("Dados fictícios gerados com sucesso!", {
+        description: "CMEIs, Turmas e Crianças de teste foram inseridos.",
+      });
+      queryClient.invalidateQueries(); // Invalida todos os caches para recarregar os dados
+    } catch (e: any) {
+      toast.error("Erro ao gerar dados fictícios.", {
+        description: e.message,
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+  
+  const handleClearData = async () => {
+    setIsClearing(true);
+    try {
+      await clearAllData();
+      toast.success("Dados limpos com sucesso!", {
+        description: "Todas as crianças, turmas e CMEIs foram removidos.",
+      });
+      queryClient.invalidateQueries(); // Invalida todos os caches
+    } catch (e: any) {
+      toast.error("Erro ao limpar dados.", {
+        description: e.message,
+      });
+    } finally {
+      setIsClearing(false);
+    }
   };
   
   if (isLoading) {
@@ -288,7 +341,8 @@ const Configuracoes = () => {
                     </div>
 
                     <Separator />
-
+                    
+                    {/* Botões de Ação do Formulário */}
                     <div className="flex gap-4">
                       <Button type="button" variant="outline" className="flex-1" onClick={() => form.reset()} disabled={isUpdating}>
                         Cancelar
@@ -301,6 +355,63 @@ const Configuracoes = () => {
                         )}
                         {isUpdating ? "Salvando..." : "Salvar Configurações"}
                       </Button>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Seção de Dados Fictícios */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-destructive">Ferramentas de Desenvolvimento</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Use estas ferramentas para popular ou limpar o banco de dados de teste.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="text-primary border-primary hover:bg-primary/10"
+                                onClick={handleRunSeed}
+                                disabled={isSeeding || isClearing}
+                            >
+                                {isSeeding ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Database className="mr-2 h-4 w-4" />
+                                )}
+                                {isSeeding ? "Gerando Dados..." : "Gerar Dados Fictícios"}
+                            </Button>
+                            
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button 
+                                        type="button" 
+                                        variant="destructive" 
+                                        disabled={isSeeding || isClearing}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Limpar Todos os Dados
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Tem certeza que deseja limpar?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta ação é irreversível e removerá TODOS os CMEIs, Turmas, Crianças e Histórico do sistema.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel disabled={isClearing}>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction 
+                                            onClick={handleClearData} 
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            disabled={isClearing}
+                                        >
+                                            {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirmar Limpeza"}
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                     </div>
                   </CardContent>
                 </form>
