@@ -89,9 +89,9 @@ const Criancas = () => {
     setEditingCrianca(undefined);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, nome: string) => {
     try {
-        await deleteCrianca(id);
+        await deleteCrianca(id, nome);
     } catch (e: any) {
         toast.error("Falha na Exclusão", {
             description: e.message,
@@ -156,7 +156,7 @@ const Criancas = () => {
                   <SelectItem value="Matriculado">Matriculado/a</SelectItem>
                   <SelectItem value="Fila de Espera">Fila de Espera</SelectItem>
                   <SelectItem value="Convocado">Convocado</SelectItem>
-                  <SelectItem value="Remanejamento Solicitado">Remanejamento Solicitado</SelectItem>
+                  <SelectItem value="Remanejamento Solicitado">Remanejamento Solitemcitado</SelectItem>
                   <SelectItem value="Desistente">Desistente</SelectItem>
                 </SelectContent>
               </Select>
@@ -310,7 +310,7 @@ const Criancas = () => {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                   <AlertDialogAction 
-                                    onClick={() => handleDelete(crianca.id)} 
+                                    onClick={() => handleDelete(crianca.id, crianca.nome)} 
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                     disabled={isDeleting}
                                   >

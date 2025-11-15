@@ -117,7 +117,7 @@ const DetalhesCrianca = () => {
   const handleDelete = async () => {
     if (criancaId) {
       try {
-        await deleteCrianca(criancaId);
+        await deleteCrianca(criancaId, crianca.nome);
         navigate('/admin/criancas'); // Navigate back to list after deletion
       } catch (e: any) {
         toast.error("Falha na Exclusão", {
@@ -202,6 +202,7 @@ const DetalhesCrianca = () => {
   
   const handleConfirmarMatricula = async () => {
     if (criancaId) {
+      // A função confirmarMatricula agora espera o ID da criança
       await confirmarMatricula(criancaId);
       refetch();
     }

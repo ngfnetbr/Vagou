@@ -1,11 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiConfirmarMatricula, apiMarcarRecusada, apiMarcarDesistente, apiMarcarFimDeFila, apiReativarCrianca, apiConvocarCrianca, apiDeleteCrianca, fetchCriancas, fetchCriancaDetails } from "@/integrations/supabase/criancas-api";
+import { 
+    apiConfirmarMatricula, 
+    apiMarcarRecusada, 
+    apiMarcarDesistente, 
+    apiMarcarFimDeFila, 
+    apiReativarCrianca, 
+    apiConvocarCrianca, 
+    apiDeleteCrianca, 
+    fetchCriancas, 
+    fetchCriancaDetails,
+    apiAddCrianca,
+    apiUpdateCrianca,
+    apiRealocarCrianca,
+    apiTransferirCrianca,
+    apiSolicitarRemanejamento,
+    getCriancaById,
+} from "@/integrations/supabase/criancas-api";
 import { fetchHistoricoCrianca } from "@/integrations/supabase/historico-api";
+import { fetchAvailableTurmas } from "@/integrations/supabase/vagas-api";
 import { toast } from "sonner";
 import { Crianca, ConvocationData } from "@/integrations/supabase/types";
+import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
 
 const CRIANCAS_QUERY_KEY = 'criancas';
 const HISTORICO_QUERY_KEY = 'historicoCrianca';
+const AVAILABLE_TURMAS_QUERY_KEY = 'availableTurmas';
 
 // Hook para buscar a lista de crianças
 export const useCriancas = () => {
@@ -27,11 +46,23 @@ export const useCriancas = () => {
       toast.error(errorMessage, { description: e.message });
     },
   });
+  
+  // CRUD de Inscrição
+  const { mutateAsync: addCrianca, isPending: isAdding } = useMutation({
+    mutationFn: apiAddCrianca,
+    ...mutationOptions("Inscrição realizada com sucesso!", "Falha ao cadastrar criança"),
+  });
+  
+  const { mutateAsync: updateCrianca, isPending: isUpdating } = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: InscricaoFormData }) => apiUpdateCrianca(id, data),
+    ...mutationOptions("Dados da criança atualizados com sucesso!", "Falha ao atualizar dados da criança"),
+  });
 
   // 1. Confirmar Matrícula
   const { mutateAsync: confirmarMatricula, isPending: isConfirmingMatricula } = useMutation({
-    mutationFn: async (crianca: Crianca) => {
-        if (!crianca.cmeiNome || !crianca.turmaNome) {
+    mutationFn: async (criancaId: string) => {
+        const crianca = await getCriancaById(criancaId);
+        if (!crianca || !crianca.cmeiNome || !crianca.turmaNome) {
             throw new Error("Dados de CMEI/Turma ausentes para confirmação.");
         }
         await apiConfirmarMatricula(crianca.id, crianca.cmeiNome, crianca.turmaNome);
@@ -74,7 +105,31 @@ export const useCriancas = () => {
     ...mutationOptions("Criança convocada com sucesso!", "Falha ao convocar criança"),
   });
   
-  // 7. Excluir Criança
+  // 7. Realocar Criança (Mudar Turma dentro do mesmo CMEI)
+  const { mutateAsync: realocarCrianca, isPending: isRealocating } = useMutation({
+    mutationFn: async ({ id, data }: { id: string, data: ConvocationData }) => {
+        const cmei = await queryClient.getQueryData([CRIANCAS_QUERY_KEY])?.find(c => c.id === id)?.cmeiNome || 'CMEI Desconhecido';
+        const turma = await queryClient.getQueryData(['turmas', data.cmei_id])?.find((t: any) => t.id === data.turma_id)?.nome || 'Turma Desconhecida';
+        await apiRealocarCrianca(id, data, cmei, turma);
+    },
+    ...mutationOptions("Criança realocada com sucesso!", "Falha ao realocar criança"),
+  });
+  
+  // 8. Transferir Criança (Encerra matrícula por mudança de cidade)
+  const { mutateAsync: transferirCrianca, isPending: isTransferring } = useMutation({
+    mutationFn: ({ id, justificativa }: { id: string, justificativa: string }) => 
+        apiTransferirCrianca(id, justificativa),
+    ...mutationOptions("Matrícula encerrada por transferência.", "Falha ao transferir criança"),
+  });
+  
+  // 9. Solicitar Remanejamento
+  const { mutateAsync: solicitarRemanejamento, isPending: isRequestingRemanejamento } = useMutation({
+    mutationFn: ({ id, justificativa }: { id: string, justificativa: string }) => 
+        apiSolicitarRemanejamento(id, justificativa),
+    ...mutationOptions("Solicitação de remanejamento registrada.", "Falha ao solicitar remanejamento"),
+  });
+  
+  // 10. Excluir Criança
   const { mutateAsync: deleteCrianca, isPending: isDeleting } = useMutation({
     mutationFn: async ({ id, nome }: { id: string, nome: string }) => {
         await apiDeleteCrianca(id, nome);
@@ -94,8 +149,16 @@ export const useCriancas = () => {
     error,
     refetch: () => queryClient.invalidateQueries({ queryKey: [CRIANCAS_QUERY_KEY] }),
     
-    // Mutações
-    confirmarMatricula: (crianca: Crianca) => confirmarMatricula(crianca),
+    // CRUD
+    addCrianca,
+    isAdding,
+    updateCrianca,
+    isUpdating,
+    deleteCrianca,
+    isDeleting,
+    
+    // Mutações de Status
+    confirmarMatricula,
     isConfirmingMatricula,
     marcarRecusada,
     isMarkingRecusada,
@@ -107,8 +170,12 @@ export const useCriancas = () => {
     isReactivating,
     convocarCrianca,
     isConvoking,
-    deleteCrianca: (id: string, nome: string) => deleteCrianca({ id, nome }),
-    isDeleting,
+    realocarCrianca,
+    isRealocating,
+    transferirCrianca,
+    isTransferring,
+    solicitarRemanejamento,
+    isRequestingRemanejamento,
   };
 };
 
@@ -126,6 +193,15 @@ export const useCriancaHistorico = (criancaId: string) => {
     return useQuery({
         queryKey: [HISTORICO_QUERY_KEY, criancaId],
         queryFn: () => fetchHistoricoCrianca(criancaId),
+        enabled: !!criancaId,
+    });
+};
+
+// Hook para buscar turmas disponíveis para convocação/realocação
+export const useAvailableTurmas = (criancaId: string) => {
+    return useQuery({
+        queryKey: [AVAILABLE_TURMAS_QUERY_KEY, criancaId],
+        queryFn: () => fetchAvailableTurmas(criancaId),
         enabled: !!criancaId,
     });
 };

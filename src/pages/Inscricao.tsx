@@ -97,7 +97,8 @@ const Inscricao = ({ onSuccess, onCancel, isModal = false, initialData, criancaI
   const handleDelete = async () => {
     if (criancaId) {
       try {
-        await deleteCrianca(criancaId);
+        // deleteCrianca agora espera o ID e o nome da criança
+        await deleteCrianca(criancaId, form.watch('nomeCrianca')); 
         if (onSuccess) {
           // Usando asserção de tipo aqui para resolver o erro de compilação
           onSuccess(form.getValues() as InscricaoFormData); 

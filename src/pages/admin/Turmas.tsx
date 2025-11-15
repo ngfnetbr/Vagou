@@ -351,6 +351,7 @@ const Turmas = () => {
         </div>
       </AdminLayout>
     );
+  );
   }
 
   return (
