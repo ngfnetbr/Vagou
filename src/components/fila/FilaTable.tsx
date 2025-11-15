@@ -87,7 +87,6 @@ export const FilaTable = ({
                 
                 // Lógica para exibir o badge de penalidade: se está na fila E tem data de penalidade
                 const isPenalized = isFilaEspera && !!item.data_penalidade;
-                const penalidadeDate = formatPenalidadeDate(item.data_penalidade);
                 
                 return (
                   <TableRow key={item.id} className={isConvocado ? "bg-primary/5 hover:bg-primary/10" : ""}>
@@ -109,11 +108,8 @@ export const FilaTable = ({
                     <TableCell className="text-center">
                         {isConvocado && item.convocacao_deadline ? (
                             <CountdownTimer deadline={item.convocacao_deadline} />
-                        ) : isPenalized && penalidadeDate ? (
-                            <Badge variant="destructive" className="bg-destructive/20 text-destructive w-fit flex justify-center items-center mx-auto">
-                                Fim de Fila ({penalidadeDate})
-                            </Badge>
                         ) : (
+                            // Se estiver na fila (mesmo que penalizado), exibe apenas Fila de Espera
                             <Badge variant="secondary" className="w-fit flex justify-center items-center mx-auto">Fila de Espera</Badge>
                         )}
                     </TableCell>
