@@ -114,14 +114,8 @@ export const FilaTable = ({
                 const isFilaEspera = item.status === "Fila de Espera";
                 const deadlineInfo = isConvocado && item.convocacao_deadline ? getDeadlineInfo(item.convocacao_deadline) : null;
                 
-                // Verifica se há penalidade E se a criança é prioritária (conforme o novo requisito)
-                // Nota: Se a criança é prioritária, data_penalidade só deve ser preenchida se ela recusou uma convocação (Fim de Fila)
+                // O badge de penalidade só aparece se for Fila de Espera, tiver penalidade E for prioritário
                 const isPenalizedPrioritario = isFilaEspera && item.data_penalidade && item.programas_sociais;
-                
-                // Se a criança não é prioritária, mas foi penalizada (reativação sem prioridade), o badge não aparece.
-                // Se o usuário quiser que o badge apareça para todos os penalizados, esta linha deve ser:
-                // const isPenalized = isFilaEspera && item.data_penalidade;
-                // Mas seguindo o pedido: "o badge de fim fila só deve aparecer em crianças que sao prioritarios"
                 const isPenalized = isPenalizedPrioritario; 
                 
                 const penalidadeDate = formatPenalidadeDate(item.data_penalidade);
@@ -129,29 +123,35 @@ export const FilaTable = ({
                 return (
                   <TableRow key={item.id} className={isConvocado ? "bg-primary/5 hover:bg-primary/10" : ""}>
                     <TableCell className="font-bold text-primary">
-                        {isConvocado ? <Badge className="bg-primary text-primary-foreground">CONV.</Badge> : `#${item.posicao_fila}`}
+                        {isConvocado ? <Badge className="bg-primary text-primary-foreground h-6 px-2 uppercase tracking-wider rounded-none">CONV.</Badge> : `#${item.posicao_fila}`}
                     </TableCell>
                     <TableCell className="font-medium">{item.nome}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{item.idade}</TableCell>
                     <TableCell>{item.responsavel_nome}</TableCell>
                     <TableCell>{getInscriptionDate(item)}</TableCell>
                     <TableCell>
-                      <Badge variant={item.programas_sociais ? "default" : "secondary"}>
+                      <Badge 
+                        variant={item.programas_sociais ? "default" : "secondary"}
+                        className="h-6 px-2 uppercase tracking-wider rounded-none"
+                      >
                         {getPriorityLabel(item)}
                       </Badge>
                     </TableCell>
                     <TableCell>
                         {isConvocado && deadlineInfo ? (
-                            <div className={`flex items-center gap-1 text-xs font-medium p-1 rounded ${deadlineInfo.className}`}>
+                            <div className={`flex items-center gap-1 text-xs font-medium p-1 rounded-none ${deadlineInfo.className}`}>
                                 <deadlineInfo.icon className="h-3 w-3" />
                                 {deadlineInfo.text}
                             </div>
                         ) : isPenalized && penalidadeDate ? (
-                            <Badge variant="destructive" className="bg-destructive/20 text-destructive">
-                                Fim de Fila ({penalidadeDate})
+                            <Badge 
+                                variant="destructive" 
+                                className="bg-destructive/20 text-destructive h-6 px-2 uppercase tracking-wider rounded-none"
+                            >
+                                Solicit. Fim de Fila ({penalidadeDate})
                             </Badge>
                         ) : (
-                            <Badge variant="secondary">Fila de Espera</Badge>
+                            <Badge variant="secondary" className="h-6 px-2 uppercase tracking-wider rounded-none">Fila de Espera</Badge>
                         )}
                     </TableCell>
                     <TableCell className="text-right">
