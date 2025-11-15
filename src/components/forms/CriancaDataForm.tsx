@@ -51,6 +51,17 @@ export const CriancaDataForm = ({ cmeiOptions, filteredCmei2Options, selectedCme
             name="dataNascimento"
             render={({ field }) => (
               <FormItem className="space-y-2">
+                
+                {isUnderSixMonths && (
+                    <Alert variant="default" className="bg-accent/10 border-accent text-foreground mb-4">
+                        <AlertCircle className="h-4 w-4 text-accent" />
+                        <AlertTitle>Atenção à Idade Mínima</AlertTitle>
+                        <AlertDescription>
+                            Crianças abaixo de 6 meses de idade continuarão em lista de espera, mesmo que sua vez chegue, pois a idade mínima para início no CMEI é 6 meses.
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
                 <FormLabel htmlFor="data-nascimento">
                   Data de Nascimento *
                   {isUnderSixMonths && (
@@ -65,16 +76,6 @@ export const CriancaDataForm = ({ cmeiOptions, filteredCmei2Options, selectedCme
                   />
                 </FormControl>
                 <FormMessage />
-                
-                {isUnderSixMonths && (
-                    <Alert variant="default" className="bg-accent/10 border-accent text-foreground">
-                        <AlertCircle className="h-4 w-4 text-accent" />
-                        <AlertTitle>Atenção à Idade Mínima</AlertTitle>
-                        <AlertDescription>
-                            Crianças abaixo de 6 meses de idade continuarão em lista de espera, mesmo que sua vez chegue, pois a idade mínima para início no CMEI é 6 meses.
-                        </AlertDescription>
-                    </Alert>
-                )}
               </FormItem>
             )}
           />
