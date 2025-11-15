@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
+import { addDays, format, parseISO } from "date-fns"; // Importando parseISO
 
 // --- Tipagem de Dados ---
 
@@ -281,19 +282,35 @@ export interface ConvocationData {
     turma_id: string;
 }
 
-// Função para calcular o deadline (7 dias úteis)
-const calculateDeadline = (): string => {
+// Função para buscar o prazo de resposta do DB
+const fetchPrazoResposta = async (): Promise<number> => {
+    const { data, error } = await supabase
+        .from('configuracoes_sistema')
+        .select('prazo_resposta_dias')
+        .eq('id', 1)
+        .single();
+        
+    if (error) {
+        console.error("Erro ao buscar prazo de resposta:", error);
+        return 7; // Fallback para 7 dias
+    }
+    return data.prazo_resposta_dias || 7;
+};
+
+// Função para calcular o deadline (usando o prazo do DB)
+const calculateDeadline = async (): Promise<string> => {
+    const prazoDias = await fetchPrazoResposta();
     const today = new Date();
-    let deadline = new Date(today);
     
-    // Simulação simples: 7 dias + 2 dias de fim de semana = 9 dias
-    deadline.setDate(deadline.getDate() + 9); 
+    // Adiciona o número de dias configurado
+    const deadlineDate = addDays(today, prazoDias);
     
-    return deadline.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Retorna no formato YYYY-MM-DD
+    return format(deadlineDate, 'yyyy-MM-dd');
 };
 
 export const convocarCrianca = async (criancaId: string, data: ConvocationData): Promise<Crianca> => {
-    const deadline = calculateDeadline();
+    const deadline = await calculateDeadline(); // Agora é assíncrono
     
     const { data: updatedCriancaDb, error } = await supabase
         .from('criancas')
@@ -317,7 +334,7 @@ export const convocarCrianca = async (criancaId: string, data: ConvocationData):
     }
     
     const updatedCrianca = mapDbToCrianca(updatedCriancaDb);
-    await registerHistorico(updatedCrianca.id, "Convocação Enviada", `Convocado(a) para ${updatedCrianca.cmeiNome} - ${updatedCrianca.turmaNome}. Prazo até ${deadline}.`);
+    await registerHistorico(updatedCrianca.id, "Convocação Enviada", `Convocado(a) para ${updatedCrianca.cmeiNome} - ${updatedCrianca.turmaNome}. Prazo até ${format(parseISO(deadline), 'dd/MM/yyyy')}.`);
     
     return updatedCrianca;
 };
@@ -403,7 +420,7 @@ export const marcarDesistente = async (criancaId: string, justificativa: string)
 };
 
 export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
-    // TODO: Implementar lógica de atribuição de posição no final da fila
+    // A posição na fila será atualizada pelo trigger handle_fila_recalculation
     
     const { data: updatedCriancaDb, error } = await supabase
         .from('criancas')
@@ -412,7 +429,6 @@ export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
             cmei_atual_id: null,
             turma_atual_id: null,
             convocacao_deadline: null,
-            // posicao_fila será atualizado por trigger ou função de fila
         })
         .eq('id', criancaId)
         .select(`
@@ -433,7 +449,7 @@ export const reativarCrianca = async (criancaId: string): Promise<Crianca> => {
 };
 
 export const marcarFimDeFila = async (criancaId: string, justificativa: string): Promise<Crianca> => {
-    // TODO: Implementar lógica de atribuição de posição no final da fila
+    // A posição na fila será atualizada pelo trigger handle_fila_recalculation
     
     const { data: updatedCriancaDb, error } = await supabase
         .from('criancas')
@@ -442,7 +458,6 @@ export const marcarFimDeFila = async (criancaId: string, justificativa: string):
             cmei_atual_id: null,
             turma_atual_id: null,
             convocacao_deadline: null,
-            // posicao_fila será atualizado por trigger ou função de fila
         })
         .eq('id', criancaId)
         .select(`

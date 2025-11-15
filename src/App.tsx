@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; // Importando Navigate
 import Inscricao from "./pages/Inscricao";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
@@ -16,9 +16,9 @@ import Configuracoes from "./pages/admin/Configuracoes";
 import Logs from "./pages/Logs";
 import NotFound from "./pages/NotFound";
 import DetalhesTurma from "./pages/admin/DetalhesTurma";
-import DetalhesCrianca from "./pages/admin/DetalhesCrianca"; // Importando a nova página
+import DetalhesCrianca from "./pages/admin/DetalhesCrianca";
 import { SessionContextProvider } from "./components/SessionContextProvider";
-import ProtectedRoute from "./components/ProtectedRoute"; // Importando o ProtectedRoute
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -31,9 +31,9 @@ const App = () => (
         <SessionContextProvider>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Login />} /> {/* Rota raiz agora é Login */}
+            <Route path="/" element={<Navigate to="/publico/inscricao" replace />} /> {/* Rota raiz redireciona para Inscrição */}
             <Route path="/login" element={<Login />} />
-            <Route path="/publico/inscricao" element={<Inscricao />} /> {/* Nova rota para Inscrição */}
+            <Route path="/publico/inscricao" element={<Inscricao />} />
             
             {/* Admin Routes (Protected) */}
             <Route path="/admin" element={<ProtectedRoute />}>
@@ -45,14 +45,13 @@ const App = () => (
               <Route path="criancas/:id" element={<DetalhesCrianca />} />
               <Route path="turmas" element={<Turmas />} />
               <Route path="turmas/:id" element={<DetalhesTurma />} />
-              {/* Rota de Convocações removida */}
               <Route path="relatorios" element={<Relatorios />} />
               <Route path="configuracoes" element={<Configuracoes />} />
-              <Route path="/admin/logs" element={<Logs />} /> {/* Logs dentro da área admin */}
+              <Route path="logs" element={<Logs />} />
             </Route>
             
-            {/* Logs Route (Movido para dentro de /admin, mas mantendo a rota antiga por enquanto se necessário) */}
-            <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
+            {/* Logs Route (Mantido para compatibilidade, mas redireciona para /admin/logs) */}
+            <Route path="/logs" element={<Navigate to="/admin/logs" replace />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
