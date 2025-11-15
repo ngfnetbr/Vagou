@@ -114,8 +114,16 @@ export const FilaTable = ({
                 const isFilaEspera = item.status === "Fila de Espera";
                 const deadlineInfo = isConvocado && item.convocacao_deadline ? getDeadlineInfo(item.convocacao_deadline) : null;
                 
-                // Verifica se há penalidade (Fim de Fila)
-                const isPenalized = isFilaEspera && item.data_penalidade;
+                // Verifica se há penalidade E se a criança é prioritária (conforme o novo requisito)
+                // Nota: Se a criança é prioritária, data_penalidade só deve ser preenchida se ela recusou uma convocação (Fim de Fila)
+                const isPenalizedPrioritario = isFilaEspera && item.data_penalidade && item.programas_sociais;
+                
+                // Se a criança não é prioritária, mas foi penalizada (reativação sem prioridade), o badge não aparece.
+                // Se o usuário quiser que o badge apareça para todos os penalizados, esta linha deve ser:
+                // const isPenalized = isFilaEspera && item.data_penalidade;
+                // Mas seguindo o pedido: "o badge de fim fila só deve aparecer em crianças que sao prioritarios"
+                const isPenalized = isPenalizedPrioritario; 
+                
                 const penalidadeDate = formatPenalidadeDate(item.data_penalidade);
                 
                 return (
