@@ -17,6 +17,8 @@ import { useSidebarStore } from "@/hooks/use-sidebar-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/admin" },
@@ -31,10 +33,27 @@ const menuItems = [
   { icon: History, label: "Logs do Sistema", to: "/admin/logs" },
 ];
 
-export const AdminSidebar = () => {
+interface AdminSidebarProps {
+  shouldBlockNavigation: boolean;
+}
+
+export const AdminSidebar = ({ shouldBlockNavigation }: AdminSidebarProps) => {
   const { isOpen, toggle } = useSidebarStore();
+  const navigate = useNavigate();
   
   const ToggleIcon = isOpen ? ChevronLeft : ChevronRight;
+  
+  const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
+    if (shouldBlockNavigation) {
+      e.preventDefault();
+      toast.warning("Planejamento não salvo!", {
+        description: "Salve ou aplique suas alterações na Transição Anual antes de navegar.",
+        duration: 5000,
+      });
+    } else {
+      navigate(to);
+    }
+  };
 
   return (
     <aside 
@@ -75,23 +94,27 @@ export const AdminSidebar = () => {
         <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
+            
+            // Usamos um âncora simples para interceptar o clique
             return (
               <Tooltip key={item.to}>
                 <TooltipTrigger asChild>
-                  <NavLink
-                    to={item.to}
+                  <a
+                    href={item.to}
+                    onClick={(e) => handleNavigation(e, item.to)}
                     className={cn(
                       "flex items-center gap-3 py-3 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
                       isOpen ? "px-4" : "justify-center px-0",
-                      "w-full"
+                      "w-full",
+                      // Adiciona estilo de ativo manualmente, pois não estamos usando NavLink diretamente
+                      location.pathname.startsWith(item.to) && "bg-sidebar-primary font-medium"
                     )}
-                    activeClassName="bg-sidebar-primary font-medium"
                   >
                     <Icon className={cn("h-5 w-5", !isOpen && "mx-auto")} />
                     <span className={cn("text-sm whitespace-nowrap transition-opacity duration-200", !isOpen && "opacity-0 hidden")}>
                       {item.label}
                     </span>
-                  </NavLink>
+                  </a>
                 </TooltipTrigger>
                 {!isOpen && <TooltipContent side="right">{item.label}</TooltipContent>}
               </Tooltip>

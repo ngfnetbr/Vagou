@@ -24,7 +24,7 @@ import StatusMassaModal from "@/components/transicoes/StatusMassaModal";
 import RealocacaoModal from "@/components/RealocacaoModal";
 import JustificativaModal from "@/components/JustificativaModal";
 import { useCriancas } from "@/hooks/use-criancas";
-import { ConvocationData, Crianca } from "@/integrations/supabase/types"; // Importando Crianca
+import { ConvocationData, Crianca } from "@/integrations/supabase/types";
 import { CmeiTransitionGroup } from "@/components/transicoes/CmeiTransitionGroup";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
@@ -179,8 +179,8 @@ const Transicoes = () => {
       
       // Abre o CMEI de destino no accordion
       setOpenCmeis(prev => {
-          if (!prev.includes(cmeiNome)) { // Corrigido o erro 3
-              return [...prev, cmeiNome]; // Corrigido o erro 4
+          if (!prev.includes(cmeiNome)) {
+              return [...prev, cmeiNome];
           }
           return prev;
       });
@@ -202,7 +202,7 @@ const Transicoes = () => {
       if (!criancaToAction || !currentJustificativaAction) return;
       
       const id = criancaToAction.id;
-      let newStatus: Crianca['status'] = 'Desistente'; // Corrigido o erro 5
+      let newStatus: Crianca['status'] = 'Desistente';
       let actionLabel = '';
       
       if (currentJustificativaAction === 'desistente') {
@@ -261,7 +261,7 @@ const Transicoes = () => {
   
   if (isLoading) {
     return (
-      <AdminLayout>
+      <AdminLayout shouldBlockNavigation={hasUnsavedChanges}>
         <div className="flex justify-center items-center h-96">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="ml-3 text-lg text-muted-foreground">Carregando dados para planejamento...</p>
@@ -271,7 +271,7 @@ const Transicoes = () => {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout shouldBlockNavigation={hasUnsavedChanges}>
       <div className="space-y-6 min-h-full">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Transição Anual de Turmas</h1>

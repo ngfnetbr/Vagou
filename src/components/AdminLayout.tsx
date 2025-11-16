@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { Building2, LogOut, User, Menu } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom"; // Importando useLocation
 import { useSession } from "./SessionContextProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,15 +12,25 @@ import { cn } from "@/lib/utils";
 
 interface AdminLayoutProps {
   children: ReactNode;
+  shouldBlockNavigation?: boolean; // Novo prop
 }
 
-export const AdminLayout = ({ children }: AdminLayoutProps) => {
+export const AdminLayout = ({ children, shouldBlockNavigation = false }: AdminLayoutProps) => {
   const { user } = useSession();
   const navigate = useNavigate();
+  const location = useLocation(); // Usado para verificar a rota atual
   const { isOpen, toggle } = useSidebarStore();
   const isMobile = useIsMobile();
   
   const handleLogout = async () => {
+    // Se houver bloqueio, alerta antes de sair
+    if (shouldBlockNavigation) {
+        const confirmLogout = window.confirm("Você tem alterações não salvas na Transição Anual. Deseja realmente sair e descartá-las?");
+        if (!confirmLogout) {
+            return;
+        }
+    }
+    
     const { error } = await supabase.auth.signOut();
     if (error) {
       toast.error("Erro ao sair", { description: error.message });
@@ -36,7 +46,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   return (
     <div className="flex h-screen bg-govbr-gray2">
       {/* Sidebar (Visível em desktop, oculta/fixa em mobile) */}
-      <AdminSidebar />
+      <AdminSidebar shouldBlockNavigation={shouldBlockNavigation} />
       
       {/* Overlay para mobile quando a sidebar está aberta */}
       {isMobile && isOpen && (
