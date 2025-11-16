@@ -103,28 +103,30 @@ const Fila = () => {
   const { filteredFila, historicoCriancas, stats } = useMemo(() => {
     if (!criancas) return { filteredFila: [], historicoCriancas: [], stats: { totalFila: 0, comPrioridade: 0, convocados: 0 } };
 
-    let filtered = criancas.filter(c => c.status === "Fila de Espera" || c.status === "Convocado");
+    // 1. Define a fila ativa (incluindo Remanejamento Solicitado)
+    let activeQueue = criancas.filter(c => c.status === "Fila de Espera" || c.status === "Convocado" || c.status === "Remanejamento Solicitado");
 
     if (cmeiFilter !== "todos") {
-      filtered = filtered.filter(c => c.cmei1_preferencia === cmeiFilter);
+      activeQueue = activeQueue.filter(c => c.cmei1_preferencia === cmeiFilter);
     }
 
     if (prioridadeFilter === "prioridade") {
-      filtered = filtered.filter(c => c.programas_sociais);
+      activeQueue = activeQueue.filter(c => c.programas_sociais);
     } else if (prioridadeFilter === "normal") {
-      filtered = filtered.filter(c => !c.programas_sociais);
+      activeQueue = activeQueue.filter(c => !c.programas_sociais);
     }
     
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(c => 
+      activeQueue = activeQueue.filter(c => 
         c.nome.toLowerCase().includes(lowerCaseSearch) ||
         c.responsavel_nome.toLowerCase().includes(lowerCaseSearch)
       );
     }
 
-    const filaDeEspera = filtered.filter(c => c.status === "Fila de Espera");
-    const convocados = filtered.filter(c => c.status === "Convocado");
+    // 2. Separa Fila de Espera (incluindo Remanejamento Solicitado) e Convocados
+    const filaDeEspera = activeQueue.filter(c => c.status === "Fila de Espera" || c.status === "Remanejamento Solicitado");
+    const convocados = activeQueue.filter(c => c.status === "Convocado");
 
     // Ordenação da Fila de Espera: Usa a posição calculada pelo DB (posicao_fila)
     filaDeEspera.sort((a, b) => (a.posicao_fila || Infinity) - (b.posicao_fila || Infinity));
@@ -136,14 +138,15 @@ const Fila = () => {
         return new Date(a.convocacao_deadline).getTime() - new Date(b.convocacao_deadline).getTime();
     });
 
-    // A posição na fila é agora o campo posicao_fila do DB, não precisamos simular a atribuição de posição
     const sortedFila = filaDeEspera;
     
-    const totalFila = criancas.filter(c => c.status === "Fila de Espera").length;
-    const comPrioridade = criancas.filter(c => c.status === "Fila de Espera" && c.programas_sociais).length;
+    // 3. Cálculo das Estatísticas (usando a lista completa de criancas, não a filtrada)
+    const totalFila = criancas.filter(c => c.status === "Fila de Espera" || c.status === "Remanejamento Solicitado").length;
+    const comPrioridade = criancas.filter(c => (c.status === "Fila de Espera" || c.status === "Remanejamento Solicitado") && c.programas_sociais).length;
     const totalConvocados = criancas.filter(c => c.status === "Convocado").length;
     
-    const historico = criancas.filter(c => c.status === "Matriculado" || c.status === "Matriculada" || c.status === "Desistente" || c.status === "Recusada" || c.status === "Remanejamento Solicitado");
+    // 4. Histórico: Apenas crianças que saíram da fila (Desistente/Recusada) e podem ser reativadas.
+    const historico = criancas.filter(c => c.status === "Desistente" || c.status === "Recusada");
 
     return { 
         filteredFila: [...convocados, ...sortedFila], 
