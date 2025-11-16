@@ -15,7 +15,7 @@ import {
     apiTransferirCrianca,
     apiSolicitarRemanejamento,
     getCriancaById,
-    fetchCriancasByTurmaId,
+    fetchCriancasByTurmaId, // Importando a nova função
 } from "@/integrations/supabase/criancas-api";
 import { fetchHistoricoCrianca } from "@/integrations/supabase/historico-api";
 import { fetchAvailableTurmas } from "@/integrations/supabase/vagas-api";
@@ -27,7 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 const CRIANCAS_QUERY_KEY = 'criancas';
 const HISTORICO_QUERY_KEY = 'historicoCrianca';
 const AVAILABLE_TURMAS_QUERY_KEY = 'availableTurmas';
-const TURMA_ALUNOS_QUERY_KEY = 'turmaAlunos';
+const TURMA_ALUNOS_QUERY_KEY = 'turmaAlunos'; // Nova chave
 
 // Hook para buscar a lista de crianças
 export const useCriancas = () => {
@@ -201,15 +201,13 @@ export const useCriancas = () => {
     },
   });
   
-  // 9. Solicitar Remanejamento (NOVA ASSINATURA)
+  // 9. Solicitar Remanejamento
   const { mutateAsync: solicitarRemanejamento, isPending: isRequestingRemanejamento } = useMutation({
-    mutationFn: async ({ id, cmeiId, cmeiNome, justificativa }: { id: string, cmeiId: string, cmeiNome: string, justificativa: string }) => {
-        await apiSolicitarRemanejamento(id, cmeiId, cmeiNome, justificativa);
-        return id;
-    },
+    mutationFn: ({ id, justificativa }: { id: string, justificativa: string }) => 
+        apiSolicitarRemanejamento(id, justificativa).then(() => id),
     onSuccess: (criancaId) => {
         invalidateCriancaQueries(criancaId);
-        toast.success("Solicitação de remanejamento registrada. Criança na fila de prioridade máxima.");
+        toast.success("Solicitação de remanejamento registrada.");
     },
     onError: (e: Error) => {
       toast.error("Falha ao solicitar remanejamento", { description: e.message });
@@ -266,7 +264,7 @@ export const useCriancas = () => {
     isRealocating,
     transferirCrianca,
     isTransferring,
-    solicitarRemanejamento: (args: { id: string, cmeiId: string, cmeiNome: string, justificativa: string }) => solicitarRemanejamento(args),
+    solicitarRemanejamento,
     isRequestingRemanejamento,
   };
 };

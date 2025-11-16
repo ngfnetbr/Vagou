@@ -30,7 +30,6 @@ export interface Crianca {
   status: "Matriculada" | "Matriculado" | "Fila de Espera" | "Convocado" | "Desistente" | "Recusada" | "Remanejamento Solicitado";
   cmei_atual_id?: string; // UUID do CMEI atual (se matriculado/convocado)
   turma_atual_id?: string; // UUID da Turma atual (se matriculado/convocado)
-  cmei_remanejamento_id?: string; // NOVO: CMEI desejado para remanejamento
   posicao_fila?: number;
   convocacao_deadline?: string; // YYYY-MM-DD for conviction deadline
   created_at: string;
@@ -40,7 +39,6 @@ export interface Crianca {
   idade: string; // Calculado
   cmeiNome?: string; // Nome do CMEI atual
   turmaNome?: string; // Nome da Turma atual
-  cmeiRemanejamentoNome?: string; // NOVO: Nome do CMEI de remanejamento
 }
 
 export interface ConvocationData {
@@ -49,4 +47,4 @@ export interface ConvocationData {
 }
 
 // Tipagem do payload para o DB (sem campos calculados)
-export type CriancaDbPayload = Omit<Crianca, 'idade' | 'cmeiNome' | 'turmaNome' | 'cmeiRemanejamentoNome'>;
+export type CriancaDbPayload = Omit<Crianca, 'idade' | 'cmeiNome' | 'turmaNome'>;
