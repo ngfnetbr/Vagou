@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, GraduationCap, ListOrdered, TrendingUp, Loader2, History } from "lucide-react";
 import { useCriancas } from "@/hooks/use-criancas";
 import { useHistoricoGeral } from "@/hooks/use-historico"; // Importando hook de histórico
+import { useCmeisTotalCapacity } from "@/hooks/use-cmeis-total-capacity"; // Novo hook
 import { useMemo } from "react";
 import { Crianca } from "@/integrations/supabase/types";
 import { format, parseISO } from "date-fns";
@@ -10,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 
 const Dashboard = () => {
   const { criancas, isLoading: isLoadingCriancas } = useCriancas();
+  const { data: capacidadeTotal, isLoading: isLoadingCapacidade } = useCmeisTotalCapacity();
   const { logs: historicoRecente, isLoading: isLoadingHistorico } = useHistoricoGeral();
   
   const { totalCriancas, matriculasAtivas, filaEspera, convocacoesPendentes, taxaOcupacao } = useMemo(() => {
@@ -28,11 +30,13 @@ const Dashboard = () => {
     const filaEspera = criancas.filter(c => c.status === "Fila de Espera").length;
     const convocacoesPendentes = criancas.filter(c => c.status === "Convocado");
     
-    // Mock de capacidade total (assumindo 900 vagas totais para o cálculo de ocupação)
-    // Em um sistema real, isso viria da soma das capacidades dos CMEIs/Turmas
-    const capacidadeTotal = 900; 
-    const ocupacao = Math.round((matriculasAtivas / capacidadeTotal) * 100);
-    const taxaOcupacao = `${ocupacao}%`;
+    const totalCapacity = capacidadeTotal ?? 0;
+    
+    let taxaOcupacao = "0%";
+    if (totalCapacity > 0) {
+        const ocupacao = Math.round((matriculasAtivas / totalCapacity) * 100);
+        taxaOcupacao = `${ocupacao}%`;
+    }
     
     return {
       totalCriancas,
@@ -41,7 +45,7 @@ const Dashboard = () => {
       convocacoesPendentes,
       taxaOcupacao,
     };
-  }, [criancas]);
+  }, [criancas, capacidadeTotal]);
   
   const stats = [
     {
@@ -72,13 +76,13 @@ const Dashboard = () => {
       title: "Taxa de Ocupação",
       value: taxaOcupacao,
       icon: TrendingUp,
-      description: "Capacidade utilizada (Mock)",
+      description: "Capacidade utilizada", // Removido (Mock)
       color: "text-secondary",
       bgColor: "bg-secondary/10",
     },
   ];
   
-  if (isLoadingCriancas || isLoadingHistorico) {
+  if (isLoadingCriancas || isLoadingHistorico || isLoadingCapacidade) {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-96">
