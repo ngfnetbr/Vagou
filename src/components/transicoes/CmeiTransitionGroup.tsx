@@ -52,9 +52,8 @@ export const CmeiTransitionGroup = ({
     
     // Função para obter o nome da vaga planejada (se houver mudança)
     const getPlannedVaga = (crianca: CriancaClassificada) => {
-        const isVagaChanged = crianca.planned_cmei_id !== crianca.cmei_atual_id || crianca.planned_turma_id !== crianca.turma_atual_id;
-        
-        if (isVagaChanged && crianca.planned_cmei_nome && crianca.planned_turma_nome) {
+        // Se houver planejamento de vaga
+        if (crianca.planned_cmei_nome && crianca.planned_turma_nome) {
             return (
                 <Badge variant="secondary" className="bg-primary/10 text-primary font-normal">
                     {crianca.planned_cmei_nome} - {crianca.planned_turma_nome}
@@ -62,7 +61,12 @@ export const CmeiTransitionGroup = ({
             );
         }
         
-        // Se não houver mudança, exibe a vaga atual (se houver)
+        // Se o status planejado for de saída, não mostra vaga
+        if (crianca.planned_status === 'Desistente' || crianca.planned_status === 'Recusada') {
+            return null;
+        }
+        
+        // Se não houver planejamento, mostra a vaga atual (se houver)
         if (crianca.cmeiNome && crianca.turmaNome) {
             return (
                 <span className="text-xs text-muted-foreground">
@@ -76,14 +80,21 @@ export const CmeiTransitionGroup = ({
     
     // Função para obter o status planejado (se houver mudança)
     const getPlannedStatus = (crianca: CriancaClassificada) => {
-        if (crianca.planned_status && crianca.planned_status !== crianca.status) {
+        // Se houver um status planejado, exibe-o
+        if (crianca.planned_status) {
             // Mapeia o status de saída para o termo de negócio "Conclusão de Ciclo"
             if (crianca.planned_status === 'Desistente' && crianca.statusTransicao === 'Remanejamento Interno') {
                 return <Badge variant="secondary" className="bg-secondary/20 text-secondary">Conclusão de Ciclo</Badge>;
             }
             return getStatusBadge(crianca.planned_status);
         }
-        return getStatusBadge(crianca.status);
+        
+        // Se não houver status planejado, exibe o status atual (para referência)
+        return (
+            <span className="text-xs text-muted-foreground">
+                {crianca.status} (Atual)
+            </span>
+        );
     };
 
     return (
@@ -111,7 +122,8 @@ export const CmeiTransitionGroup = ({
                             <TableBody>
                                 {criancasList.map(c => {
                                     const isSelected = selectedIds.includes(c.id);
-                                    const hasPlannedChange = c.planned_status !== c.status || c.planned_cmei_id !== c.cmei_atual_id || c.planned_turma_id !== c.turma_atual_id;
+                                    // A criança tem uma mudança planejada se planned_status for definido OU se a vaga planejada for diferente da atual
+                                    const hasPlannedChange = !!c.planned_status || !!c.planned_cmei_id || !!c.planned_turma_id;
                                     
                                     return (
                                     <TableRow key={c.id} className={cn(hasPlannedChange && "bg-yellow-50/50 hover:bg-yellow-50/70", isSelected && "bg-primary/10 hover:bg-primary/15")}>

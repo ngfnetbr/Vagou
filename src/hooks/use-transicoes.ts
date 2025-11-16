@@ -4,7 +4,7 @@ import { fetchCriancas, apiMarcarDesistente, apiTransferirCrianca, apiMassRealoc
 import { toast } from "sonner";
 import { useMemo, useState, useEffect } from "react";
 import { ConvocationData } from "@/integrations/supabase/types";
-import { format } from "date-fns"; // Importação adicionada
+import { format } from "date-fns";
 
 const TRANSICOES_QUERY_KEY = ["transicoes"];
 
@@ -18,8 +18,8 @@ export interface CriancaClassificada extends Crianca {
     planned_status?: Crianca['status'] | null;
     planned_cmei_id?: string | null;
     planned_turma_id?: string | null;
-    planned_cmei_nome?: string | null; // NOVO CAMPO
-    planned_turma_nome?: string | null; // NOVO CAMPO
+    planned_cmei_nome?: string | null;
+    planned_turma_nome?: string | null;
     planned_justificativa?: string | null;
 }
 
@@ -36,7 +36,6 @@ const classifyCriancasForTransition = (criancas: Crianca[]): CriancaClassificada
     return activeCriancas.map(crianca => {
         let statusTransicao: StatusTransicao = 'Manter Status';
 
-        // Classifica pelo status atual para determinar o grupo de ação
         if (crianca.status === 'Matriculado' || crianca.status === 'Matriculada') {
             statusTransicao = 'Remanejamento Interno';
         } else if (crianca.status === 'Fila de Espera' || crianca.status === 'Convocado') {
@@ -46,13 +45,13 @@ const classifyCriancasForTransition = (criancas: Crianca[]): CriancaClassificada
         return {
             ...crianca,
             statusTransicao,
-            // Inicializa o planejamento com o status atual (sem mudanças)
-            planned_status: crianca.status,
-            planned_cmei_id: crianca.cmei_atual_id,
-            planned_turma_id: crianca.turma_atual_id,
-            planned_cmei_nome: crianca.cmeiNome, // Inicializa com o nome atual
-            planned_turma_nome: crianca.turmaNome, // Inicializa com o nome atual
-            planned_justificativa: null,
+            // Inicializa o planejamento como NULL/UNDEFINED
+            planned_status: undefined,
+            planned_cmei_id: undefined,
+            planned_turma_id: undefined,
+            planned_cmei_nome: undefined,
+            planned_turma_nome: undefined,
+            planned_justificativa: undefined,
         } as CriancaClassificada;
     });
 };
@@ -203,6 +202,22 @@ export function useTransicoes() {
             throw new Error("Nenhum dado de planejamento para aplicar.");
         }
         
+        // 1. Validação: Verificar se todas as crianças ativas têm um planejamento definido
+        const unplannedCriancas = planningData.filter(c => 
+            c.statusTransicao !== 'Fila Reclassificada' && // Crianças da fila não precisam de planejamento de vaga/status, apenas reclassificação
+            (c.planned_status === undefined || c.planned_status === null)
+        );
+        
+        if (unplannedCriancas.length > 0) {
+            const unplannedNames = unplannedCriancas.slice(0, 3).map(c => c.nome).join(', ');
+            toast.error("Planejamento Incompleto", {
+                description: `Existem ${unplannedCriancas.length} crianças sem status planejado (ex: ${unplannedNames}). Por favor, defina a ação para todas as crianças ativas.`,
+                duration: 8000,
+            });
+            throw new Error("Planejamento incompleto.");
+        }
+        
+        // 2. Filtrar mudanças reais
         const changesToApply = planningData.filter(c => 
             c.planned_status !== c.status || 
             c.planned_cmei_id !== c.cmei_atual_id || 
@@ -289,9 +304,12 @@ export function useTransicoes() {
             });
         },
         onError: (e: Error) => {
-            toast.error("Erro ao executar transição.", {
-                description: e.message,
-            });
+            // O erro de planejamento incompleto já é tratado com toast específico
+            if (e.message !== "Planejamento incompleto.") {
+                toast.error("Erro ao executar transição.", {
+                    description: e.message,
+                });
+            }
         },
     });
 
