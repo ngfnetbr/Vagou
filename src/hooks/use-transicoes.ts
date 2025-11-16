@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Crianca } from "@/integrations/supabase/types";
 import { fetchCriancas, apiMarcarDesistente, apiTransferirCrianca, apiMassRealocate, apiMarcarFimDeFila, apiConvocarCrianca } from "@/integrations/supabase/criancas-api";
 import { toast } from "sonner";
-import { useMemo, useState, useEffect, useRef } from "react"; // Importando useRef
+import { useMemo, useState, useEffect, useRef } from "react";
 import { ConvocationData } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 
@@ -165,6 +165,7 @@ export function useTransicoes() {
         setPlanningData(prev => prev.map(c => 
             c.id === criancaId ? { ...c, ...updates } : c
         ));
+        // NOTA: localStorage NÃO é atualizado aqui. Apenas no savePlanning.
     };
 
     const updateCriancaStatusInPlanning = (criancaId: string, newStatus: Crianca['status'], justificativa: string) => {
@@ -185,8 +186,7 @@ export function useTransicoes() {
                 }
                 return c;
             });
-            // Salva no localStorage
-            localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning));
+            // localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning)); // REMOVIDO
             return updatedPlanning;
         });
     };
@@ -224,8 +224,7 @@ export function useTransicoes() {
                 }
                 return c;
             });
-            // Salva no localStorage
-            localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning));
+            // localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning)); // REMOVIDO
             return updatedPlanning;
         });
     };
@@ -246,8 +245,7 @@ export function useTransicoes() {
                 }
                 return c;
             });
-            // Salva no localStorage
-            localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning));
+            // localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning)); // REMOVIDO
             return updatedPlanning;
         });
     };
@@ -285,8 +283,7 @@ export function useTransicoes() {
                 }
                 return c;
             });
-            // Salva no localStorage
-            localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning));
+            // localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(updatedPlanning)); // REMOVIDO
             return updatedPlanning;
         });
     };
@@ -295,9 +292,10 @@ export function useTransicoes() {
     const savePlanning = async () => {
         setIsSaving(true);
         try {
+            // 1. Salva o estado atual no localStorage
             localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(planningData));
             
-            // Atualiza o estado salvo para redefinir hasUnsavedChanges
+            // 2. Atualiza o estado salvo para redefinir hasUnsavedChanges
             setLastSavedPlanning(JSON.parse(JSON.stringify(planningData))); 
             
             await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay de salvamento
@@ -316,7 +314,7 @@ export function useTransicoes() {
     
     // Função para descartar o planejamento
     const discardPlanning = () => {
-        // Reverte o estado atual para o último estado salvo (lastSavedPlanning).
+        // Reverte o estado atual (planningData) para o último estado salvo (lastSavedPlanning).
         // O lastSavedPlanning é o que foi carregado do localStorage ou salvo pela última vez.
         setPlanningData(lastSavedPlanning);
         toast.info("Alterações descartadas.", {
