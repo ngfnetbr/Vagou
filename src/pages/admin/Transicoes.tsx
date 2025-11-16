@@ -2,12 +2,10 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2, ArrowRight, CheckCircle, ListOrdered, GraduationCap, Users, Save, School } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useTransicoes, CriancaClassificada, StatusTransicao } from "@/hooks/use-transicoes";
-import { Badge } from "@/components/ui/badge";
+import { useTransicoes } from "@/hooks/use-transicoes";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -20,7 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
+import TransicoesList from "@/components/transicoes/TransicoesList";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 const Transicoes = () => {
   const currentYear = new Date().getFullYear();
@@ -44,55 +43,28 @@ const Transicoes = () => {
   
   const cutoffDate = format(new Date(targetYear, 2, 31), 'dd/MM/yyyy'); // Mês 2 é Março
 
-  const { concluintes, remanejamentoInterno, filaReclassificada } = useMemo(() => {
+  const { matriculados, fila, concluintes } = useMemo(() => {
+    const matriculados = classificacao.filter(c => c.status === 'Matriculado' || c.status === 'Matriculada' || c.status === 'Remanejamento Solicitado');
+    const fila = classificacao.filter(c => c.status === 'Fila de Espera' || c.status === 'Convocado');
     const concluintes = classificacao.filter(c => c.statusTransicao === 'Concluinte');
-    const remanejamentoInterno = classificacao.filter(c => c.statusTransicao === 'Remanejamento Interno');
-    const filaReclassificada = classificacao.filter(c => c.statusTransicao === 'Fila Reclassificada');
     
-    return { concluintes, remanejamentoInterno, filaReclassificada };
+    return { matriculados, fila, concluintes };
   }, [classificacao]);
   
   const handleExecuteTransition = async () => {
     await executeTransition();
   };
   
-  const statusOptions: { value: StatusTransicao, label: string }[] = [
-    { value: 'Remanejamento Interno', label: 'Remanejamento Interno' },
-    { value: 'Fila Reclassificada', label: 'Fila Reclassificada' },
-    { value: 'Concluinte', label: 'Concluinte (Evasão)' },
-    { value: 'Manter Status', label: 'Manter Status Atual' },
-  ];
-  
-  // Agrupamento dos dados para a tabela
-  const groupedClassification = useMemo(() => {
-    const groups: Record<string, CriancaClassificada[]> = {};
-    
-    classificacao.forEach(c => {
-        const groupKey = c.statusTransicao;
-        if (!groups[groupKey]) {
-            groups[groupKey] = [];
-        }
-        groups[groupKey].push(c);
-    });
-    
-    // Ordena os grupos para exibição
-    const orderedKeys: StatusTransicao[] = ['Remanejamento Interno', 'Fila Reclassificada', 'Concluinte', 'Manter Status'];
-    
-    return orderedKeys
-        .filter(key => groups[key] && groups[key].length > 0)
-        .map(key => ({
-            status: key,
-            label: key === 'Remanejamento Interno' ? 'Matriculados (Remanejamento Interno)' :
-                   key === 'Fila Reclassificada' ? 'Fila de Espera (Reclassificada)' :
-                   key === 'Concluinte' ? 'Concluintes (Evasão Sugerida)' :
-                   'Outros Status',
-            icon: key === 'Remanejamento Interno' ? GraduationCap : 
-                  key === 'Fila Reclassificada' ? ListOrdered : 
-                  key === 'Concluinte' ? Users : School,
-            data: groups[key].sort((a, b) => a.nome.localeCompare(b.nome)),
-        }));
-  }, [classificacao]);
-
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-lg text-muted-foreground">Carregando dados para transição...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -143,24 +115,24 @@ const Transicoes = () => {
             </div>
             
             <div className="pt-4 border-t border-border">
-                <h3 className="text-lg font-semibold mb-2">Resumo do Planejamento ({classificacao.length} crianças ativas)</h3>
+                <h3 className="text-lg font-semibold mb-2">Resumo do Planejamento</h3>
                 <div className="grid grid-cols-3 gap-4">
                     <Card className="bg-secondary/10 border-secondary">
                         <CardContent className="pt-4">
                             <div className="flex items-center gap-2">
                                 <GraduationCap className="h-5 w-5 text-secondary" />
-                                <p className="text-xl font-bold text-secondary">{remanejamentoInterno.length}</p>
+                                <p className="text-xl font-bold text-secondary">{matriculados.length}</p>
                             </div>
-                            <p className="text-sm text-muted-foreground">Remanejamento Interno</p>
+                            <p className="text-sm text-muted-foreground">Matriculados Ativos</p>
                         </CardContent>
                     </Card>
                     <Card className="bg-accent/10 border-accent">
                         <CardContent className="pt-4">
                             <div className="flex items-center gap-2">
                                 <ListOrdered className="h-5 w-5 text-foreground" />
-                                <p className="text-xl font-bold text-foreground">{filaReclassificada.length}</p>
+                                <p className="text-xl font-bold text-foreground">{fila.length}</p>
                             </div>
-                            <p className="text-sm text-muted-foreground">Fila Reclassificada</p>
+                            <p className="text-sm text-muted-foreground">Fila de Espera/Convocados</p>
                         </CardContent>
                     </Card>
                     <Card className="bg-destructive/10 border-destructive">
@@ -228,77 +200,50 @@ const Transicoes = () => {
           </CardContent>
         </Card>
         
-        {/* Tabela de Detalhes da Classificação Agrupada */}
-        <Card>
-            <CardHeader>
-                <CardTitle>Detalhes da Reclassificação</CardTitle>
-                <CardDescription>
-                    Ajuste manualmente a ação sugerida para cada criança, se necessário.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8">
-                {isLoading ? (
-                    <div className="flex justify-center items-center h-40">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <p className="ml-3 text-lg text-muted-foreground">Classificando crianças...</p>
-                    </div>
-                ) : groupedClassification.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-4">
-                        Nenhuma criança ativa encontrada para classificação.
-                    </div>
-                ) : (
-                    groupedClassification.map(group => (
-                        <div key={group.status} className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <group.icon className="h-5 w-5 text-primary" />
-                                <h3 className="text-xl font-bold">{group.label} ({group.data.length})</h3>
-                            </div>
-                            <div className="overflow-x-auto border rounded-lg">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Criança</TableHead>
-                                            <TableHead>Status Atual</TableHead>
-                                            <TableHead>CMEI Atual</TableHead>
-                                            <TableHead>Turma Base {targetYear}</TableHead>
-                                            <TableHead className="w-[250px]">Ação Sugerida (Ajuste Manual)</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {group.data.map((c) => (
-                                            <TableRow key={c.id}>
-                                                <TableCell className="font-medium">{c.nome}</TableCell>
-                                                <TableCell>{c.status}</TableCell>
-                                                <TableCell>{c.cmeiNome || c.cmei1_preferencia || '-'}</TableCell>
-                                                <TableCell className="font-semibold">{c.turmaBaseProximoAno}</TableCell>
-                                                <TableCell>
-                                                    <Select 
-                                                        value={c.statusTransicao} 
-                                                        onValueChange={(value: StatusTransicao) => updatePlanning(c.id, value)}
-                                                        disabled={isExecuting || isSaving}
-                                                    >
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Ação Sugerida" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {statusOptions.map(option => (
-                                                                <SelectItem key={option.value} value={option.value}>
-                                                                    {option.label}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </CardContent>
-        </Card>
+        {/* Layout de Planejamento (Duas Colunas) */}
+        <h2 className="text-2xl font-bold text-foreground pt-4">Planejamento Detalhado</h2>
+        <CardDescription className="mb-4">
+            Revise e ajuste a ação sugerida para cada criança.
+        </CardDescription>
+
+        <ResizablePanelGroup
+            direction="horizontal"
+            className="min-h-[75vh] rounded-lg border"
+        >
+            <ResizablePanel defaultSize={50} minSize={30}>
+                <TransicoesList
+                    title="Matriculados Atuais"
+                    icon={GraduationCap}
+                    data={matriculados}
+                    updatePlanning={updatePlanning}
+                    isSaving={isSaving}
+                    isExecuting={isExecuting}
+                />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={50} minSize={30}>
+                <TransicoesList
+                    title="Fila de Espera / Convocados"
+                    icon={ListOrdered}
+                    data={fila}
+                    updatePlanning={updatePlanning}
+                    isSaving={isSaving}
+                    isExecuting={isExecuting}
+                />
+            </ResizablePanel>
+        </ResizablePanelGroup>
+        
+        {/* Concluintes (Evasão) - Lista separada */}
+        <div className="pt-6">
+            <TransicoesList
+                title="Concluintes (Evasão Sugerida)"
+                icon={Users}
+                data={concluintes}
+                updatePlanning={updatePlanning}
+                isSaving={isSaving}
+                isExecuting={isExecuting}
+            />
+        </div>
       </div>
     </AdminLayout>
   );
