@@ -137,13 +137,13 @@ export function useTransicoes() {
                 
                 let newPlannedStatus: Crianca['status'];
                 
-                // Se a criança está na fila ou convocada, a realocação é uma CONVOCAÇÃO.
-                if (c.status === 'Fila de Espera' || c.status === 'Convocado') {
+                // Se a criança está na fila, convocada, DESISTENTE ou RECUSADA, a realocação é uma CONVOCAÇÃO.
+                if (c.status === 'Fila de Espera' || c.status === 'Convocado' || c.statusTransicao === 'Saída Final') {
                     newPlannedStatus = 'Convocado';
                 } 
                 // Se a criança já está matriculada, a realocação é uma MUDANÇA DE TURMA (mantém o status de matrícula).
-                else if (c.status === 'Matriculado' || c.status === 'Matriculada' || c.statusTransicao === 'Saída Final') {
-                    newPlannedStatus = c.status; // Mantém o status atual (Matriculado/Desistente/Recusada)
+                else if (c.status === 'Matriculado' || c.status === 'Matriculada') {
+                    newPlannedStatus = c.status;
                 } else {
                     // Fallback seguro
                     newPlannedStatus = 'Matriculado';
@@ -186,12 +186,12 @@ export function useTransicoes() {
                 
                 let newPlannedStatus: Crianca['status'];
                 
-                // Se a criança está na fila ou convocada, a realocação é uma CONVOCAÇÃO.
-                if (c.status === 'Fila de Espera' || c.status === 'Convocado') {
+                // Se a criança está na fila, convocada, DESISTENTE ou RECUSADA, a realocação é uma CONVOCAÇÃO.
+                if (c.status === 'Fila de Espera' || c.status === 'Convocado' || c.statusTransicao === 'Saída Final') {
                     newPlannedStatus = 'Convocado';
                 } 
                 // Se a criança já está matriculada, a realocação é uma MUDANÇA DE TURMA (mantém o status de matrícula).
-                else if (c.status === 'Matriculado' || c.status === 'Matriculada' || c.statusTransicao === 'Saída Final') {
+                else if (c.status === 'Matriculado' || c.status === 'Matriculada') {
                     newPlannedStatus = c.status;
                 } else {
                     // Fallback seguro
