@@ -31,6 +31,9 @@ const Dashboard = () => {
   const { logs: historicoRecente, isLoading: isLoadingHistorico } = useHistoricoGeral();
   const { data: averageWaitTimeDays, isLoading: isLoadingWaitTime } = useAverageWaitTime(); // Novo hook
   
+  // DEBUG: Log the raw data
+  console.log("Raw Average Wait Time (Days):", averageWaitTimeDays);
+  
   const { totalCriancas, matriculasAtivas, filaEspera, convocacoesPendentes, taxaOcupacao } = useMemo(() => {
     if (!criancas || criancas.length === 0) {
       return {
