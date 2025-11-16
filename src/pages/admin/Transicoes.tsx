@@ -69,6 +69,9 @@ const Transicoes = () => {
   const [isJustificativaIndividualModalOpen, setIsJustificativaIndividualModalOpen] = useState(false);
   const [criancaToAction, setCriancaToAction] = useState<CriancaClassificada | undefined>(undefined);
   const [currentJustificativaAction, setCurrentJustificativaAction] = useState<JustificativaAction | undefined>(undefined);
+  
+  // --- Estado do Accordion (CMEIs abertos) ---
+  const [openCmeis, setOpenCmeis] = useState<string[]>([]);
 
   // --- Handlers de Seleção ---
   const toggleSelection = (id: string) => {
@@ -132,6 +135,14 @@ const Transicoes = () => {
       updateCriancaVagaInPlanning(criancaId, data.cmei_id, data.turma_id, cmeiNome, turmaNome);
       
       toast.success("Realocação planejada!", { description: `A criança será movida para ${cmeiNome} - ${turmaNome} ao aplicar a transição.` });
+      
+      // Abre o CMEI de destino no accordion
+      setOpenCmeis(prev => {
+          if (!prev.includes(cmeiNome)) {
+              return [...prev, cmeiNome];
+          }
+          return prev;
+      });
       
       // Fechar modal
       setIsRealocacaoIndividualModalOpen(false);
@@ -327,7 +338,12 @@ const Transicoes = () => {
               Revise e ajuste a ação sugerida para cada criança.
           </CardDescription>
 
-          <Accordion type="multiple" className="w-full space-y-4">
+          <Accordion 
+              type="multiple" 
+              className="w-full space-y-4"
+              value={openCmeis}
+              onValueChange={setOpenCmeis}
+          >
               {Object.entries(groupedData).map(([cmeiName, turmaGroups], index) => (
                   <AccordionItem key={cmeiName} value={cmeiName} className="border rounded-lg overflow-hidden bg-card">
                       <AccordionTrigger className="px-6 py-4 hover:no-underline">
