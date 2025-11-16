@@ -3,11 +3,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Eye, RotateCcw, Trash2, ArrowRight, CheckCircle, Users } from "lucide-react";
+import { MoreVertical, Eye, RotateCcw, Trash2, ArrowRight, CheckCircle, Users, ListOrdered } from "lucide-react";
 import { CriancaClassificada, StatusTransicao } from "@/hooks/use-transicoes";
 import { useNavigate } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { cn } from "@/lib/utils";
 
 type JustificativaAction = 'desistente' | 'concluinte';
 
@@ -22,6 +23,21 @@ interface CmeiTransitionGroupProps {
     handleStatusIndividualClick: (crianca: CriancaClassificada, action: JustificativaAction) => void;
 }
 
+const getStatusBadge = (status: CriancaClassificada['status']) => {
+    const variants: Record<CriancaClassificada['status'], { className: string, text: string }> = {
+      "Matriculada": { className: "bg-secondary/20 text-secondary", text: "Matriculada" },
+      "Matriculado": { className: "bg-secondary/20 text-secondary", text: "Matriculado" },
+      "Fila de Espera": { className: "bg-accent/20 text-foreground", text: "Fila de Espera" },
+      "Convocado": { className: "bg-primary/20 text-primary", text: "Convocado" },
+      "Desistente": { className: "bg-destructive/20 text-destructive", text: "Desistente" },
+      "Recusada": { className: "bg-destructive/20 text-destructive", text: "Recusada" },
+      "Remanejamento Solicitado": { className: "bg-accent/20 text-foreground", text: "Remanejamento Solicitado" },
+    };
+    
+    const config = variants[status] || { className: "bg-muted text-muted-foreground", text: status };
+    return <Badge className={cn("w-fit", config.className)}>{config.text}</Badge>;
+};
+
 export const CmeiTransitionGroup = ({
     cmeiName,
     turmaGroups,
@@ -34,56 +50,77 @@ export const CmeiTransitionGroup = ({
 }: CmeiTransitionGroupProps) => {
     const navigate = useNavigate();
     
-    // Calcula o total de crianças no CMEI
-    const totalMatriculados = Object.entries(turmaGroups)
-        .filter(([turmaName]) => turmaName !== 'Fila de Espera')
-        .map(([, criancas]) => criancas.length)
-        .reduce((sum, count) => sum + count, 0);
+    // Função para obter o nome da turma planejada (se houver mudança)
+    const getPlannedVaga = (crianca: CriancaClassificada) => {
+        if (crianca.planned_cmei_id && crianca.planned_turma_id) {
+            // Se a vaga planejada for diferente da atual
+            if (crianca.planned_cmei_id !== crianca.cmei_atual_id || crianca.planned_turma_id !== crianca.turma_atual_id) {
+                return (
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
+                        Vaga Planejada
+                    </Badge>
+                );
+            }
+        }
+        return null;
+    };
     
-    const totalFila = turmaGroups['Fila de Espera']?.length || 0;
+    // Função para obter o status planejado (se houver mudança)
+    const getPlannedStatus = (crianca: CriancaClassificada) => {
+        if (crianca.planned_status && crianca.planned_status !== crianca.status) {
+            return getStatusBadge(crianca.planned_status);
+        }
+        return getStatusBadge(crianca.status);
+    };
 
     return (
-        <Card className="h-full">
-            <CardHeader>
-                <CardTitle className="text-xl">{cmeiName}</CardTitle>
-                <CardDescription>
-                    {totalMatriculados} alunos ativos e {totalFila} na fila de espera.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 max-h-[70vh] overflow-y-auto">
-                
-                {Object.entries(turmaGroups).map(([turmaName, criancasList]) => (
-                    <div key={turmaName} className="mb-4">
-                        <div className="flex items-center gap-2 p-3 bg-muted/50 border-b border-t border-border">
-                            <Users className="h-4 w-4 text-primary" />
-                            <h3 className="font-semibold text-sm text-foreground">
-                                {turmaName} ({criancasList.length} crianças)
-                            </h3>
+        <Accordion type="multiple" className="w-full space-y-2 p-4">
+            {Object.entries(turmaGroups).map(([turmaName, criancasList]) => (
+                <AccordionItem key={turmaName} value={turmaName} className="border rounded-lg overflow-hidden bg-card shadow-sm">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                        <div className="flex items-center gap-3">
+                            <ListOrdered className="h-5 w-5 text-secondary" />
+                            <span className="font-semibold text-base">{turmaName}</span>
+                            <Badge variant="outline" className="ml-2">{criancasList.length} crianças</Badge>
                         </div>
-                        
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0">
                         <Table>
                             <TableHeader>
-                                <TableRow>
+                                <TableRow className="bg-muted/50">
                                     <TableHead className="w-12">Sel.</TableHead>
                                     <TableHead>Criança</TableHead>
+                                    <TableHead>Status Atual</TableHead>
+                                    <TableHead>Status Planejado</TableHead>
                                     <TableHead className="text-right w-[80px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {criancasList.map(c => {
+                                    const isSelected = selectedIds.includes(c.id);
+                                    const hasPlannedChange = c.planned_status !== c.status || c.planned_cmei_id !== c.cmei_atual_id || c.planned_turma_id !== c.turma_atual_id;
                                     
                                     return (
-                                    <TableRow key={c.id}>
+                                    <TableRow key={c.id} className={cn(hasPlannedChange && "bg-yellow-50/50 hover:bg-yellow-50/70", isSelected && "bg-primary/10 hover:bg-primary/15")}>
                                         <TableCell>
                                             <Checkbox
-                                                checked={selectedIds.includes(c.id)}
+                                                checked={isSelected}
                                                 onCheckedChange={() => toggleSelection(c.id)}
                                                 disabled={isExecuting || isSaving}
                                             />
                                         </TableCell>
                                         <TableCell>
                                             <div className="font-medium">{c.nome}</div>
-                                            {/* Removido: Próxima Turma Base */}
+                                            <div className="text-xs text-muted-foreground">{c.idade}</div>
+                                        </TableCell>
+                                        <TableCell>
+                                            {getStatusBadge(c.status)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                {getPlannedStatus(c)}
+                                                {getPlannedVaga(c)}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
@@ -131,9 +168,9 @@ export const CmeiTransitionGroup = ({
                                 })}
                             </TableBody>
                         </Table>
-                    </div>
-                ))}
-            </CardContent>
-        </Card>
+                    </AccordionContent>
+                </AccordionItem>
+            ))}
+        </Accordion>
     );
 };

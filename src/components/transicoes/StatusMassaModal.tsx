@@ -12,6 +12,7 @@ import { Crianca } from "@/integrations/supabase/types";
 interface StatusMassaModalProps {
     selectedIds: string[]; // Recebe os IDs selecionados
     onClose: () => void;
+    onConfirmMassStatusUpdate: (criancaIds: string[], status: Crianca['status'], justificativa: string) => void; // Função de planejamento
 }
 
 const statusOptions: { value: Crianca['status'], label: string }[] = [
@@ -21,15 +22,15 @@ const statusOptions: { value: Crianca['status'], label: string }[] = [
     { value: "Remanejamento Solicitado", label: "Remanejamento Solicitado" },
 ];
 
-const StatusMassaModal = ({ selectedIds, onClose }: StatusMassaModalProps) => {
-    const { massStatusUpdate, isMassStatusUpdating } = useMassActions();
+const StatusMassaModal = ({ selectedIds, onClose, onConfirmMassStatusUpdate }: StatusMassaModalProps) => {
+    const { isMassStatusUpdating } = useMassActions();
     
     const [selectedStatus, setSelectedStatus] = useState<Crianca['status'] | ''>("");
     const [justificativa, setJustificativa] = useState("");
     
     const isProcessing = isMassStatusUpdating;
 
-    const handleConfirm = async () => {
+    const handleConfirm = () => {
         if (!selectedStatus) {
             toast.error("Selecione o novo status.");
             return;
@@ -39,16 +40,12 @@ const StatusMassaModal = ({ selectedIds, onClose }: StatusMassaModalProps) => {
             return;
         }
         
-        try {
-            await massStatusUpdate({
-                criancaIds: selectedIds,
-                status: selectedStatus as Crianca['status'],
-                justificativa,
-            });
-            onClose();
-        } catch (e) {
-            // Erro tratado pelo hook
-        }
+        // Chama a função de planejamento
+        onConfirmMassStatusUpdate(selectedIds, selectedStatus as Crianca['status'], justificativa);
+        toast.success("Mudança de status em massa planejada!", {
+            description: `${selectedIds.length} crianças marcadas para status: ${selectedStatus}.`,
+        });
+        onClose();
     };
 
     return (
@@ -107,7 +104,7 @@ const StatusMassaModal = ({ selectedIds, onClose }: StatusMassaModalProps) => {
                     ) : (
                         <Trash2 className="mr-2 h-4 w-4" />
                     )}
-                    Confirmar Mudança
+                    Planejar Mudança
                 </Button>
             </DialogFooter>
         </DialogContent>

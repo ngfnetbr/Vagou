@@ -11,10 +11,12 @@ import { useAllAvailableTurmas } from "@/hooks/use-all-available-turmas";
 interface RealocacaoMassaModalProps {
     selectedIds: string[]; // Recebe os IDs selecionados
     onClose: () => void;
+    onConfirmMassRealocate: (criancaIds: string[], cmei_id: string, turma_id: string) => void; // Função de planejamento
 }
 
-const RealocacaoMassaModal = ({ selectedIds, onClose }: RealocacaoMassaModalProps) => {
-    const { massRealocate, isMassRealocating } = useMassActions();
+const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: RealocacaoMassaModalProps) => {
+    // Mantemos o hook useMassActions apenas para o isPending (embora não seja usado para a ação real aqui)
+    const { isMassRealocating } = useMassActions(); 
     const { data: allAvailableTurmas, isLoading: isLoadingTurmas } = useAllAvailableTurmas();
     
     const [selectedVaga, setSelectedVaga] = useState("");
@@ -33,7 +35,7 @@ const RealocacaoMassaModal = ({ selectedIds, onClose }: RealocacaoMassaModalProp
         }));
     }, [allAvailableTurmas]);
 
-    const handleConfirm = async () => {
+    const handleConfirm = () => {
         if (!selectedVaga) {
             toast.error("Selecione a turma de destino.");
             return;
@@ -47,18 +49,12 @@ const RealocacaoMassaModal = ({ selectedIds, onClose }: RealocacaoMassaModalProp
             return;
         }
         
-        try {
-            await massRealocate({
-                criancaIds: selectedIds,
-                cmei_id,
-                turma_id,
-                cmeiNome: cmei_nome,
-                turmaNome: turma_nome,
-            });
-            onClose();
-        } catch (e) {
-            // Erro tratado pelo hook
-        }
+        // Chama a função de planejamento
+        onConfirmMassRealocate(selectedIds, cmei_id, turma_id);
+        toast.success("Realocação em massa planejada!", {
+            description: `${selectedIds.length} crianças marcadas para realocação para ${cmei_nome} - ${turma_nome}.`,
+        });
+        onClose();
     };
 
     return (
@@ -107,7 +103,7 @@ const RealocacaoMassaModal = ({ selectedIds, onClose }: RealocacaoMassaModalProp
                     ) : (
                         <RotateCcw className="mr-2 h-4 w-4" />
                     )}
-                    Confirmar Realocação
+                    Planejar Realocação
                 </Button>
             </DialogFooter>
         </DialogContent>
