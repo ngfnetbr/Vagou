@@ -111,6 +111,7 @@ export const CmeiTransitionGroup = ({
                                         </TableCell>
                                         <TableCell>
                                             <div className="font-medium">{c.nome}</div>
+                                            <div className="text-xs text-muted-foreground">{c.idade}</div>
                                         </TableCell>
                                         <TableCell>
                                             {getStatusBadge(c.status)}
