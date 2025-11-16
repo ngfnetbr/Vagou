@@ -177,6 +177,10 @@ export const apiConfirmarMatricula = async (criancaId: string, cmeiNome: string,
 export const apiConvocarCrianca = async (criancaId: string, data: ConvocationData, cmeiNome: string, turmaNome: string, deadline: string) => {
     const user = await getAdminUser();
     
+    // 1. Busca o status atual para determinar o tipo de convocação
+    const crianca = await getCriancaById(criancaId);
+    const isRemanejamento = crianca?.status === 'Remanejamento Solicitado';
+    
     const { error } = await supabase
         .from('criancas')
         .update({
@@ -186,16 +190,21 @@ export const apiConvocarCrianca = async (criancaId: string, data: ConvocationDat
             posicao_fila: null,
             convocacao_deadline: deadline,
             data_penalidade: null, // Limpa penalidade ao convocar
-            cmei_remanejamento_id: null, // Limpa remanejamento ao convocar
+            cmei_remanejamento_id: isRemanejamento ? crianca.cmei_remanejamento_id : null, // Mantém o ID de remanejamento se for remanejamento
         })
         .eq('id', criancaId);
 
     if (error) throw new Error(`Erro ao convocar criança: ${error.message}`);
     
+    const acao = isRemanejamento ? "Convocação para Remanejamento Enviada" : "Convocação Enviada";
+    const detalhes = isRemanejamento 
+        ? `Convocado(a) para remanejamento no CMEI ${cmeiNome} - ${turmaNome}. Prazo até ${format(parseISO(deadline + 'T00:00:00'), 'dd/MM/yyyy')}.`
+        : `Convocado(a) para ${cmeiNome} - ${turmaNome}. Prazo até ${format(parseISO(deadline + 'T00:00:00'), 'dd/MM/yyyy')}.`;
+        
     await insertHistoricoEntry({
         crianca_id: criancaId,
-        acao: "Convocação Enviada",
-        detalhes: `Convocado(a) para ${cmeiNome} - ${turmaNome}. Prazo até ${format(parseISO(deadline + 'T00:00:00'), 'dd/MM/yyyy')}.`,
+        acao: acao,
+        detalhes: detalhes,
         usuario: user,
     });
 };

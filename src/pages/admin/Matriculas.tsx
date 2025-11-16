@@ -186,7 +186,7 @@ const Matriculas = () => {
       "Remanejamento Solicitado": { className: "bg-primary/20 text-primary", text: "Remanejamento Solicitado" }, // Cor alterada para primária
       // Fallbacks
       "Fila de Espera": { className: "bg-muted/50 text-muted-foreground", text: "Fila de Espera" },
-      "Convocado": { className: "bg-accent/20 text-foreground", text: "Convocado" },
+      "Convocado": { className: "bg-primary/20 text-primary", text: "Convocado" },
       "Desistente": { className: "bg-destructive/20 text-destructive", text: "Desistente" },
       "Recusada": { className: "bg-destructive/20 text-destructive", text: "Recusada" },
     };
@@ -280,7 +280,11 @@ const Matriculas = () => {
               </TableHeader>
               <TableBody>
                 {matriculasAtivas.length > 0 ? (
-                    matriculasAtivas.map((matricula) => (
+                    matriculasAtivas.map((matricula) => {
+                        const isRemanejamento = matricula.status === "Remanejamento Solicitado";
+                        const isMatriculado = matricula.status === "Matriculado" || matricula.status === "Matriculada";
+                        
+                        return (
                       <TableRow key={matricula.id}>
                         <TableCell className="font-medium">{matricula.nome}</TableCell>
                         <TableCell>{matricula.responsavel_nome}</TableCell>
@@ -302,24 +306,24 @@ const Matriculas = () => {
                                 Ver detalhes
                               </DropdownMenuItem>
                               
-                              {/* Ações que exigem nova vaga (Realocar) */}
-                              {(matricula.status === "Matriculado" || matricula.status === "Matriculada") && (
+                              {/* Ações para Matriculados (Normal) */}
+                              {isMatriculado && (
                                 <>
                                   <DropdownMenuItem onClick={() => handleVagaActionClick(matricula, 'realocar')}>
                                     <RotateCcw className="mr-2 h-4 w-4" />
                                     Realocar (Mudar Turma)
                                   </DropdownMenuItem>
-                                </>
-                              )}
-                              
-                              {/* Ações de Remanejamento e Saída */}
-                              {(matricula.status === "Matriculado" || matricula.status === "Matriculada") && (
-                                <>
+                                  
                                   <DropdownMenuItem onClick={() => handleRemanejamentoActionClick(matricula)} className="text-primary focus:bg-primary/10 focus:text-primary">
                                     <Bell className="mr-2 h-4 w-4" />
                                     Solicitar Remanejamento
                                   </DropdownMenuItem>
-                                  
+                                </>
+                              )}
+                              
+                              {/* Ações de Saída (Disponíveis para Matriculado e Remanejamento Solicitado) */}
+                              {(isMatriculado || isRemanejamento) && (
+                                <>
                                   <DropdownMenuItem 
                                     onClick={() => handleJustificativaActionClick(matricula, 'transferir')}
                                   >
@@ -340,8 +344,9 @@ const Matriculas = () => {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))
-                ) : (
+                    );
+                }) // <-- Fechamento do map
+                ) : ( // <-- Início do else (nenhuma matrícula)
                     <TableRow>
                         <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                             Nenhuma matrícula ativa encontrada com os filtros aplicados.
