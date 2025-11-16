@@ -97,7 +97,7 @@ export const FilaTable = ({
                 return (
                   <TableRow key={item.id} className={isConvocado ? "bg-primary/5 hover:bg-primary/10" : ""}>
                     <TableCell className="font-bold text-primary">
-                        {isConvocado ? <Badge className="bg-primary text-primary-foreground w-fit flex justify-center items-center">CONV.</Badge> : `#${item.posicao_fila}`}
+                        {isConvocado ? <Badge className="bg-primary text-primary-foreground w-fit flex justify-center items-center">Conv.</Badge> : `#${item.posicao_fila}`}
                     </TableCell>
                     <TableCell className="font-medium">{item.nome}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
