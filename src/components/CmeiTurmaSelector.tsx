@@ -1,4 +1,3 @@
-Turma) dentro do Popover, em vez de um grande acordeão.">
 "use client";
 
 import * as React from "react";
