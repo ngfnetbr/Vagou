@@ -80,7 +80,7 @@ const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
         align="start"
         side="bottom" 
       >
-        <ScrollArea className="h-auto max-h-[50vh]">
+        <ScrollArea className="h-auto max-h-[70vh]">
           <div className="p-1">
             {allAvailableTurmas.length === 0 && !isLoading ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
