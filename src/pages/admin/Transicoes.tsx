@@ -332,7 +332,7 @@ const Transicoes = () => {
                               onClick={() => handleMassAction('status')}
                               disabled={isExecuting || isSaving}
                           >
-                              <Trash2 className="mr-2 h-4 w-4" />
+                              <ArrowRight className="mr-2 h-4 w-4" />
                               Marcar Concluinte em Massa
                           </Button>
                       </div>
