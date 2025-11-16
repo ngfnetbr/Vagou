@@ -62,12 +62,42 @@ const classifyCriancasForTransition = (criancas: Crianca[]): CriancaClassificada
     });
 };
 
+// Função utilitária para comparação profunda (shallow comparison dos campos de planejamento)
+const arePlanningStatesEqual = (state1: CriancaClassificada[], state2: CriancaClassificada[]): boolean => {
+    if (state1.length !== state2.length) return false;
+    
+    // Cria um mapa de planejamento para comparação rápida
+    const map1 = new Map(state1.map(c => [c.id, {
+        planned_status: c.planned_status,
+        planned_cmei_id: c.planned_cmei_id,
+        planned_turma_id: c.planned_turma_id,
+        planned_justificativa: c.planned_justificativa,
+    }]));
+    
+    for (const c2 of state2) {
+        const p1 = map1.get(c2.id);
+        if (!p1) return false;
+        
+        // Compara os campos de planejamento
+        if (p1.planned_status !== c2.planned_status ||
+            p1.planned_cmei_id !== c2.planned_cmei_id ||
+            p1.planned_turma_id !== c2.planned_turma_id ||
+            p1.planned_justificativa !== c2.planned_justificativa) {
+            return false;
+        }
+    }
+    
+    return true;
+};
+
+
 // --- Hook Principal ---
 
 export function useTransicoes() {
     const queryClient = useQueryClient();
     
     const [planningData, setPlanningData] = useState<CriancaClassificada[]>([]);
+    const [lastSavedPlanning, setLastSavedPlanning] = useState<CriancaClassificada[]>([]); // Novo estado para o último estado salvo
     const [isSaving, setIsSaving] = useState(false);
 
     const { data: criancas, isLoading, error } = useQuery<Crianca[], Error>({
@@ -95,6 +125,7 @@ export function useTransicoes() {
                 // Se os IDs forem idênticos, carrega o planejamento salvo
                 if (savedIds.size > 0 && savedIds.size === currentIds.size && [...savedIds].every(id => currentIds.has(id))) {
                     setPlanningData(parsedPlanning);
+                    setLastSavedPlanning(parsedPlanning); // Define como o último estado salvo
                     toast.info("Planejamento anterior carregado.", { duration: 3000 });
                     return;
                 }
@@ -107,9 +138,19 @@ export function useTransicoes() {
         // Se não houver planejamento salvo ou se os dados estiverem desatualizados, usa a classificação inicial
         if (initialClassification.length > 0 && planningData.length === 0) {
             setPlanningData(initialClassification);
+            setLastSavedPlanning(initialClassification); // Define a classificação inicial como o último estado salvo
         }
         
     }, [initialClassification]); // Depende apenas da classificação inicial
+
+    // --- Lógica de Alterações Não Salvas (Calculado) ---
+    const hasUnsavedChanges = useMemo(() => {
+        if (isLoading || planningData.length === 0) return false;
+        
+        // Compara o estado atual com o último estado salvo
+        return !arePlanningStatesEqual(planningData, lastSavedPlanning);
+    }, [planningData, lastSavedPlanning, isLoading]);
+
 
     // --- Funções de Manipulação do Planejamento ---
 
@@ -217,6 +258,7 @@ export function useTransicoes() {
         setIsSaving(true);
         try {
             localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(planningData));
+            setLastSavedPlanning(planningData); // ATUALIZA O ESTADO SALVO
             await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay de salvamento
             toast.success("Planejamento salvo com sucesso!", {
                 description: `Ajustes foram armazenados localmente no navegador.`,
@@ -339,6 +381,7 @@ export function useTransicoes() {
         
         // Limpa o planejamento local após a execução bem-sucedida
         localStorage.removeItem(PLANNING_STORAGE_KEY);
+        setLastSavedPlanning([]); // Limpa o estado salvo, forçando o recálculo baseado no DB
     };
 
     const transitionMutation = useMutation({
@@ -370,7 +413,8 @@ export function useTransicoes() {
         isSaving,
         executeTransition: transitionMutation.mutateAsync,
         isExecuting: transitionMutation.isPending,
-        initialClassification, // Exportado
+        initialClassification, 
+        hasUnsavedChanges, // Exportando o novo cálculo
         
         // Funções de planejamento
         updateCriancaStatusInPlanning,
