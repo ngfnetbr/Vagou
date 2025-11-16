@@ -124,29 +124,36 @@ const Fila = () => {
       );
     }
 
-    // 2. Separa Fila de Espera (incluindo Remanejamento Solicitado) e Convocados
-    const filaDeEspera = activeQueue.filter(c => c.status === "Fila de Espera" || c.status === "Remanejamento Solicitado");
+    // 2. Separa os grupos
+    const remanejamento = activeQueue.filter(c => c.status === "Remanejamento Solicitado");
     const convocados = activeQueue.filter(c => c.status === "Convocado");
+    const filaDeEsperaNormal = activeQueue.filter(c => c.status === "Fila de Espera");
 
-    // Ordenação da Fila de Espera: Usa a posição calculada pelo DB (posicao_fila)
-    // O DB garante que Remanejamento Solicitado tem a menor posição (maior prioridade)
-    filaDeEspera.sort((a, b) => (a.posicao_fila || Infinity) - (b.posicao_fila || Infinity));
-
-    // Ordena convocados por prazo mais próximo
+    // 3. Ordenação
+    
+    // Remanejamento: Ordenado pela posição calculada pelo DB (deve ser 1, 2, 3...)
+    remanejamento.sort((a, b) => (a.posicao_fila || Infinity) - (b.posicao_fila || Infinity));
+    
+    // Convocados: Ordenados por prazo mais próximo
     convocados.sort((a, b) => {
         if (!a.convocacao_deadline) return 1;
         if (!b.convocacao_deadline) return -1;
         return new Date(a.convocacao_deadline).getTime() - new Date(b.convocacao_deadline).getTime();
     });
-
-    const sortedFila = filaDeEspera;
     
-    // 3. Cálculo das Estatísticas (usando a lista completa de criancas, não a filtrada)
+    // Fila de Espera Normal: Ordenada pela posição calculada pelo DB
+    filaDeEsperaNormal.sort((a, b) => (a.posicao_fila || Infinity) - (b.posicao_fila || Infinity));
+
+    // 4. Combinação na ordem correta: Remanejamento > Convocados > Fila Normal
+    const sortedFila = [...remanejamento, ...convocados, ...filaDeEsperaNormal];
+    
+    // 5. Cálculo das Estatísticas (usando a lista completa de criancas, não a filtrada)
     const totalFila = criancas.filter(c => c.status === "Fila de Espera" || c.status === "Remanejamento Solicitado").length;
+    // Contagem de prioridade social deve incluir remanejamento, mas o remanejamento em si já é a prioridade máxima
     const comPrioridade = criancas.filter(c => (c.status === "Fila de Espera" || c.status === "Remanejamento Solicitado") && c.programas_sociais).length;
     const totalConvocados = criancas.filter(c => c.status === "Convocado").length;
     
-    // 4. Histórico: Crianças que saíram da fila (Matriculado/Matriculada, Desistente, Recusada)
+    // 6. Histórico: Crianças que saíram da fila (Matriculado/Matriculada, Desistente, Recusada)
     const historico = criancas.filter(c => 
         c.status === "Desistente" || 
         c.status === "Recusada" ||
@@ -155,7 +162,7 @@ const Fila = () => {
     );
 
     return { 
-        filteredFila: [...convocados, ...sortedFila], 
+        filteredFila: sortedFila, 
         historicoCriancas: historico,
         stats: { totalFila, comPrioridade, convocados: totalConvocados }
     };
