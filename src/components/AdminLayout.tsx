@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useSidebarStore } from "@/hooks/use-sidebar-store";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning"; // Importando o hook
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -22,8 +23,11 @@ export const AdminLayout = ({ children, shouldBlockNavigation = false }: AdminLa
   const { isOpen, toggle } = useSidebarStore();
   const isMobile = useIsMobile();
   
+  // Usa o hook de alerta de navegação
+  const blockNavigation = useUnsavedChangesWarning(shouldBlockNavigation);
+  
   const handleLogout = async () => {
-    // Se houver bloqueio, alerta antes de sair
+    // Se houver bloqueio, usa o alerta nativo para garantir que o usuário não perca dados
     if (shouldBlockNavigation) {
         const confirmLogout = window.confirm("Você tem alterações não salvas na Transição Anual. Deseja realmente sair e descartá-las?");
         if (!confirmLogout) {
@@ -46,7 +50,10 @@ export const AdminLayout = ({ children, shouldBlockNavigation = false }: AdminLa
   return (
     <div className="flex h-screen bg-govbr-gray2">
       {/* Sidebar (Visível em desktop, oculta/fixa em mobile) */}
-      <AdminSidebar shouldBlockNavigation={shouldBlockNavigation} />
+      <AdminSidebar 
+        shouldBlockNavigation={shouldBlockNavigation} 
+        blockNavigation={blockNavigation} // Passa a função de bloqueio
+      />
       
       {/* Overlay para mobile quando a sidebar está aberta */}
       {isMobile && isOpen && (

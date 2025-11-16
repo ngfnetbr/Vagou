@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useLocation, UNSAFE_NavigationContext } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 /**
@@ -9,8 +9,7 @@ import { toast } from 'sonner';
  */
 export function useUnsavedChangesWarning(hasUnsavedChanges: boolean, message: string = "Você tem alterações não salvas. Deseja realmente sair?") {
   const location = useLocation();
-  // Removendo a desestruturação de navigator, pois não é usada e causa erro de tipagem no RRv6
-  // const { navigator } = UNSAFE_NavigationContext; 
+  const navigate = useNavigate();
 
   // 1. Alerta ao tentar fechar a aba/navegador (beforeunload)
   useEffect(() => {
@@ -26,19 +25,26 @@ export function useUnsavedChangesWarning(hasUnsavedChanges: boolean, message: st
     }
   }, [hasUnsavedChanges, message]);
 
-  // 2. Alerta ao tentar navegar internamente (usando o history.block)
-  
-  const blockNavigation = useCallback((nextLocation: any) => {
-    if (hasUnsavedChanges && nextLocation.pathname !== location.pathname) {
+  // 2. Função para bloquear a navegação interna (usada no AdminSidebar)
+  const blockNavigation = useCallback((to: string) => {
+    if (hasUnsavedChanges && to !== location.pathname) {
+        
+        // Usamos um toast customizado para dar a opção de confirmar a perda de dados
         toast.warning("Planejamento não salvo!", {
-            description: "Salve suas alterações antes de navegar para outra página.",
-            duration: 5000,
+            description: "Você tem alterações não salvas. Deseja sair e descartá-las?",
+            duration: 10000,
+            action: {
+                label: "Descartar e Sair",
+                onClick: () => {
+                    // Se o usuário confirmar, navegamos
+                    navigate(to);
+                },
+            },
         });
-        return true; // Indica que a navegação deve ser bloqueada (embora o RRv6 não suporte bloqueio fácil)
+        return true; // Indica que a navegação foi bloqueada (o componente de navegação deve respeitar isso)
     }
     return false;
-  }, [hasUnsavedChanges, location.pathname]);
-  
-  // Embora o RRv6 não tenha um hook useBlocker simples, 
-  // o listener de beforeunload é o que realmente impede a perda de dados ao fechar a aba.
+  }, [hasUnsavedChanges, location.pathname, navigate]);
+
+  return blockNavigation;
 }

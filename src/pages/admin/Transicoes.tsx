@@ -89,7 +89,8 @@ const Transicoes = () => {
   }, [classificacao, isLoading]);
   
   // Aplica o alerta de alterações não salvas
-  useUnsavedChangesWarning(hasUnsavedChanges, "Você tem alterações no planejamento de transição que não foram salvas ou aplicadas. Deseja realmente sair?");
+  // O alerta de navegação interna será um toast.warning
+  const blockNavigation = useUnsavedChangesWarning(hasUnsavedChanges, "Você tem alterações no planejamento de transição que não foram salvas ou aplicadas. Deseja realmente sair?");
 
   // --- Handlers de Seleção ---
   const toggleSelection = (id: string) => {
@@ -171,16 +172,24 @@ const Transicoes = () => {
   };
   
   // Esta função AGORA ATUALIZA O ESTADO DE PLANEJAMENTO LOCAL
-  const handleRealocacaoIndividualConfirm = async (criancaId: string, data: ConvocationData, cmeiNome: string, turmaNome: string) => {
-      // Atualiza o estado de planejamento local
-      updateCriancaVagaInPlanning(criancaId, data.cmei_id, data.turma_id, cmeiNome, turmaNome);
+  const handleRealocacaoIndividualConfirm = async (criancaId: string, vagaString: string) => {
+      // vagaString: "cmei_id|turma_id|cmei_nome|turma_nome"
+      const parts = vagaString.split('|');
+      if (parts.length !== 4) {
+          toast.error("Erro de seleção", { description: "Formato de vaga inválido." });
+          return;
+      }
+      const [cmei_id, turma_id, cmei_nome, turma_nome] = parts;
       
-      toast.success("Realocação planejada!", { description: `A criança será movida para ${cmeiNome} - ${turmaNome} ao aplicar a transição.` });
+      // Atualiza o estado de planejamento local
+      updateCriancaVagaInPlanning(criancaId, cmei_id, turma_id, cmei_nome, turma_nome);
+      
+      toast.success("Realocação planejada!", { description: `A criança será movida para ${cmei_nome} - ${turma_nome} ao aplicar a transição.` });
       
       // Abre o CMEI de destino no accordion
       setOpenCmeis(prev => {
-          if (!prev.includes(cmeiNome)) {
-              return [...prev, cmeiNome];
+          if (!prev.includes(cmei_nome)) {
+              return [...prev, cmei_nome];
           }
           return prev;
       });

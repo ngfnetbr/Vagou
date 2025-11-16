@@ -23,8 +23,8 @@ type VagaFormData = z.infer<typeof vagaSchema>;
 interface RealocacaoModalProps {
   crianca: Crianca;
   onClose: () => void;
-  // Adicionando cmeiNome e turmaNome ao onConfirm
-  onConfirm: (criancaId: string, data: ConvocationData, cmeiNome: string, turmaNome: string) => Promise<void>; // ID agora é string
+  // onConfirm agora espera apenas o ID da criança e os dados da vaga (string combinada)
+  onConfirm: (criancaId: string, vagaString: string) => Promise<void>; 
   isPending: boolean;
 }
 
@@ -41,20 +41,10 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
 
   const onSubmit = async (values: VagaFormData) => {
     // values.cmeiTurma is a combined string: "cmei_id|turma_id|cmei_nome|turma_nome"
-    const parts = values.cmeiTurma.split('|');
     
-    if (parts.length !== 4) {
-        toast.error("Erro de seleção", { description: "Formato de CMEI/Turma inválido." });
-        return;
-    }
-    
-    const [cmei_id, turma_id, cmei_nome, turma_nome] = parts;
-
-    const convocationData: ConvocationData = { cmei_id, turma_id };
-
     try {
-        // Passa os nomes para o onConfirm
-        await onConfirm(crianca.id, convocationData, cmei_nome, turma_nome);
+        // Passa a string combinada para o onConfirm
+        await onConfirm(crianca.id, values.cmeiTurma);
         onClose();
     } catch (error) {
         // Error handled by useCriancas hook

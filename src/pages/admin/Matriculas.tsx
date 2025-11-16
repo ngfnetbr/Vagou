@@ -76,17 +76,9 @@ const Matriculas = () => {
     });
     
     // Histórico: Crianças que estão em status final (Desistente ou Recusada) E que já tiveram um CMEI/Turma atribuído.
-    // Para ser mais robusto, vamos considerar que se a criança tem status final, ela deve aparecer no histórico de matrículas
-    // SE ela já teve um CMEI/Turma atribuído (mesmo que os campos cmei_atual_id/turma_atual_id tenham sido limpos na mutação).
-    // Como não temos um campo 'cmei_anterior' no DB, vamos confiar que se ela está em status final, mas não está na fila/convocação, ela é histórico.
-    
     // Para simplificar e garantir que o histórico de matrículas só mostre encerramentos de matrículas ativas:
     // Vamos filtrar todas as crianças em status final (Desistente/Recusada) e confiar que a lógica de negócio garante que
     // se elas foram marcadas como desistentes/recusadas, elas vieram de um contexto de matrícula/convocação.
-    // No entanto, para evitar duplicidade com o histórico da Fila, vamos usar a lógica de que se a criança tem um CMEI/Turma atual (mesmo que nulo após a desistência), ela é histórico de matrícula.
-    
-    // Vamos usar a lógica original, mas com a ressalva de que os IDs podem ser nulos após a desistência.
-    // Como não temos um campo 'cmei_anterior' no DB, vamos manter a lógica de que se ela está em status final, ela é histórico de matrícula.
     
     // REVISÃO: A lógica mais segura é: se o status é Desistente ou Recusada, ela é histórico.
     // A distinção entre histórico da Fila e Histórico de Matrículas é feita pelo contexto da ação.
@@ -112,13 +104,23 @@ const Matriculas = () => {
     setIsVagaModalOpen(true);
   };
   
-  const handleVagaConfirm = async (id: string, data: ConvocationData) => {
+  // FIX: Update signature to match RealocacaoModalProps['onConfirm']
+  const handleVagaConfirm = async (id: string, vagaString: string) => {
+    // vagaString: "cmei_id|turma_id|cmei_nome|turma_nome"
+    const parts = vagaString.split('|');
+    if (parts.length !== 4) {
+        // Lança erro para ser capturado pelo RealocacaoModal e exibido como toast
+        throw new Error("Formato de vaga inválido."); 
+    }
+    const [cmei_id, turma_id] = parts;
+    
+    const data: ConvocationData = { cmei_id, turma_id };
+    
     // Apenas Realocar usa este modal agora
     await realocarCrianca({ id, data });
     
-    setIsVagaModalOpen(false);
-    setCriancaToVaga(undefined);
-    setCurrentVagaAction(undefined);
+    // A lógica de fechar o modal (setIsVagaModalOpen(false)) foi movida para o RealocacaoModal.tsx
+    // A limpeza do estado (setCriancaToVaga(undefined)) foi movida para o onClose do Dialog.
   };
   
   // --- Handlers para Modais de Justificativa (Desistente/Remanejamento/Transferir) ---

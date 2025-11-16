@@ -35,9 +35,10 @@ const menuItems = [
 
 interface AdminSidebarProps {
   shouldBlockNavigation: boolean;
+  blockNavigation: (to: string) => boolean; // Nova prop
 }
 
-export const AdminSidebar = ({ shouldBlockNavigation }: AdminSidebarProps) => {
+export const AdminSidebar = ({ shouldBlockNavigation, blockNavigation }: AdminSidebarProps) => {
   const { isOpen, toggle } = useSidebarStore();
   const navigate = useNavigate();
   const location = useLocation(); // Usado para o estilo ativo
@@ -54,13 +55,14 @@ export const AdminSidebar = ({ shouldBlockNavigation }: AdminSidebarProps) => {
     if (shouldBlockNavigation) {
       e.preventDefault();
       
-      const confirmNavigation = window.confirm("Deseja sair sem salvar? As alterações no planejamento de transição serão perdidas.");
+      // Usa a função de bloqueio que exibe o toast
+      const isBlocked = blockNavigation(to);
       
-      if (confirmNavigation) {
-        // Se o usuário confirmar, navegamos
+      // Se não foi bloqueado (o que só acontece se shouldBlockNavigation for false), navega.
+      // Se foi bloqueado, o toast com a opção de descarte foi exibido.
+      if (!isBlocked) {
         navigate(to);
       }
-      // Se o usuário cancelar, a navegação é bloqueada pelo preventDefault
       
     } else {
       navigate(to);
