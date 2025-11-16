@@ -163,12 +163,15 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
                                                 // Se for remanejamento, não precisamos de destaque de preferência
                                                 const isPreferred = !isRemanejamento && (crianca.cmei1_preferencia === vaga.cmei || crianca.cmei2_preferencia === vaga.cmei);
                                                 
-                                                // Se for remanejamento, mostramos o status de vagas
-                                                const vagasText = `(${vaga.vagas} vagas)`;
+                                                // Formatação do texto de vagas
+                                                const vagasText = vaga.vagas <= 0 ? '(LOTADA)' : `(${vaga.vagas} vagas)`;
                                                     
                                                 const isLotada = vaga.vagas <= 0;
                                                 
-                                                const label = `${vaga.cmei} - ${vaga.turma} ${vagasText}`;
+                                                // NOVO LABEL: Apenas Turma + Vagas (se não for remanejamento, adiciona o CMEI para clareza)
+                                                const label = isRemanejamento 
+                                                    ? `${vaga.turma} ${vagasText}`
+                                                    : `${vaga.cmei} - ${vaga.turma} ${vagasText}`;
                                                 
                                                 // Valor combinado: cmei_id|turma_id|cmei_nome|turma_nome
                                                 const value = `${vaga.cmei_id}|${vaga.turma_id}|${vaga.cmei}|${vaga.turma}`;
