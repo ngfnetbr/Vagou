@@ -1,12 +1,37 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCriancaById } from "./criancas-api";
+import { calculateAgeAtCutoff, determineTurmaBaseName } from "./utils"; // Importando as novas funções
 
 export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: string, turma: string, vagas: number, cmei_id: string, turma_id: string }[]> => {
-    // 1. Buscar a criança para obter preferências
+    // 1. Buscar a criança para obter preferências e data de nascimento
     const crianca = await getCriancaById(criancaId);
     if (!crianca) return [];
 
-    // 2. Buscar todas as turmas disponíveis (com JOIN para CMEI e Turma Base)
+    // 2. Calcular a idade na data de corte e determinar a Turma Base compatível
+    const ageAtCutoff = calculateAgeAtCutoff(crianca.data_nascimento);
+    const requiredTurmaBaseName = determineTurmaBaseName(ageAtCutoff);
+    
+    // Se a criança for muito nova (menos de 6 meses) ou fora da faixa etária, não há vagas compatíveis.
+    // A lógica de 6 meses é tratada no frontend (CriancaDataForm), mas aqui garantimos que a classificação seja válida.
+    if (requiredTurmaBaseName === "Data de Nascimento Inválida" || requiredTurmaBaseName === "Fora da faixa etária") {
+        return [];
+    }
+    
+    // 3. Buscar o ID da Turma Base correspondente ao nome determinado
+    const { data: baseTurmaData, error: baseTurmaError } = await supabase
+        .from('turmas_base')
+        .select('id')
+        .eq('nome', requiredTurmaBaseName)
+        .single();
+        
+    if (baseTurmaError || !baseTurmaData) {
+        console.error(`Turma Base não encontrada para: ${requiredTurmaBaseName}`, baseTurmaError);
+        return [];
+    }
+    
+    const requiredTurmaBaseId = baseTurmaData.id;
+
+    // 4. Buscar todas as turmas disponíveis que correspondem ao requiredTurmaBaseId
     const { data: turmasDb, error: turmasError } = await supabase
         .from('turmas')
         .select(`
@@ -16,9 +41,9 @@ export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: s
             ocupacao,
             nome,
             turma_base_id,
-            cmeis (nome),
-            turmas_base (idade_minima_meses, idade_maxima_meses)
+            cmeis (nome)
         `)
+        .eq('turma_base_id', requiredTurmaBaseId) // Filtra pela Turma Base compatível
         .gt('capacidade', 0); // Filtra apenas turmas com capacidade > 0
 
     if (turmasError) {
@@ -26,17 +51,9 @@ export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: s
         return [];
     }
     
-    // 3. Filtrar por compatibilidade de idade (usando data_nascimento da criança)
-    const dob = new Date(crianca.data_nascimento + 'T00:00:00');
-    const today = new Date();
-    const ageInMonths = (today.getFullYear() - dob.getFullYear()) * 12 + (today.getMonth() - dob.getMonth());
-
+    // 5. Mapear e filtrar por vagas disponíveis e preferências
     let availableTurmas = turmasDb
         .filter(t => t.capacidade > t.ocupacao) // Deve ter vagas
-        .filter(t => {
-            const base = (t.turmas_base as any) as { idade_minima_meses: number, idade_maxima_meses: number };
-            return ageInMonths >= base.idade_minima_meses && ageInMonths <= base.idade_maxima_meses;
-        })
         .map(t => ({
             cmei: ((t.cmeis as any) as { nome: string }).nome,
             turma: t.nome,

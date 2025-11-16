@@ -10,9 +10,11 @@ import { DatePicker } from "@/components/DatePicker";
 import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
 import { AlertCircle, Baby } from "lucide-react";
 import { useAgeInMonths } from "@/hooks/use-age-in-months";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { calculateAgeAtCutoff, determineTurmaBaseName } from "@/integrations/supabase/utils"; // Importando novas funções
+import { Badge } from "@/components/ui/badge"; // Importação adicionada
 
 interface CriancaDataFormProps {
   cmeiOptions: { value: string; label: string }[];
@@ -24,9 +26,19 @@ export const CriancaDataForm = ({ cmeiOptions, filteredCmei2Options, selectedCme
   const { control, watch } = useFormContext<InscricaoFormData>();
   
   const dataNascimento = watch("dataNascimento");
-  const ageInMonths = useAgeInMonths(dataNascimento);
   
+  // 1. Idade atual em meses (para o aviso de 6 meses)
+  const ageInMonths = useAgeInMonths(dataNascimento);
   const isUnderSixMonths = ageInMonths !== null && ageInMonths < 6;
+  
+  // 2. Idade na data de corte (para determinar a turma)
+  const turmaCompativel = useMemo(() => {
+    if (!dataNascimento) return null;
+    const ageAtCutoff = calculateAgeAtCutoff(dataNascimento);
+    return determineTurmaBaseName(ageAtCutoff);
+  }, [dataNascimento]);
+  
+  const isForaFaixaEtaria = turmaCompativel === "Fora da faixa etária";
   
   // Estado para controlar a exibição do modal
   const [showAgeWarningModal, setShowAgeWarningModal] = useState(false);
@@ -79,6 +91,17 @@ export const CriancaDataForm = ({ cmeiOptions, filteredCmei2Options, selectedCme
                   />
                 </FormControl>
                 <FormMessage />
+                {turmaCompativel && (
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                        <span className="font-semibold">Turma Compatível (Corte 31/03):</span>
+                        <Badge 
+                            variant="secondary" 
+                            className={isForaFaixaEtaria ? "bg-destructive/20 text-destructive" : "bg-secondary/20 text-secondary"}
+                        >
+                            {turmaCompativel}
+                        </Badge>
+                    </p>
+                )}
               </FormItem>
             )}
           />

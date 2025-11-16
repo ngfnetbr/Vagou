@@ -15,14 +15,19 @@ const mockCmeis: CmeiSeedData[] = [ // Usando CmeiSeedData
   { nome: "CMEI Leste", endereco: "Estrada Leste, 300", capacidade: 150, diretor: "Bruno Alves", coordenador: "Fernanda Dias", email: "leste@cmei.com", telefone: "(99) 9 9999-0004", latitude: "-23.5500", longitude: "-46.5500" },
 ];
 
+// Faixas etárias baseadas em anos completos na data de corte (31/03)
 const mockTurmasBase: TurmaBaseFormData[] = [
-  { nome: "Infantil 0", idade_minima_meses: 0, idade_maxima_meses: 11, descricao: "0 a 11 meses" },
-  { nome: "Infantil 1", idade_minima_meses: 12, idade_maxima_meses: 23, descricao: "1 a 1 ano e 11 meses" },
-  { nome: "Infantil 2", idade_minima_meses: 24, idade_maxima_meses: 35, descricao: "2 a 2 anos e 11 meses" },
-  { nome: "Infantil 3", idade_minima_meses: 36, idade_maxima_meses: 47, descricao: "3 a 3 anos e 11 meses" },
-  // Mantendo Pré I e Pré II para cobrir a faixa etária completa, se necessário, mas focando nas 4 principais
-  { nome: "Pré I", idade_minima_meses: 48, idade_maxima_meses: 59, descricao: "4 a 4 anos e 11 meses" },
-  { nome: "Pré II", idade_minima_meses: 60, idade_maxima_meses: 71, descricao: "5 a 5 anos e 11 meses" },
+  // Infantil 0: 0 anos na data de corte (0 a 11 meses na data de corte)
+  { nome: "Infantil 0", idade_minima_meses: 0, idade_maxima_meses: 11, descricao: "0 anos na data de corte (31/03)" },
+  // Infantil 1: 1 ano na data de corte (12 a 23 meses na data de corte)
+  { nome: "Infantil 1", idade_minima_meses: 12, idade_maxima_meses: 23, descricao: "1 ano na data de corte (31/03)" },
+  // Infantil 2: 2 anos na data de corte (24 a 35 meses na data de corte)
+  { nome: "Infantil 2", idade_minima_meses: 24, idade_maxima_meses: 35, descricao: "2 anos na data de corte (31/03)" },
+  // Infantil 3: 3 anos na data de corte (36 a 47 meses na data de corte)
+  { nome: "Infantil 3", idade_minima_meses: 36, idade_maxima_meses: 47, descricao: "3 anos na data de corte (31/03)" },
+  // Pré I e Pré II (4 e 5 anos na data de corte)
+  { nome: "Pré I", idade_minima_meses: 48, idade_maxima_meses: 59, descricao: "4 anos na data de corte (31/03)" },
+  { nome: "Pré II", idade_minima_meses: 60, idade_maxima_meses: 71, descricao: "5 anos na data de corte (31/03)" },
 ];
 
 const mockCriancas: InscricaoFormData[] = [
@@ -51,6 +56,8 @@ const mockCriancas: InscricaoFormData[] = [
 // --- Funções de Inserção ---
 
 export async function seedTurmasBase() {
+  // Limpa e insere as novas turmas base
+  await supabase.from('turmas_base').delete().neq('id', 0);
   const { error } = await supabase.from('turmas_base').insert(mockTurmasBase).select();
   if (error) throw new Error(`Erro ao inserir Turmas Base: ${error.message}`);
   
@@ -85,7 +92,7 @@ export async function seedCmeis() {
 export async function seedTurmas(cmeis: any[], turmasBase: any[]) {
   const turmasToInsert: TurmaFormData[] = [];
   
-  // Cria 2 turmas de cada modelo em cada CMEI (Manhã e Tarde)
+  // Cria 2 turmas de cada modelo em cada CMEI (Sala A e Sala B)
   cmeis.forEach(cmei => {
     turmasBase.forEach(base => {
       // Turma Sala A

@@ -1,11 +1,60 @@
 import { supabase } from "@/integrations/supabase/client";
 import { InscricaoFormData } from "@/lib/schemas/inscricao-schema";
 import { Crianca, HistoricoEntry } from "./types";
-import { format } from "date-fns";
+import { format, parseISO, differenceInMonths, differenceInYears, isValid, startOfDay } from "date-fns";
 
 // --- Helper Functions ---
 
-// Helper function to calculate age string (years, months, days)
+/**
+ * Calcula a idade em anos na data de corte (31 de março do ano atual).
+ * @param dobString Data de nascimento no formato YYYY-MM-DD.
+ * @returns Idade em anos na data de corte.
+ */
+export const calculateAgeAtCutoff = (dobString: string): number | null => {
+  try {
+    const dob = parseISO(dobString + 'T00:00:00');
+    if (!isValid(dob)) return null;
+
+    // Define a data de corte: 31 de março do ano atual
+    const currentYear = new Date().getFullYear();
+    const cutoffDate = startOfDay(new Date(currentYear, 2, 31)); // Mês 2 é Março
+
+    // Se a data de nascimento for posterior à data de corte, a idade é 0.
+    if (dob.getTime() > cutoffDate.getTime()) {
+        return 0;
+    }
+    
+    // Calcula a idade em anos na data de corte
+    return differenceInYears(cutoffDate, dob);
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Determina o nome da Turma Base (Infantil 0, 1, 2, 3) com base na idade de corte.
+ * @param ageAtCutoff Idade em anos na data de corte.
+ * @returns Nome da turma base ou uma mensagem de erro.
+ */
+export const determineTurmaBaseName = (ageAtCutoff: number | null): string => {
+    if (ageAtCutoff === null) return "Data de Nascimento Inválida";
+    
+    switch (ageAtCutoff) {
+        case 0:
+            return "Infantil 0";
+        case 1:
+            return "Infantil 1";
+        case 2:
+            return "Infantil 2";
+        case 3:
+            return "Infantil 3";
+        default:
+            // Se a idade for 4 anos ou mais na data de corte, está fora da faixa etária do CMEI (Pré I/II)
+            return "Fora da faixa etária"; 
+    }
+};
+
+// Helper function to calculate age string (years, months, days) - Mantido como idade atual para exibição
 export const calculateAgeString = (dobString: string): string => {
   const today = new Date();
   const dob = new Date(dobString + 'T00:00:00');
