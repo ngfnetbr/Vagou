@@ -1,12 +1,12 @@
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Loader2, X } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useMassActions } from "@/hooks/use-mass-actions";
-import { useAllAvailableTurmas } from "@/hooks/use-all-available-turmas";
+import { useAllAvailableTurmas, AvailableTurma } from "@/hooks/use-all-available-turmas";
 
 interface RealocacaoMassaModalProps {
     selectedIds: string[]; // Recebe os IDs selecionados
@@ -22,6 +22,19 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
     const [selectedVaga, setSelectedVaga] = useState("");
     
     const isProcessing = isMassRealocating || isLoadingTurmas;
+
+    // Agrupamento das turmas por CMEI
+    const groupedTurmas = useMemo(() => {
+        if (!allAvailableTurmas) return {};
+        
+        return allAvailableTurmas.reduce((acc, turma) => {
+            if (!acc[turma.cmei]) {
+                acc[turma.cmei] = [];
+            }
+            acc[turma.cmei].push(turma);
+            return acc;
+        }, {} as Record<string, AvailableTurma[]>);
+    }, [allAvailableTurmas]);
 
     const availableTurmas = useMemo(() => {
         if (!allAvailableTurmas) return [];
@@ -77,11 +90,30 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
                             <SelectValue placeholder={isLoadingTurmas ? "Carregando turmas..." : "Selecione a Turma"} />
                         </SelectTrigger>
                         <SelectContent>
-                            {availableTurmas.map(turma => (
-                                <SelectItem key={turma.id} value={turma.value}>
-                                    {turma.nome}
-                                </SelectItem>
-                            ))}
+                            {isLoadingTurmas ? (
+                                <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                            ) : allAvailableTurmas && allAvailableTurmas.length > 0 ? (
+                                Object.entries(groupedTurmas).map(([cmeiName, turmas]) => (
+                                    <SelectGroup key={cmeiName}>
+                                        <SelectLabel>{cmeiName}</SelectLabel>
+                                        {turmas.map((turma) => {
+                                            const label = `${turma.turma} (${turma.vagas} vagas)`;
+                                            
+                                            // O valor deve incluir o CMEI e a Turma ID e NOME
+                                            return (
+                                                <SelectItem 
+                                                    key={turma.turma_id} 
+                                                    value={`${turma.cmei_id}|${turma.turma_id}|${turma.cmei}|${turma.turma}`}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectGroup>
+                                ))
+                            ) : (
+                                <SelectItem value="none" disabled>Nenhuma turma disponível.</SelectItem>
+                            )}
                         </SelectContent>
                     </Select>
                 </div>

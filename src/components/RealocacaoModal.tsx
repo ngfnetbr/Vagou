@@ -6,10 +6,10 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Save, X, Loader2, RotateCcw } from "lucide-react";
 import { Crianca, ConvocationData } from "@/integrations/supabase/types";
-import { useAllAvailableTurmas } from "@/hooks/use-all-available-turmas";
+import { useAllAvailableTurmas, AvailableTurma } from "@/hooks/use-all-available-turmas";
 import { toast } from "sonner";
 import { useMemo } from "react";
 
@@ -60,7 +60,19 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
     }
   };
   
-  // Usamos todas as turmas disponíveis retornadas pelo hook (filtradas apenas por vagas)
+  // Agrupamento das turmas por CMEI
+  const groupedTurmas = useMemo(() => {
+    if (!availableTurmas) return {};
+    
+    return availableTurmas.reduce((acc, turma) => {
+        if (!acc[turma.cmei]) {
+            acc[turma.cmei] = [];
+        }
+        acc[turma.cmei].push(turma);
+        return acc;
+    }, {} as Record<string, AvailableTurma[]>);
+  }, [availableTurmas]);
+
   const allAvailableTurmas = availableTurmas || [];
 
   return (
@@ -100,19 +112,24 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
                     {isLoadingTurmas ? (
                         <SelectItem value="loading" disabled>Carregando...</SelectItem>
                     ) : allAvailableTurmas.length > 0 ? (
-                        allAvailableTurmas.map((turma, index) => {
-                            const label = `${turma.cmei} - ${turma.turma} (${turma.vagas} vagas)`;
-                            
-                            // O valor deve incluir o CMEI e a Turma ID e NOME
-                            return (
-                                <SelectItem 
-                                    key={index} 
-                                    value={`${turma.cmei_id}|${turma.turma_id}|${turma.cmei}|${turma.turma}`}
-                                >
-                                    {label}
-                                </SelectItem>
-                            );
-                        })
+                        Object.entries(groupedTurmas).map(([cmeiName, turmas]) => (
+                            <SelectGroup key={cmeiName}>
+                                <SelectLabel>{cmeiName}</SelectLabel>
+                                {turmas.map((turma, index) => {
+                                    const label = `${turma.turma} (${turma.vagas} vagas)`;
+                                    
+                                    // O valor deve incluir o CMEI e a Turma ID e NOME
+                                    return (
+                                        <SelectItem 
+                                            key={turma.turma_id} 
+                                            value={`${turma.cmei_id}|${turma.turma_id}|${turma.cmei}|${turma.turma}`}
+                                        >
+                                            {label}
+                                        </SelectItem>
+                                    );
+                                })}
+                            </SelectGroup>
+                        ))
                     ) : (
                         <SelectItem value="none" disabled>Nenhuma turma compatível encontrada.</SelectItem>
                     )}
