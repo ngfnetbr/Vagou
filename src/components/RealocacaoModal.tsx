@@ -85,6 +85,8 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
                         value={field.value}
                         onChange={field.onChange}
                         disabled={isSubmitting}
+                        availableTurmas={allAvailableTurmas}
+                        isLoading={isLoadingTurmas}
                     />
                 </FormControl>
                 <FormMessage />

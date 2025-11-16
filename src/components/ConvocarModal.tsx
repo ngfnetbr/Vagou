@@ -108,7 +108,7 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
     const isReconvocacao = crianca.status === 'Convocado';
 
     return (
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>
                     {isRemanejamento ? 'Convocar para Remanejamento' : isReconvocacao ? 'Reconvocar' : 'Convocar'} Criança

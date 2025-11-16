@@ -18,7 +18,7 @@ interface RealocacaoMassaModalProps {
 const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: RealocacaoMassaModalProps) => {
     // Mantemos o hook useMassActions apenas para o isPending (embora não seja usado para a ação real aqui)
     const { isMassRealocating } = useMassActions(); 
-    const { isLoading: isLoadingTurmas } = useGroupedAvailableTurmas();
+    const { allAvailableTurmas, isLoading: isLoadingTurmas } = useGroupedAvailableTurmas(); // Usando allAvailableTurmas
     
     const [selectedVaga, setSelectedVaga] = useState("");
     
@@ -72,6 +72,8 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
                         value={selectedVaga}
                         onChange={setSelectedVaga}
                         disabled={isProcessing}
+                        availableTurmas={allAvailableTurmas}
+                        isLoading={isLoadingTurmas}
                     />
                 </div>
             </div>
