@@ -46,14 +46,14 @@ const Transicoes = () => {
     savePlanning, 
     isSaving,
     updateCriancaStatusInPlanning,
-    updateCriancaVagaInPlanning, // Usado apenas para ações em massa
+    updateCriancaVagaInPlanning,
     massUpdateStatusInPlanning,
     massUpdateVagaInPlanning,
   } = useTransicoes();
   
   // O hook useCriancas é mantido para as mutações individuais que DEVEM ser imediatas (Realocação)
   const { 
-    realocarCrianca, // Adicionado
+    realocarCrianca, // Mantido para o isRealocating, mas não usado para a mutação aqui
     isRealocating, 
     isMarkingDesistente, 
     isTransferring 
@@ -126,21 +126,16 @@ const Transicoes = () => {
       setIsRealocacaoIndividualModalOpen(true);
   };
   
-  // Esta função AGORA ATUALIZA O DB IMEDIATAMENTE, conforme solicitado pelo usuário.
+  // Esta função AGORA ATUALIZA O ESTADO DE PLANEJAMENTO LOCAL
   const handleRealocacaoIndividualConfirm = async (criancaId: string, data: ConvocationData, cmeiNome: string, turmaNome: string) => {
-      try {
-          // Ação IMEDIATA no DB
-          await realocarCrianca({ id: criancaId, data });
-          
-          // Após a realocação, o useTransicoes será atualizado via re-fetch do useCriancas subjacente.
-          toast.success("Realocação concluída!", { description: `A criança foi movida imediatamente para ${cmeiNome} - ${turmaNome}.` });
-          
-          // Fechar modal
-          setIsRealocacaoIndividualModalOpen(false);
-          setCriancaToAction(undefined);
-      } catch (e: any) {
-          toast.error("Falha na Realocação Imediata", { description: e.message });
-      }
+      // Atualiza o estado de planejamento local
+      updateCriancaVagaInPlanning(criancaId, data.cmei_id, data.turma_id, cmeiNome, turmaNome);
+      
+      toast.success("Realocação planejada!", { description: `A criança será movida para ${cmeiNome} - ${turmaNome} ao aplicar a transição.` });
+      
+      // Fechar modal
+      setIsRealocacaoIndividualModalOpen(false);
+      setCriancaToAction(undefined);
   };
   
   // 2. Mudança de Status (Desistente/Concluinte)
@@ -381,7 +376,7 @@ const Transicoes = () => {
           {criancaToAction && (
             <RealocacaoModal
               crianca={criancaToAction}
-              // Passa a função de execução imediata
+              // Passa a função de planejamento local
               onConfirm={handleRealocacaoIndividualConfirm} 
               onClose={() => setIsRealocacaoIndividualModalOpen(false)}
               isPending={isRealocating} // Usa o isPending da mutação real
