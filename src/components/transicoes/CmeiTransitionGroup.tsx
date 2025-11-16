@@ -66,15 +66,6 @@ export const CmeiTransitionGroup = ({
             return null;
         }
         
-        // Se não houver planejamento, mostra a vaga atual (se houver)
-        if (crianca.cmeiNome && crianca.turmaNome) {
-            return (
-                <span className="text-xs text-muted-foreground">
-                    {crianca.cmeiNome} - {crianca.turmaNome}
-                </span>
-            );
-        }
-        
         return null;
     };
     
@@ -84,15 +75,15 @@ export const CmeiTransitionGroup = ({
         if (crianca.planned_status) {
             // Mapeia o status de saída para o termo de negócio "Conclusão de Ciclo"
             if (crianca.planned_status === 'Desistente' && crianca.statusTransicao === 'Remanejamento Interno') {
-                return <Badge variant="secondary" className="bg-secondary/20 text-secondary">Conclusão de Ciclo</Badge>;
+                return getStatusBadge('Desistente'); // Exibe o badge de Desistente
             }
             return getStatusBadge(crianca.planned_status);
         }
         
-        // Se não houver status planejado, exibe o status atual (para referência)
+        // Se não houver status planejado, exibe "Não Planejado"
         return (
-            <span className="text-xs text-muted-foreground">
-                {crianca.status} (Atual)
+            <span className="text-xs text-muted-foreground italic">
+                Não Planejado
             </span>
         );
     };

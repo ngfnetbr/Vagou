@@ -45,7 +45,7 @@ const classifyCriancasForTransition = (criancas: Crianca[]): CriancaClassificada
         return {
             ...crianca,
             statusTransicao,
-            // Inicializa o planejamento como NULL/UNDEFINED
+            // Inicializa o planejamento como UNDEFINED
             planned_status: undefined,
             planned_cmei_id: undefined,
             planned_turma_id: undefined,
@@ -204,14 +204,15 @@ export function useTransicoes() {
         
         // 1. Validação: Verificar se todas as crianças ativas têm um planejamento definido
         const unplannedCriancas = planningData.filter(c => 
-            c.statusTransicao !== 'Fila Reclassificada' && // Crianças da fila não precisam de planejamento de vaga/status, apenas reclassificação
+            // Crianças que estavam matriculadas/convocadas (Remanejamento Interno) DEVEM ter um planned_status definido.
+            c.statusTransicao === 'Remanejamento Interno' && 
             (c.planned_status === undefined || c.planned_status === null)
         );
         
         if (unplannedCriancas.length > 0) {
             const unplannedNames = unplannedCriancas.slice(0, 3).map(c => c.nome).join(', ');
             toast.error("Planejamento Incompleto", {
-                description: `Existem ${unplannedCriancas.length} crianças sem status planejado (ex: ${unplannedNames}). Por favor, defina a ação para todas as crianças ativas.`,
+                description: `Existem ${unplannedCriancas.length} crianças matriculadas sem status planejado (ex: ${unplannedNames}). Defina a ação (Realocar ou Conclusão de Ciclo).`,
                 duration: 8000,
             });
             throw new Error("Planejamento incompleto.");
@@ -219,9 +220,13 @@ export function useTransicoes() {
         
         // 2. Filtrar mudanças reais
         const changesToApply = planningData.filter(c => 
-            c.planned_status !== c.status || 
-            c.planned_cmei_id !== c.cmei_atual_id || 
-            c.planned_turma_id !== c.turma_atual_id
+            // Consideramos mudança se o planned_status for definido E for diferente do status atual
+            (c.planned_status !== undefined && c.planned_status !== c.status) ||
+            // OU se a vaga planejada for diferente da vaga atual (e o status não for de saída)
+            (c.planned_status !== 'Desistente' && c.planned_status !== 'Recusada' && (
+                c.planned_cmei_id !== c.cmei_atual_id || 
+                c.planned_turma_id !== c.turma_atual_id
+            ))
         );
         
         if (changesToApply.length === 0) {
@@ -237,22 +242,18 @@ export function useTransicoes() {
         for (const crianca of changesToApply) {
             const { id, planned_status, planned_cmei_id, planned_turma_id, planned_justificativa, planned_cmei_nome, planned_turma_nome } = crianca;
             
-            // 1. Mudança de Status (Desistente/Concluinte/Fila)
+            // 1. Mudança de Status (Desistente/Concluinte/Fila/Convocado)
             if (planned_status !== crianca.status) {
                 const justificativa = planned_justificativa || 'Ação de Transição Anual';
                 
                 if (planned_status === 'Desistente') {
                     promises.push(apiMarcarDesistente(id, justificativa));
                 } else if (planned_status === 'Recusada') {
-                    // Usamos Transferir (que marca como Desistente) para Concluintes/Evasão
                     promises.push(apiTransferirCrianca(id, justificativa)); 
                 } else if (planned_status === 'Fila de Espera') {
-                    // Reativação na fila (sem penalidade, pois é reclassificação)
-                    promises.push(apiMarcarFimDeFila(id, justificativa)); // Usamos Fim de Fila para garantir reclassificação
+                    promises.push(apiMarcarFimDeFila(id, justificativa)); 
                 } else if (planned_status === 'Convocado') {
-                    // Se o status planejado é Convocado, precisamos de cmei_id e turma_id
                     if (planned_cmei_id && planned_turma_id && planned_cmei_nome && planned_turma_nome) {
-                        // Nota: A convocação precisa de um deadline. Usaremos um prazo padrão de 7 dias.
                         const deadline = format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
                         promises.push(apiConvocarCrianca(id, { cmei_id: planned_cmei_id, turma_id: planned_turma_id }, planned_cmei_nome, planned_turma_nome, deadline));
                     }
@@ -260,7 +261,7 @@ export function useTransicoes() {
             } 
             
             // 2. Mudança de Vaga (Realocação)
-            // Se o status planejado for Matriculado/Matriculada E a vaga mudou
+            // Aplica realocação APENAS se o status for Matriculado/Matriculada E a vaga mudou
             if ((planned_status === 'Matriculado' || planned_status === 'Matriculada') && 
                 (planned_cmei_id !== crianca.cmei_atual_id || planned_turma_id !== crianca.turma_atual_id)) {
                 
@@ -300,7 +301,7 @@ export function useTransicoes() {
             queryClient.invalidateQueries({ queryKey: TRANSICOES_QUERY_KEY });
             queryClient.invalidateQueries({ queryKey: ['historicoGeral'] });
             toast.success(`Transição executada com sucesso!`, {
-                description: `${planningData.filter(c => c.planned_status !== c.status || c.planned_cmei_id !== c.cmei_atual_id || c.planned_turma_id !== c.turma_atual_id).length} crianças foram atualizadas.`,
+                description: `As crianças foram atualizadas conforme o planejamento.`,
             });
         },
         onError: (e: Error) => {
