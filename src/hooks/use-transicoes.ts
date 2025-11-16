@@ -198,7 +198,7 @@ export function useTransicoes() {
                     planned_turma_id: turma_id,
                     planned_cmei_nome: cmei_nome,
                     planned_turma_nome: turma_nome,
-                    planned_status: newPlannedStatus, 
+                    planned_status: newPlannedStatus,
                     planned_justificativa: null,
                 };
             }
@@ -263,8 +263,9 @@ export function useTransicoes() {
         try {
             localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(planningData));
             
-            // CRITICAL FIX: Use uma cópia do planningData para setLastSavedPlanning
+            // CRITICAL FIX: Use uma cópia profunda do planningData para setLastSavedPlanning
             // Isso garante que a referência mude e force a reavaliação de hasUnsavedChanges para false.
+            // Usamos JSON.parse(JSON.stringify) para garantir a imutabilidade completa dos objetos internos.
             setLastSavedPlanning(JSON.parse(JSON.stringify(planningData))); 
             
             await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay de salvamento
