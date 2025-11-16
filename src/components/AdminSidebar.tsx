@@ -17,7 +17,7 @@ import { useSidebarStore } from "@/hooks/use-sidebar-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // Importando useLocation
 import { toast } from "sonner";
 
 const menuItems = [
@@ -40,16 +40,28 @@ interface AdminSidebarProps {
 export const AdminSidebar = ({ shouldBlockNavigation }: AdminSidebarProps) => {
   const { isOpen, toggle } = useSidebarStore();
   const navigate = useNavigate();
+  const location = useLocation(); // Usado para o estilo ativo
   
   const ToggleIcon = isOpen ? ChevronLeft : ChevronRight;
   
   const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
+    // Se o usuário está tentando navegar para a mesma página, não faz nada
+    if (location.pathname === to) {
+        e.preventDefault();
+        return;
+    }
+    
     if (shouldBlockNavigation) {
       e.preventDefault();
-      toast.warning("Planejamento não salvo!", {
-        description: "Salve ou aplique suas alterações na Transição Anual antes de navegar.",
-        duration: 5000,
-      });
+      
+      const confirmNavigation = window.confirm("Deseja sair sem salvar? As alterações no planejamento de transição serão perdidas.");
+      
+      if (confirmNavigation) {
+        // Se o usuário confirmar, navegamos
+        navigate(to);
+      }
+      // Se o usuário cancelar, a navegação é bloqueada pelo preventDefault
+      
     } else {
       navigate(to);
     }
