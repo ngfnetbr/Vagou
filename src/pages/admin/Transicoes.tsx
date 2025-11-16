@@ -202,10 +202,9 @@ const Transicoes = () => {
           actionVariant: 'destructive' as const,
         };
       case 'concluinte':
-        // Concluinte individual AINDA requer justificativa, pois é uma ação manual fora do fluxo de massa
         return {
-          title: `Marcar ${criancaNome} como Concluinte (Evasão)`,
-          description: "Confirme a conclusão do ciclo no CMEI. A matrícula será encerrada e a criança marcada como desistente/transferida.",
+          title: `Marcar ${criancaNome} como Conclusão de Ciclo`,
+          description: "Confirme a conclusão do ciclo no CMEI. A matrícula será encerrada e a criança marcada como saída.",
           actionLabel: "Planejar Conclusão",
           isPending: isTransferring, // Usamos o isPending do hook real apenas para feedback visual
           actionVariant: 'secondary' as const,

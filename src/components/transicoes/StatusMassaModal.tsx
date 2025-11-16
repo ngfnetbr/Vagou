@@ -54,7 +54,7 @@ const StatusMassaModal = ({
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <p className="text-sm text-muted-foreground">
-                    Você está confirmando a conclusão do ciclo para <span className="font-semibold text-primary">{selectedIds.length} crianças</span>. Elas serão marcadas como <Badge variant="destructive" className="bg-destructive/20 text-destructive">Saída ({statusToApply})</Badge> e removidas das turmas ativas.
+                    Você está confirmando a conclusão do ciclo para <span className="font-semibold text-primary">{selectedIds.length} crianças</span>. Elas serão marcadas como <Badge variant="secondary" className="bg-secondary/20 text-secondary">Conclusão de Ciclo</Badge> e removidas das turmas ativas.
                 </p>
                 <p className="text-xs text-muted-foreground italic">
                     Justificativa automática: {justificativaPadrao}

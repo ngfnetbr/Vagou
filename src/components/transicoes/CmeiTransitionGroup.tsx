@@ -77,6 +77,10 @@ export const CmeiTransitionGroup = ({
     // Função para obter o status planejado (se houver mudança)
     const getPlannedStatus = (crianca: CriancaClassificada) => {
         if (crianca.planned_status && crianca.planned_status !== crianca.status) {
+            // Mapeia o status de saída para o termo de negócio "Conclusão de Ciclo"
+            if (crianca.planned_status === 'Desistente' && crianca.statusTransicao === 'Remanejamento Interno') {
+                return <Badge variant="secondary" className="bg-secondary/20 text-secondary">Conclusão de Ciclo</Badge>;
+            }
             return getStatusBadge(crianca.planned_status);
         }
         return getStatusBadge(crianca.status);
@@ -127,7 +131,7 @@ export const CmeiTransitionGroup = ({
                                                 {getStatusBadge(c.status)}
                                                 {(c.cmeiNome || c.turmaNome) && (
                                                     <span className="text-xs text-muted-foreground">
-                                                        {c.cmeiNome} - {c.turmaNome}
+                                                        {cmeiName} - {turmaName}
                                                     </span>
                                                 )}
                                             </div>
@@ -159,13 +163,13 @@ export const CmeiTransitionGroup = ({
                                                         Realocar Vaga
                                                     </DropdownMenuItem>
                                                     
-                                                    {/* Marcar Concluinte (Evasão) */}
+                                                    {/* Marcar Conclusão de Ciclo */}
                                                     <DropdownMenuItem 
                                                         onClick={() => handleStatusIndividualClick(c, 'concluinte')}
                                                         className="text-secondary focus:bg-secondary/10 focus:text-secondary"
                                                     >
                                                         <CheckCircle className="mr-2 h-4 w-4" />
-                                                        Marcar Concluinte
+                                                        Marcar Conclusão de Ciclo
                                                     </DropdownMenuItem>
                                                     
                                                     {/* Marcar Desistente */}
