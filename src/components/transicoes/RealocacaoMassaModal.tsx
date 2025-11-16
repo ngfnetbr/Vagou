@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useMassActions } from "@/hooks/use-mass-actions";
-import { useAllAvailableTurmas, AvailableTurma } from "@/hooks/use-all-available-turmas";
+import { useGroupedAvailableTurmas } from "@/hooks/use-grouped-available-turmas";
 
 interface RealocacaoMassaModalProps {
     selectedIds: string[]; // Recebe os IDs selecionados
@@ -17,36 +17,11 @@ interface RealocacaoMassaModalProps {
 const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: RealocacaoMassaModalProps) => {
     // Mantemos o hook useMassActions apenas para o isPending (embora não seja usado para a ação real aqui)
     const { isMassRealocating } = useMassActions(); 
-    const { data: allAvailableTurmas, isLoading: isLoadingTurmas } = useAllAvailableTurmas();
+    const { groupedTurmas, allAvailableTurmas, isLoading: isLoadingTurmas } = useGroupedAvailableTurmas();
     
     const [selectedVaga, setSelectedVaga] = useState("");
     
     const isProcessing = isMassRealocating || isLoadingTurmas;
-
-    // Agrupamento das turmas por CMEI
-    const groupedTurmas = useMemo(() => {
-        if (!allAvailableTurmas) return {};
-        
-        return allAvailableTurmas.reduce((acc, turma) => {
-            if (!acc[turma.cmei]) {
-                acc[turma.cmei] = [];
-            }
-            acc[turma.cmei].push(turma);
-            return acc;
-        }, {} as Record<string, AvailableTurma[]>);
-    }, [allAvailableTurmas]);
-
-    const availableTurmas = useMemo(() => {
-        if (!allAvailableTurmas) return [];
-        
-        return allAvailableTurmas.map(t => ({
-            id: t.turma_id,
-            cmei_id: t.cmei_id,
-            nome: `${t.turma} (${t.cmei}) - ${t.vagas} vagas`,
-            // Valor combinado: turma_id|cmei_id|turma_nome|cmei_nome
-            value: `${t.turma_id}|${t.cmei_id}|${t.turma}|${t.cmei}`,
-        }));
-    }, [allAvailableTurmas]);
 
     const handleConfirm = () => {
         if (!selectedVaga) {
@@ -54,8 +29,18 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
             return;
         }
         
-        // Valor combinado: turma_id|cmei_id|turma_nome|cmei_nome
-        const [turma_id, cmei_id, turma_nome, cmei_nome] = selectedVaga.split('|');
+        // Valor combinado: cmei_id|turma_id|cmei_nome|turma_nome
+        // Nota: O valor no SelectItem foi ajustado para cmei_id|turma_id|cmei_nome|turma_nome no RealocacaoModal.tsx
+        // Mas o valor que estamos usando aqui é turma_id|cmei_id|turma_nome|cmei_nome. Vamos padronizar para o formato do RealocacaoModal.tsx
+        // Revertendo a ordem de split para o formato que o SelectItem está gerando: cmei_id|turma_id|cmei_nome|turma_nome
+        const parts = selectedVaga.split('|');
+        
+        if (parts.length !== 4) {
+            toast.error("Erro de seleção. Tente novamente.");
+            return;
+        }
+        
+        const [cmei_id, turma_id, cmei_nome, turma_nome] = parts;
         
         if (!turma_id || !cmei_id) {
             toast.error("Erro de seleção. Tente novamente.");
@@ -92,7 +77,7 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
                         <SelectContent>
                             {isLoadingTurmas ? (
                                 <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                            ) : allAvailableTurmas && allAvailableTurmas.length > 0 ? (
+                            ) : allAvailableTurmas.length > 0 ? (
                                 Object.entries(groupedTurmas).map(([cmeiName, turmas]) => (
                                     <SelectGroup key={cmeiName}>
                                         <SelectLabel>{cmeiName}</SelectLabel>

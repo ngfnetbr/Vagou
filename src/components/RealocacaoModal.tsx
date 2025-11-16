@@ -9,9 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Save, X, Loader2, RotateCcw } from "lucide-react";
 import { Crianca, ConvocationData } from "@/integrations/supabase/types";
-import { useAllAvailableTurmas, AvailableTurma } from "@/hooks/use-all-available-turmas";
 import { toast } from "sonner";
-import { useMemo } from "react";
+import { useGroupedAvailableTurmas } from "@/hooks/use-grouped-available-turmas";
 
 // Schema for Realocation Form
 const vagaSchema = z.object({
@@ -29,8 +28,8 @@ interface RealocacaoModalProps {
 }
 
 const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoModalProps) => {
-  // Hook que busca todas as turmas disponíveis (sem filtro de idade)
-  const { data: availableTurmas, isLoading: isLoadingTurmas } = useAllAvailableTurmas();
+  // Hook que busca e agrupa todas as turmas disponíveis
+  const { groupedTurmas, allAvailableTurmas, isLoading: isLoadingTurmas } = useGroupedAvailableTurmas();
 
   const form = useForm<VagaFormData>({
     resolver: zodResolver(vagaSchema),
@@ -60,20 +59,7 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
     }
   };
   
-  // Agrupamento das turmas por CMEI
-  const groupedTurmas = useMemo(() => {
-    if (!availableTurmas) return {};
-    
-    return availableTurmas.reduce((acc, turma) => {
-        if (!acc[turma.cmei]) {
-            acc[turma.cmei] = [];
-        }
-        acc[turma.cmei].push(turma);
-        return acc;
-    }, {} as Record<string, AvailableTurma[]>);
-  }, [availableTurmas]);
-
-  const allAvailableTurmas = availableTurmas || [];
+  const isSubmitting = isPending || isLoadingTurmas;
 
   return (
     <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -102,7 +88,7 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Nova Turma *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingTurmas || isPending}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={isLoadingTurmas ? "Buscando turmas..." : "Selecione a Turma"} />
@@ -115,7 +101,7 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
                         Object.entries(groupedTurmas).map(([cmeiName, turmas]) => (
                             <SelectGroup key={cmeiName}>
                                 <SelectLabel>{cmeiName}</SelectLabel>
-                                {turmas.map((turma, index) => {
+                                {turmas.map((turma) => {
                                     const label = `${turma.turma} (${turma.vagas} vagas)`;
                                     
                                     // O valor deve incluir o CMEI e a Turma ID e NOME
@@ -141,7 +127,7 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
           />
           
           <DialogFooter className="pt-4 flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               <X className="mr-2 h-4 w-4" />
               Cancelar
             </Button>
@@ -149,9 +135,9 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
             <Button 
                 type="submit" 
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                disabled={isPending || !form.formState.isValid || isLoadingTurmas || allAvailableTurmas.length === 0}
+                disabled={isSubmitting || !form.formState.isValid || allAvailableTurmas.length === 0}
             >
-                {isPending ? (
+                {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                     <RotateCcw className="mr-2 h-4 w-4" />
