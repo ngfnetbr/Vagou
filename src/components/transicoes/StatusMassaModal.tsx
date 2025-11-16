@@ -1,112 +1,95 @@
-import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import React, { useState } from 'react';
+import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2, X } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
-import { useMassActions } from "@/hooks/use-mass-actions";
-import { Crianca } from "@/integrations/supabase/types";
+import { Loader2, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import { CriancaClassificada } from '@/hooks/use-transicoes';
+import { Badge } from "@/components/ui/badge";
 
 interface StatusMassaModalProps {
-    selectedIds: string[]; // Recebe os IDs selecionados
+    selectedIds: string[];
     onClose: () => void;
-    onConfirmMassStatusUpdate: (criancaIds: string[], status: Crianca['status'], justificativa: string) => void; // Função de planejamento
+    onConfirmMassStatusUpdate: (ids: string[], status: CriancaClassificada['status'], justificativa: string) => void;
+    // Novas props para customização
+    allowedStatus?: CriancaClassificada['status'][];
+    actionTitle?: string;
+    actionDescription?: string;
 }
 
-const statusOptions: { value: Crianca['status'], label: string }[] = [
-    { value: "Desistente", label: "Desistente" },
-    { value: "Recusada", label: "Recusada" },
-    { value: "Fila de Espera", label: "Fim de Fila (Penalidade)" }, // Usamos Fila de Espera, mas o API aplica a penalidade
-    { value: "Remanejamento Solicitado", label: "Remanejamento Solicitado" },
-];
-
-const StatusMassaModal = ({ selectedIds, onClose, onConfirmMassStatusUpdate }: StatusMassaModalProps) => {
-    const { isMassStatusUpdating } = useMassActions();
+const StatusMassaModal = ({ 
+    selectedIds, 
+    onClose, 
+    onConfirmMassStatusUpdate,
+    allowedStatus = ['Desistente', 'Recusada'], // Default para status de saída
+    actionTitle = "Mudar Status em Massa",
+    actionDescription = "Selecione o novo status e forneça uma justificativa para as crianças selecionadas.",
+}: StatusMassaModalProps) => {
+    const [justificativa, setJustificativa] = useState('');
+    const [isPending, setIsPending] = useState(false);
     
-    const [selectedStatus, setSelectedStatus] = useState<Crianca['status'] | ''>("");
-    const [justificativa, setJustificativa] = useState("");
-    
-    const isProcessing = isMassStatusUpdating;
+    // No contexto de 'Concluinte', o status de saída é 'Desistente'
+    const statusToApply: CriancaClassificada['status'] = allowedStatus[0] || 'Desistente'; 
 
     const handleConfirm = () => {
-        if (!selectedStatus) {
-            toast.error("Selecione o novo status.");
-            return;
-        }
-        if (justificativa.length < 10) {
-            toast.error("A justificativa deve ter pelo menos 10 caracteres.");
+        if (!justificativa.trim()) {
+            toast.error("A justificativa é obrigatória para a mudança de status em massa.");
             return;
         }
         
-        // Chama a função de planejamento
-        onConfirmMassStatusUpdate(selectedIds, selectedStatus as Crianca['status'], justificativa);
-        toast.success("Mudança de status em massa planejada!", {
-            description: `${selectedIds.length} crianças marcadas para status: ${selectedStatus}.`,
+        setIsPending(true);
+        
+        // Chama a função de planejamento com o status restrito
+        onConfirmMassStatusUpdate(selectedIds, statusToApply, justificativa);
+        
+        toast.success(`${selectedIds.length} crianças marcadas para ${statusToApply}.`, {
+            description: "A mudança será aplicada ao executar a transição."
         });
+        
+        setIsPending(false);
         onClose();
     };
 
     return (
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-                <div className="flex items-center gap-2">
-                    <Trash2 className="h-6 w-6 text-destructive" />
-                    <DialogTitle>Mudar Status em Massa</DialogTitle>
-                </div>
+                <DialogTitle>{actionTitle}</DialogTitle>
                 <DialogDescription>
-                    Altere o status de <span className="font-semibold">{selectedIds.length} crianças</span> e forneça uma justificativa.
+                    {actionDescription}
                 </DialogDescription>
             </DialogHeader>
-            
-            <div className="space-y-4 py-4">
+            <div className="grid gap-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                    Você está planejando marcar <span className="font-semibold text-primary">{selectedIds.length} crianças</span> como <Badge variant="destructive" className="bg-destructive/20 text-destructive">Concluinte/Saída ({statusToApply})</Badge>.
+                </p>
+                
                 <div className="space-y-2">
-                    <Label htmlFor="novo-status">Novo Status *</Label>
-                    <Select onValueChange={(value) => setSelectedStatus(value as Crianca['status'])} value={selectedStatus} disabled={isProcessing}>
-                        <SelectTrigger id="novo-status">
-                            <SelectValue placeholder="Selecione o Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {statusOptions.map(status => (
-                                <SelectItem key={status.value} value={status.value}>
-                                    {status.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="justificativa">Justificativa *</Label>
-                    <Textarea 
+                    <label htmlFor="justificativa" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Justificativa (Obrigatório)
+                    </label>
+                    <Textarea
                         id="justificativa"
-                        placeholder="Descreva o motivo da mudança de status (mínimo 10 caracteres)"
+                        placeholder="Motivo da conclusão do ciclo/saída em massa..."
                         value={justificativa}
                         onChange={(e) => setJustificativa(e.target.value)}
-                        disabled={isProcessing}
+                        rows={4}
+                        disabled={isPending}
                     />
                 </div>
             </div>
-
-            <DialogFooter className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>
-                    <X className="mr-2 h-4 w-4" />
+            <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={onClose} disabled={isPending}>
                     Cancelar
                 </Button>
-                <Button 
-                    type="button" 
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={handleConfirm}
-                    disabled={isProcessing || !selectedStatus || justificativa.length < 10}
-                >
-                    {isProcessing ? (
+                <Button onClick={handleConfirm} disabled={isPending}>
+                    {isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <CheckCircle className="mr-2 h-4 w-4" />
                     )}
-                    Planejar Mudança
+                    {isPending ? "Planejando..." : `Confirmar Saída (${selectedIds.length})`}
                 </Button>
-            </DialogFooter>
+            </div>
         </DialogContent>
     );
 };

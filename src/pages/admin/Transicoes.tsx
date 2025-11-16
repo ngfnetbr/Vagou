@@ -118,6 +118,7 @@ const Transicoes = () => {
       if (action === 'realocar') {
           setIsRealocacaoMassaModalOpen(true);
       } else if (action === 'status') {
+          // Esta ação agora é dedicada a marcar como Concluinte/Saída
           setIsStatusMassaModalOpen(true);
       }
   };
@@ -332,7 +333,7 @@ const Transicoes = () => {
                               disabled={isExecuting || isSaving}
                           >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Mudar Status em Massa
+                              Marcar Concluinte em Massa
                           </Button>
                       </div>
                   </CardContent>
@@ -391,6 +392,10 @@ const Transicoes = () => {
               selectedIds={selectedIds}
               onClose={handleMassModalClose}
               onConfirmMassStatusUpdate={massUpdateStatusInPlanning} // Passa a função de planejamento
+              // Adicionando prop para restringir a ação apenas a 'Concluinte'
+              allowedStatus={['Desistente']} // Usamos 'Desistente' como status de saída/concluinte no planejamento
+              actionTitle="Marcar Concluinte em Massa"
+              actionDescription="Confirme a conclusão do ciclo para as crianças selecionadas. Elas serão marcadas como 'Desistente' e removidas das turmas ativas."
           />
         </Dialog>
         
