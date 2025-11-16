@@ -16,10 +16,11 @@ const mockCmeis: CmeiSeedData[] = [ // Usando CmeiSeedData
 ];
 
 const mockTurmasBase: TurmaBaseFormData[] = [
-  { nome: "Berçário I", idade_minima_meses: 0, idade_maxima_meses: 11, descricao: "0 a 11 meses" },
-  { nome: "Berçário II", idade_minima_meses: 12, idade_maxima_meses: 23, descricao: "1 a 1 ano e 11 meses" },
-  { nome: "Maternal I", idade_minima_meses: 24, idade_maxima_meses: 35, descricao: "2 a 2 anos e 11 meses" },
-  { nome: "Maternal II", idade_minima_meses: 36, idade_maxima_meses: 47, descricao: "3 a 3 anos e 11 meses" },
+  { nome: "Infantil 0", idade_minima_meses: 0, idade_maxima_meses: 11, descricao: "0 a 11 meses" },
+  { nome: "Infantil 1", idade_minima_meses: 12, idade_maxima_meses: 23, descricao: "1 a 1 ano e 11 meses" },
+  { nome: "Infantil 2", idade_minima_meses: 24, idade_maxima_meses: 35, descricao: "2 a 2 anos e 11 meses" },
+  { nome: "Infantil 3", idade_minima_meses: 36, idade_maxima_meses: 47, descricao: "3 a 3 anos e 11 meses" },
+  // Mantendo Pré I e Pré II para cobrir a faixa etária completa, se necessário, mas focando nas 4 principais
   { nome: "Pré I", idade_minima_meses: 48, idade_maxima_meses: 59, descricao: "4 a 4 anos e 11 meses" },
   { nome: "Pré II", idade_minima_meses: 60, idade_maxima_meses: 71, descricao: "5 a 5 anos e 11 meses" },
 ];
