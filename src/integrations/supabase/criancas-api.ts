@@ -13,11 +13,12 @@ const getAdminUser = async (): Promise<string> => {
 
 // Reintroduzindo os JOINs necessários para CMEI e Turma
 // Usamos a sintaxe de relacionamento para garantir que a consulta não falhe se cmei_atual_id for NULL.
+// Usamos aliases explícitos para evitar conflitos de nome de tabela (cmeis)
 const SELECT_FIELDS = `
     *,
-    cmeis!criancas_cmei_atual_id_fkey(nome),
-    turmas!criancas_turma_atual_id_fkey(nome),
-    cmeis_remanejamento:cmeis!criancas_cmei_remanejamento_id_fkey(nome)
+    cmei_atual:cmeis!criancas_cmei_atual_id_fkey(nome),
+    turma_atual:turmas!criancas_turma_atual_id_fkey(nome),
+    cmei_remanejamento:cmeis!criancas_cmei_remanejamento_id_fkey(nome)
 `;
 
 // --- Funções de Busca ---
@@ -73,7 +74,7 @@ export const fetchCriancasByTurmaId = async (turmaId: string): Promise<Crianca[]
         .from('criancas')
         .select(SELECT_FIELDS)
         .eq('turma_atual_id', turmaId)
-        .in('status', ['Matriculado', 'Matriculada', 'Convocado'])
+        .in('status', ['Matriculado', 'Matriculada', 'Convocado', 'Remanejamento Solicitado'])
         .order('nome', { ascending: true });
 
     if (error) {
@@ -389,24 +390,25 @@ export const apiTransferirCrianca = async (criancaId: string, justificativa: str
 export const apiSolicitarRemanejamento = async (criancaId: string, cmeiId: string, cmeiNome: string, justificativa: string) => {
     const user = await getAdminUser();
     
-    // 1. Verifica se a criança está matriculada
+    // 1. Verifica se a criança está matriculada e obtém os IDs atuais
     const { data: crianca, error: fetchError } = await supabase
         .from('criancas')
-        .select('status')
+        .select('status, cmei_atual_id, turma_atual_id')
         .eq('id', criancaId)
         .single();
         
-    if (fetchError || !crianca || !['Matriculado', 'Matriculada'].includes(crianca.status)) {
+    if (fetchError || !crianca || !['Matriculado', 'Matriculada', 'Remanejamento Solicitado'].includes(crianca.status)) {
         throw new Error("A solicitação de remanejamento é exclusiva para crianças matriculadas.");
     }
     
-    // 2. Atualiza o status e o CMEI de remanejamento
+    // 2. Atualiza o status e o CMEI de remanejamento, MANTENDO os IDs atuais
     const { error } = await supabase
         .from('criancas')
         .update({
             status: "Remanejamento Solicitado",
             cmei_remanejamento_id: cmeiId, // Define o CMEI desejado
-            // Mantém cmei_atual_id e turma_atual_id
+            cmei_atual_id: crianca.cmei_atual_id, // MANTÉM
+            turma_atual_id: crianca.turma_atual_id, // MANTÉM
         })
         .eq('id', criancaId);
 

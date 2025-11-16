@@ -94,10 +94,10 @@ export const calculateAgeString = (dobString: string): string => {
 
 // Mapeia o formato do DB para o formato do Frontend (Crianca)
 export const mapDbToCrianca = (dbData: any): Crianca => {
-    // Nomes dos relacionamentos são baseados nos aliases definidos em criancas-api.ts
-    const cmeiAtual = dbData['cmeis!criancas_cmei_atual_id_fkey'];
-    const turmaAtual = dbData['turmas!criancas_turma_atual_id_fkey'];
-    const cmeiRemanejamento = dbData.cmeis_remanejamento;
+    // Usamos os aliases definidos em criancas-api.ts
+    const cmeiAtual = dbData.cmei_atual;
+    const turmaAtual = dbData.turma_atual;
+    const cmeiRemanejamento = dbData.cmei_remanejamento;
     
     return {
         id: dbData.id,
