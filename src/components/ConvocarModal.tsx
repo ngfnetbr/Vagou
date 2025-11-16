@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { format, addDays } from "date-fns";
 import { useConfiguracoes } from "@/hooks/use-configuracoes";
-import { useAllCompatibleTurmas } from "@/hooks/use-all-compatible-turmas"; // NOVO HOOK
+import { useAllTurmasByCmei } from "@/hooks/use-all-turmas-by-cmei"; // NOVO HOOK
 
 interface ConvocarModalProps {
     crianca: Crianca;
@@ -35,18 +35,17 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
     
     const isRemanejamento = crianca.status === 'Remanejamento Solicitado';
     
-    // Se for remanejamento, buscamos TODAS as turmas compatíveis no CMEI de destino (incluindo lotadas)
-    const { data: allCompatibleTurmas, isLoading: isLoadingCompatible } = useAllCompatibleTurmas(
-        crianca.id, 
+    // NOVO: Se for remanejamento, buscamos TODAS as turmas do CMEI de destino (sem filtro de idade)
+    const { data: allCmeiTurmas, isLoading: isLoadingAllTurmas } = useAllTurmasByCmei(
         isRemanejamento ? crianca.cmei_remanejamento_id : undefined
     );
     
-    // Se NÃO for remanejamento, usamos o hook original que filtra apenas por vagas disponíveis e preferências
+    // Se NÃO for remanejamento, usamos o hook original que filtra por vagas disponíveis e preferências
     const { data: availableTurmas, isLoading: isLoadingAvailable } = useAvailableTurmas(crianca.id);
 
     // Define a lista de turmas a ser usada no Select
-    const turmasToDisplay = isRemanejamento ? allCompatibleTurmas : availableTurmas;
-    const isLoadingData = isLoadingConfig || isLoadingCompatible || isLoadingAvailable;
+    const turmasToDisplay = isRemanejamento ? allCmeiTurmas : availableTurmas;
+    const isLoadingData = isLoadingConfig || isLoadingAllTurmas || isLoadingAvailable;
 
     const form = useForm<ConvocarFormData>({
         resolver: zodResolver(convocarSchema),
@@ -121,7 +120,7 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
                         </p>
                     </div>
                     <p className="text-xs text-muted-foreground italic pt-2 border-t border-primary/10">
-                        A lista de vagas abaixo mostra todas as turmas compatíveis com a idade no CMEI desejado, incluindo as lotadas.
+                        A lista de vagas abaixo mostra todas as turmas do CMEI desejado, independentemente da faixa etária ou ocupação.
                     </p>
                 </div>
             ) : (
@@ -165,11 +164,9 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
                                                 const isPreferred = !isRemanejamento && (crianca.cmei1_preferencia === vaga.cmei || crianca.cmei2_preferencia === vaga.cmei);
                                                 
                                                 // Se for remanejamento, mostramos o status de vagas
-                                                const vagasText = isRemanejamento 
-                                                    ? `(${vaga.vagas} vagas)` 
-                                                    : `(${vaga.vagas} vagas)`;
+                                                const vagasText = `(${vaga.vagas} vagas)`;
                                                     
-                                                const isLotada = isRemanejamento && vaga.vagas <= 0;
+                                                const isLotada = vaga.vagas <= 0;
                                                 
                                                 const label = `${vaga.cmei} - ${vaga.turma} ${vagasText}`;
                                                 
