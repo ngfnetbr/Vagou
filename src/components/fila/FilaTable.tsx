@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MoreVertical, Eye, CheckCircle, Bell, XCircle, ListRestart, RotateCcw, Loader2, Trash2 } from "lucide-react";
+import { MoreVertical, Eye, CheckCircle, Bell, XCircle, ListRestart, RotateCcw, Loader2, Trash2, Baby } from "lucide-react";
 import { Crianca } from "@/integrations/supabase/types"; // Importação atualizada
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -104,7 +104,9 @@ export const FilaTable = ({
                         {/* Display Age with Warning if under 6 months */}
                         <div className="flex flex-col items-start">
                             {isUnderSixMonths && (
-                                <span className="font-bold text-destructive text-xs mb-1">Menor de 6 meses</span>
+                                <span className="font-bold text-destructive text-xs mb-1 flex items-center gap-1">
+                                    <Baby className="h-3 w-3" /> Menor de 6 meses
+                                </span>
                             )}
                             <span>{item.idade}</span>
                         </div>
