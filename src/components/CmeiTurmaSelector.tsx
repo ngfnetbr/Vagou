@@ -121,7 +121,7 @@ const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
           </div>
         ) : (
           <ScrollArea className="h-auto max-h-[50vh]">
-            <div className="p-1">
+            <div className="p-0"> {/* Removendo padding aqui para evitar conflito com ScrollArea */}
               {selectedCmeiName ? (
                 // --- Etapa 2: Seleção da Turma (3 COLUNAS) ---
                 <div className="space-y-2">
@@ -133,7 +133,7 @@ const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
                     </div>
                     
                     {/* GRID DE 3 COLUNAS */}
-                    <div className="grid grid-cols-3 gap-1 p-1"> 
+                    <div className="grid grid-cols-3 gap-1 p-2"> {/* Adicionando padding aqui */}
                         {currentTurmas.map((vaga) => {
                             const vagaValue = `${vaga.cmei_id}|${vaga.turma_id}|${vaga.cmei}|${vaga.turma}`;
                             const isSelected = value === vagaValue;
