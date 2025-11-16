@@ -62,7 +62,7 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
   const isSubmitting = isPending || isLoadingTurmas;
 
   return (
-    <DialogContent className="max-w-xl max-h-[90vh] h-full sm:h-auto overflow-y-auto">
+    <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Realocar {crianca.nome}</DialogTitle>
         <DialogDescription>

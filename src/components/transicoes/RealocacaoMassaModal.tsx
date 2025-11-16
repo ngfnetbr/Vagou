@@ -54,7 +54,7 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
     };
 
     return (
-        <DialogContent className="sm:max-w-[425px] max-h-[90vh] h-full sm:h-auto overflow-y-auto">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-2">
                     <RotateCcw className="h-6 w-6 text-secondary" />
