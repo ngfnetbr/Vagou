@@ -4,11 +4,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Loader2, ArrowRight, CheckCircle, ListOrdered, GraduationCap, Users } from "lucide-react";
+import { AlertCircle, Loader2, ArrowRight, CheckCircle, ListOrdered, GraduationCap, Users, Save } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useTransicoes, CriancaClassificada } from "@/hooks/use-transicoes";
+import { useTransicoes, CriancaClassificada, StatusTransicao } from "@/hooks/use-transicoes";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Transicoes = () => {
   const currentYear = new Date().getFullYear();
@@ -17,7 +28,15 @@ const Transicoes = () => {
   // O ano alvo é o ano letivo para o qual estamos planejando
   const [targetYear, setTargetYear] = useState<number>(nextYear);
   
-  const { classificacao, isLoading, isExecuting, executeTransition } = useTransicoes(targetYear);
+  const { 
+    classificacao, 
+    isLoading, 
+    isExecuting, 
+    executeTransition, 
+    updatePlanning, 
+    savePlanning, 
+    isSaving 
+  } = useTransicoes(targetYear);
 
   const anosDisponiveis = useMemo(() => {
     // Oferece o ano atual e os próximos 3 anos para planejamento
@@ -35,7 +54,7 @@ const Transicoes = () => {
   }, [classificacao]);
   
   const handleExecuteTransition = async () => {
-    await executeTransition(classificacao);
+    await executeTransition();
   };
   
   const getStatusBadge = (status: CriancaClassificada['statusTransicao']) => {
@@ -50,6 +69,13 @@ const Transicoes = () => {
             return <Badge variant="outline">Manter Status</Badge>;
     }
   };
+  
+  const statusOptions: { value: StatusTransicao, label: string }[] = [
+    { value: 'Remanejamento Interno', label: 'Remanejamento Interno' },
+    { value: 'Fila Reclassificada', label: 'Fila Reclassificada' },
+    { value: 'Concluinte', label: 'Concluinte (Evasão)' },
+    { value: 'Manter Status', label: 'Manter Status Atual' },
+  ];
 
   return (
     <AdminLayout>
@@ -75,7 +101,7 @@ const Transicoes = () => {
                 <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     Ano Letivo Alvo
                 </label>
-                <Select onValueChange={(value) => setTargetYear(Number(value))} value={String(targetYear)} disabled={isLoading || isExecuting}>
+                <Select onValueChange={(value) => setTargetYear(Number(value))} value={String(targetYear)} disabled={isLoading || isExecuting || isSaving}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o ano" />
                   </SelectTrigger>
@@ -93,14 +119,14 @@ const Transicoes = () => {
                     <AlertTitle>Data de Corte</AlertTitle>
                     <AlertDescription>
                         A classificação etária será calculada com base na idade da criança em 
-                        <span className="font-semibold"> 31 de Março de {targetYear} </span>.
+                        <span className="font-semibold"> {cutoffDate} </span>.
                     </AlertDescription>
                 </Alert>
               </div>
             </div>
             
             <div className="pt-4 border-t border-border">
-                <h3 className="text-lg font-semibold mb-2">Resumo da Classificação ({classificacao.length} crianças ativas)</h3>
+                <h3 className="text-lg font-semibold mb-2">Resumo do Planejamento ({classificacao.length} crianças ativas)</h3>
                 <div className="grid grid-cols-3 gap-4">
                     <Card className="bg-secondary/10 border-secondary">
                         <CardContent className="pt-4">
@@ -132,18 +158,56 @@ const Transicoes = () => {
                 </div>
             </div>
             
-            <Button 
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
-                onClick={handleExecuteTransition}
-                disabled={isExecuting || isLoading || classificacao.length === 0}
-            >
-                {isExecuting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                )}
-                {isExecuting ? "Executando Transição..." : `Executar Transição para ${targetYear}`}
-            </Button>
+            <div className="flex gap-4 pt-4 border-t border-border">
+                <Button 
+                    variant="outline"
+                    className="flex-1 text-primary border-primary hover:bg-primary/10"
+                    onClick={savePlanning}
+                    disabled={isSaving || isExecuting || isLoading || classificacao.length === 0}
+                >
+                    {isSaving ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                    )}
+                    {isSaving ? "Salvando..." : "Salvar Planejamento"}
+                </Button>
+                
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button 
+                            className="flex-1 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                            disabled={isExecuting || isLoading || classificacao.length === 0}
+                        >
+                            {isExecuting ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                            )}
+                            {isExecuting ? "Aplicando..." : `Aplicar Transição para ${targetYear}`}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar Aplicação da Transição?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta ação irá aplicar o planejamento atual, alterando o status de {classificacao.length} crianças. 
+                                <span className="font-semibold text-destructive block mt-2">Esta ação é irreversível e deve ser feita apenas uma vez por ano letivo.</span>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel disabled={isExecuting}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={handleExecuteTransition} 
+                                className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                                disabled={isExecuting}
+                            >
+                                {isExecuting ? "Aplicando..." : "Confirmar e Aplicar"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
           </CardContent>
         </Card>
         
@@ -152,7 +216,7 @@ const Transicoes = () => {
             <CardHeader>
                 <CardTitle>Detalhes da Reclassificação</CardTitle>
                 <CardDescription>
-                    Lista de todas as crianças ativas e sua classificação para o ano letivo de {targetYear}.
+                    Ajuste manualmente a ação sugerida para cada criança, se necessário.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -171,7 +235,7 @@ const Transicoes = () => {
                                     <TableHead>Idade Corte ({cutoffDate})</TableHead>
                                     <TableHead>Turma Base Atual</TableHead>
                                     <TableHead>Turma Base {targetYear}</TableHead>
-                                    <TableHead>Ação Sugerida</TableHead>
+                                    <TableHead className="w-[250px]">Ação Sugerida (Ajuste Manual)</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -183,7 +247,24 @@ const Transicoes = () => {
                                             <TableCell>{c.idadeCorte !== null ? `${c.idadeCorte} ano(s)` : 'N/A'}</TableCell>
                                             <TableCell>{c.turmaBaseAtual}</TableCell>
                                             <TableCell className="font-semibold">{c.turmaBaseProximoAno}</TableCell>
-                                            <TableCell>{getStatusBadge(c.statusTransicao)}</TableCell>
+                                            <TableCell>
+                                                <Select 
+                                                    value={c.statusTransicao} 
+                                                    onValueChange={(value: StatusTransicao) => updatePlanning(c.id, value)}
+                                                    disabled={isExecuting || isSaving}
+                                                >
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Ação Sugerida" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {statusOptions.map(option => (
+                                                            <SelectItem key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (

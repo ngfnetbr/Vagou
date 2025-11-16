@@ -3,16 +3,18 @@ import { Crianca } from "@/integrations/supabase/types";
 import { fetchCriancas } from "@/integrations/supabase/criancas-api";
 import { calculateAgeAtCutoff, determineTurmaBaseName } from "@/integrations/supabase/utils";
 import { toast } from "sonner";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 const TRANSICOES_QUERY_KEY = ["transicoes"];
+
+export type StatusTransicao = 'Concluinte' | 'Remanejamento Interno' | 'Fila Reclassificada' | 'Manter Status';
 
 // Tipagem para o resultado da classificação
 export interface CriancaClassificada extends Crianca {
     idadeCorte: number | null;
     turmaBaseAtual: string;
     turmaBaseProximoAno: string;
-    statusTransicao: 'Concluinte' | 'Remanejamento Interno' | 'Fila Reclassificada' | 'Manter Status';
+    statusTransicao: StatusTransicao;
 }
 
 // Função de classificação no frontend
@@ -33,16 +35,13 @@ const classifyCriancasForTransition = (criancas: Crianca[], targetYear: number):
         const idadeCorteAtual = calculateAgeAtCutoff(crianca.data_nascimento, new Date().getFullYear());
         const turmaBaseAtual = determineTurmaBaseName(idadeCorteAtual);
 
-        let statusTransicao: CriancaClassificada['statusTransicao'] = 'Manter Status';
+        let statusTransicao: StatusTransicao = 'Manter Status';
 
         if (turmaBaseProximoAno === 'Fora da faixa etária') {
-            // Assumimos que "Fora da faixa etária" (4 anos ou mais na data de corte) significa que a criança concluiu o CMEI.
             statusTransicao = 'Concluinte';
         } else if (crianca.status === 'Matriculado' || crianca.status === 'Matriculada') {
-            // Se está matriculado e não é concluinte, é remanejamento interno
             statusTransicao = 'Remanejamento Interno';
         } else if (crianca.status === 'Fila de Espera' || crianca.status === 'Convocado') {
-            // Se está na fila ou convocado, precisa ser reclassificado na fila
             statusTransicao = 'Fila Reclassificada';
         }
 
@@ -60,6 +59,10 @@ const classifyCriancasForTransition = (criancas: Crianca[], targetYear: number):
 
 export function useTransicoes(targetYear: number) {
     const queryClient = useQueryClient();
+    
+    // Estado para armazenar o planejamento (ajustes manuais)
+    const [planningData, setPlanningData] = useState<CriancaClassificada[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Reutiliza a query de todas as crianças ativas
     const { data: criancas, isLoading, error } = useQuery<Crianca[], Error>({
@@ -67,18 +70,54 @@ export function useTransicoes(targetYear: number) {
         queryFn: fetchCriancas,
     });
 
-    const classificacao = useMemo(() => {
+    // Classificação inicial baseada no ano alvo
+    const initialClassification = useMemo(() => {
         if (!criancas) return [];
         return classifyCriancasForTransition(criancas, targetYear);
     }, [criancas, targetYear]);
     
-    // Mock de mutação para executar a transição em massa
-    const executeTransition = async (data: CriancaClassificada[]) => {
-        // Simulação de API call para executar a transição no backend
-        console.log(`Executando transição para o ano ${targetYear}. Total de ${data.length} crianças.`);
+    // Sincroniza a classificação inicial com o estado de planejamento
+    useEffect(() => {
+        // Se não houver dados de planejamento ou se o ano alvo mudar, reinicia o planejamento
+        if (initialClassification.length > 0 && planningData.length === 0 || 
+            (planningData.length > 0 && planningData[0].turmaBaseProximoAno !== initialClassification[0]?.turmaBaseProximoAno)
+        ) {
+            setPlanningData(initialClassification);
+        }
+    }, [initialClassification, planningData]);
+    
+    // Função para atualizar manualmente o status de transição de uma criança
+    const updatePlanning = (criancaId: string, newStatus: StatusTransicao) => {
+        setPlanningData(prev => prev.map(c => 
+            c.id === criancaId ? { ...c, statusTransicao: newStatus } : c
+        ));
+    };
+    
+    // Simulação de salvamento do planejamento (em um ambiente real, isso iria para o DB)
+    const savePlanning = async () => {
+        setIsSaving(true);
+        try {
+            // Simula o salvamento no DB
+            await new Promise(resolve => setTimeout(resolve, 500));
+            toast.success("Planejamento salvo com sucesso!", {
+                description: `Ajustes para ${targetYear} foram armazenados.`,
+            });
+        } catch (e) {
+            toast.error("Erro ao salvar planejamento.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Mock de mutação para executar a transição em massa (aplica o planejamento salvo)
+    const executeTransition = async () => {
+        if (planningData.length === 0) {
+            toast.error("Nenhum planejamento para aplicar.");
+            return;
+        }
         
-        // Em um ambiente real, esta função chamaria uma Edge Function ou RPC no Supabase
-        // para executar as mutações em massa (atualizar status, limpar cmei/turma, etc.)
+        // Simulação de API call para executar a transição no backend
+        console.log(`Executando transição para o ano ${targetYear}. Total de ${planningData.length} crianças.`);
         
         // Mock de sucesso
         return new Promise(resolve => setTimeout(resolve, 1500));
@@ -87,6 +126,8 @@ export function useTransicoes(targetYear: number) {
     const transitionMutation = useMutation({
         mutationFn: executeTransition,
         onSuccess: () => {
+            // Limpa o planejamento após a aplicação
+            setPlanningData([]);
             queryClient.invalidateQueries({ queryKey: ["criancas"] });
             queryClient.invalidateQueries({ queryKey: TRANSICOES_QUERY_KEY });
             toast.success(`Transição para ${targetYear} executada com sucesso!`, {
@@ -101,9 +142,12 @@ export function useTransicoes(targetYear: number) {
     });
 
     return {
-        classificacao,
-        isLoading: isLoading || transitionMutation.isPending,
+        classificacao: planningData, // Retorna os dados de planejamento
+        isLoading: isLoading,
         error,
+        updatePlanning,
+        savePlanning,
+        isSaving,
         executeTransition: transitionMutation.mutateAsync,
         isExecuting: transitionMutation.isPending,
     };
