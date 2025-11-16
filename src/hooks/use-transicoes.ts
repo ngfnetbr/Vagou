@@ -262,7 +262,11 @@ export function useTransicoes() {
         setIsSaving(true);
         try {
             localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(planningData));
-            setLastSavedPlanning(planningData); // ATUALIZA O ESTADO SALVO
+            
+            // CRITICAL FIX: Use uma cópia do planningData para setLastSavedPlanning
+            // Isso garante que a referência mude e force a reavaliação de hasUnsavedChanges para false.
+            setLastSavedPlanning(JSON.parse(JSON.stringify(planningData))); 
+            
             await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay de salvamento
             toast.success("Planejamento salvo com sucesso!", {
                 description: `Ajustes foram armazenados localmente no navegador.`,
@@ -423,7 +427,7 @@ export function useTransicoes() {
         // Funções de planejamento
         updateCriancaStatusInPlanning,
         updateCriancaVagaInPlanning,
-        massUpdateStatusInPlanning, // Corrigido: Esta função estava faltando no retorno
+        massUpdateStatusInPlanning,
         massUpdateVagaInPlanning,
     };
 }
