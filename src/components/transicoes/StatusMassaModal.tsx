@@ -1,0 +1,112 @@
+import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Trash2, Loader2, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+
+interface StatusMassaModalProps {
+    selectedCount: number;
+    onClose: () => void;
+}
+
+const statusOptions = [
+    { value: "Desistente", label: "Desistente" },
+    { value: "Recusada", label: "Recusada" },
+    { value: "Fim de Fila", label: "Fim de Fila (Penalidade)" },
+    { value: "Remanejamento Solicitado", label: "Remanejamento Solicitado" },
+];
+
+const StatusMassaModal = ({ selectedCount, onClose }: StatusMassaModalProps) => {
+    const [selectedStatus, setSelectedStatus] = useState("");
+    const [justificativa, setJustificativa] = useState("");
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleConfirm = async () => {
+        if (!selectedStatus) {
+            toast.error("Selecione o novo status.");
+            return;
+        }
+        if (justificativa.length < 10) {
+            toast.error("A justificativa deve ter pelo menos 10 caracteres.");
+            return;
+        }
+        
+        setIsProcessing(true);
+        // Simulação de API call para mudança de status em massa
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        toast.success(`Status de ${selectedCount} crianças alterado!`, {
+            description: `Novo status: ${selectedStatus}.`,
+        });
+        
+        setIsProcessing(false);
+        onClose();
+    };
+
+    return (
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <div className="flex items-center gap-2">
+                    <Trash2 className="h-6 w-6 text-destructive" />
+                    <DialogTitle>Mudar Status em Massa</DialogTitle>
+                </div>
+                <DialogDescription>
+                    Altere o status de <span className="font-semibold">{selectedCount} crianças</span> e forneça uma justificativa.
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="novo-status">Novo Status *</Label>
+                    <Select onValueChange={setSelectedStatus} value={selectedStatus} disabled={isProcessing}>
+                        <SelectTrigger id="novo-status">
+                            <SelectValue placeholder="Selecione o Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {statusOptions.map(status => (
+                                <SelectItem key={status.value} value={status.value}>
+                                    {status.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="justificativa">Justificativa *</Label>
+                    <Textarea 
+                        id="justificativa"
+                        placeholder="Descreva o motivo da mudança de status (mínimo 10 caracteres)"
+                        value={justificativa}
+                        onChange={(e) => setJustificativa(e.target.value)}
+                        disabled={isProcessing}
+                    />
+                </div>
+            </div>
+
+            <DialogFooter className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={onClose} disabled={isProcessing}>
+                    <X className="mr-2 h-4 w-4" />
+                    Cancelar
+                </Button>
+                <Button 
+                    type="button" 
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleConfirm}
+                    disabled={isProcessing || !selectedStatus || justificativa.length < 10}
+                >
+                    {isProcessing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    Confirmar Mudança
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    );
+};
+
+export default StatusMassaModal;

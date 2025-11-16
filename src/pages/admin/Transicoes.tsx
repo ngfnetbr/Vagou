@@ -2,9 +2,9 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Loader2, ArrowRight, CheckCircle, ListOrdered, GraduationCap, Users, Save } from "lucide-react";
+import { AlertCircle, Loader2, ArrowRight, CheckCircle, ListOrdered, GraduationCap, Users, Save, RotateCcw, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useTransicoes } from "@/hooks/use-transicoes";
+import { useTransicoes, CriancaClassificada, StatusTransicao } from "@/hooks/use-transicoes";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -17,13 +17,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import TransicoesList from "@/components/transicoes/TransicoesList";
+import { RemanejamentoTable } from "@/components/transicoes/RemanejamentoTable";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { toast } from "sonner";
+import { Dialog } from "@/components/ui/dialog";
+import RealocacaoMassaModal from "@/components/transicoes/RealocacaoMassaModal";
+import StatusMassaModal from "@/components/transicoes/StatusMassaModal";
 
 const Transicoes = () => {
   const currentYear = new Date().getFullYear();
   
-  // O hook agora usa o ano atual internamente
   const { 
     classificacao, 
     isLoading, 
@@ -34,8 +37,51 @@ const Transicoes = () => {
     isSaving 
   } = useTransicoes();
 
-  const targetYear = currentYear; // Usamos o ano atual como referência
-  const cutoffDate = format(new Date(targetYear, 2, 31), 'dd/MM/yyyy'); // Mês 2 é Março
+  const targetYear = currentYear;
+  const cutoffDate = format(new Date(targetYear, 2, 31), 'dd/MM/yyyy');
+  
+  // --- Lógica de Seleção em Massa ---
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isRealocacaoMassaModalOpen, setIsRealocacaoMassaModalOpen] = useState(false);
+  const [isStatusMassaModalOpen, setIsStatusMassaModalOpen] = useState(false);
+  
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => 
+        prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+  
+  const toggleAllSelection = (ids: string[]) => {
+    const allSelected = ids.every(id => selectedIds.includes(id));
+    if (allSelected) {
+        setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
+    } else {
+        setSelectedIds(prev => Array.from(new Set([...prev, ...ids])));
+    }
+  };
+  
+  const handleMassAction = (action: 'realocar' | 'status') => {
+      if (selectedIds.length === 0) {
+          toast.warning("Selecione pelo menos uma criança para realizar a ação em massa.");
+          return;
+      }
+      
+      if (action === 'realocar') {
+          setIsRealocacaoMassaModalOpen(true);
+      } else if (action === 'status') {
+          setIsStatusMassaModalOpen(true);
+      }
+  };
+  
+  const handleMassModalClose = () => {
+      setIsRealocacaoMassaModalOpen(false);
+      setIsStatusMassaModalOpen(false);
+      // Após a ação em massa, desmarcamos todos os selecionados
+      setSelectedIds([]);
+      // Em um cenário real, aqui você invalidaria a query de crianças para refletir as mudanças
+  };
+  // --- Fim Lógica de Seleção em Massa ---
+
 
   const { matriculados, fila, concluintes } = useMemo(() => {
     const matriculados = classificacao.filter(c => c.status === 'Matriculado' || c.status === 'Matriculada' || c.status === 'Remanejamento Solicitado');
@@ -175,6 +221,35 @@ const Transicoes = () => {
           </CardContent>
         </Card>
         
+        {/* Ações em Massa */}
+        {selectedIds.length > 0 && (
+            <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="pt-4 flex items-center justify-between">
+                    <p className="font-semibold text-primary">{selectedIds.length} crianças selecionadas.</p>
+                    <div className="flex gap-3">
+                        <Button 
+                            variant="outline" 
+                            className="text-secondary border-secondary hover:bg-secondary/10"
+                            onClick={() => handleMassAction('realocar')}
+                            disabled={isExecuting || isSaving}
+                        >
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Realocar em Massa
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            className="text-destructive border-destructive hover:bg-destructive/10"
+                            onClick={() => handleMassAction('status')}
+                            disabled={isExecuting || isSaving}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Mudar Status em Massa
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
+        
         {/* Layout de Planejamento (Duas Colunas) */}
         <h2 className="text-2xl font-bold text-foreground pt-4">Planejamento Detalhado</h2>
         <CardDescription className="mb-4">
@@ -186,40 +261,64 @@ const Transicoes = () => {
             className="min-h-[75vh] rounded-lg border"
         >
             <ResizablePanel defaultSize={50} minSize={30}>
-                <TransicoesList
+                <RemanejamentoTable
                     title="Matriculados Atuais"
                     icon={GraduationCap}
                     data={matriculados}
                     updatePlanning={updatePlanning}
                     isSaving={isSaving}
                     isExecuting={isExecuting}
+                    selectedIds={selectedIds}
+                    toggleSelection={toggleSelection}
+                    toggleAllSelection={(ids) => toggleAllSelection(ids.filter(id => matriculados.map(m => m.id).includes(id)))}
                 />
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={50} minSize={30}>
-                <TransicoesList
+                <RemanejamentoTable
                     title="Fila de Espera / Convocados"
                     icon={ListOrdered}
                     data={fila}
                     updatePlanning={updatePlanning}
                     isSaving={isSaving}
                     isExecuting={isExecuting}
+                    selectedIds={selectedIds}
+                    toggleSelection={toggleSelection}
+                    toggleAllSelection={(ids) => toggleAllSelection(ids.filter(id => fila.map(f => f.id).includes(id)))}
                 />
             </ResizablePanel>
         </ResizablePanelGroup>
         
         {/* Concluintes (Evasão) - Lista separada */}
         <div className="pt-6">
-            <TransicoesList
+            <RemanejamentoTable
                 title="Concluintes (Evasão Sugerida)"
                 icon={Users}
                 data={concluintes}
                 updatePlanning={updatePlanning}
                 isSaving={isSaving}
                 isExecuting={isExecuting}
+                selectedIds={selectedIds}
+                toggleSelection={toggleSelection}
+                toggleAllSelection={(ids) => toggleAllSelection(ids.filter(id => concluintes.map(c => c.id).includes(id)))}
             />
         </div>
       </div>
+      
+      {/* Modais de Ação em Massa */}
+      <Dialog open={isRealocacaoMassaModalOpen} onOpenChange={setIsRealocacaoMassaModalOpen}>
+        <RealocacaoMassaModal 
+            selectedCount={selectedIds.length}
+            onClose={handleMassModalClose}
+        />
+      </Dialog>
+      
+      <Dialog open={isStatusMassaModalOpen} onOpenChange={setIsStatusMassaModalOpen}>
+        <StatusMassaModal 
+            selectedCount={selectedIds.length}
+            onClose={handleMassModalClose}
+        />
+      </Dialog>
     </AdminLayout>
   );
 };
