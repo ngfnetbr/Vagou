@@ -119,7 +119,7 @@ const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
                                     key={vaga.turma_id}
                                     onClick={() => handleSelectTurma(vaga)}
                                     className={cn(
-                                        "flex items-center justify-between p-3 rounded-md text-sm cursor-pointer transition-colors border",
+                                        "flex items-center justify-between p-2 rounded-md text-sm cursor-pointer transition-colors border", // Alterado de p-3 para p-2
                                         isSelected 
                                             ? "bg-primary text-primary-foreground border-primary shadow-md" 
                                             : "hover:bg-accent border-transparent bg-background"
