@@ -309,12 +309,10 @@ export function useTransicoes() {
     
     // NOVO: Função para descartar o planejamento
     const discardPlanning = () => {
-        localStorage.removeItem(PLANNING_STORAGE_KEY);
-        // Reseta o estado local para a classificação inicial (estado do DB)
-        setPlanningData(initialClassification);
-        setLastSavedPlanning(initialClassification);
+        // NÃO LIMPA O LOCAL STORAGE. Apenas reverte o estado atual para o último estado salvo (lastSavedPlanning).
+        setPlanningData(lastSavedPlanning);
         toast.info("Alterações descartadas.", {
-            description: "O planejamento foi revertido para o estado inicial.",
+            description: "O planejamento foi revertido para o último estado salvo no navegador.",
         });
     };
 

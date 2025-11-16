@@ -97,7 +97,7 @@ const Transicoes = () => {
   };
   
   const handleDiscardAndNavigate = (to: string) => {
-      // 1. Descarta o planejamento (limpa localStorage e reseta estado local)
+      // 1. Descarta as alterações não salvas (reverte para o último estado salvo no localStorage)
       discardPlanning();
       // 2. Navega
       navigate(to);
