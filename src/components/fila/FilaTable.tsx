@@ -152,9 +152,6 @@ export const FilaTable = ({
                                 >
                                     Remanejamento
                                 </Badge>
-                                <span className="text-xs text-muted-foreground mt-1">
-                                    {item.cmeiNome} ({item.turmaNome})
-                                </span>
                             </div>
                         ) : (
                             // Se estiver na fila (mesmo que penalizado), exibe apenas Fila de Espera
