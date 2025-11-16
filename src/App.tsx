@@ -32,7 +32,7 @@ const App = () => (
         <SessionContextProvider>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/publico/inscricao" replace />} /> {/* Rota raiz redireciona para Inscrição */}
+            <Route path="/" element={<Navigate to="/login" replace />} /> {/* Rota raiz redireciona para Login */}
             <Route path="/login" element={<Login />} />
             <Route path="/publico/inscricao" element={<Inscricao />} />
             
