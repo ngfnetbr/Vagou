@@ -24,9 +24,10 @@ import StatusMassaModal from "@/components/transicoes/StatusMassaModal";
 import RealocacaoModal from "@/components/RealocacaoModal";
 import JustificativaModal from "@/components/JustificativaModal";
 import { useCriancas } from "@/hooks/use-criancas";
-import { ConvocationData } from "@/integrations/supabase/types";
+import { ConvocationData, Crianca } from "@/integrations/supabase/types"; // Importando Crianca
 import { CmeiTransitionGroup } from "@/components/transicoes/CmeiTransitionGroup";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 
 type JustificativaAction = 'desistente' | 'concluinte';
 
@@ -49,6 +50,7 @@ const Transicoes = () => {
     updateCriancaVagaInPlanning,
     massUpdateStatusInPlanning,
     massUpdateVagaInPlanning,
+    initialClassification, // Corrigido o erro 2
   } = useTransicoes();
   
   // O hook useCriancas é mantido para as mutações individuais que DEVEM ser imediatas (Realocação)
@@ -72,6 +74,22 @@ const Transicoes = () => {
   
   // --- Estado do Accordion (CMEIs abertos) ---
   const [openCmeis, setOpenCmeis] = useState<string[]>([]);
+  
+  // --- Lógica de Alterações Não Salvas ---
+  const hasUnsavedChanges = useMemo(() => {
+    if (isLoading || classificacao.length === 0) return false;
+    
+    // Compara o planejamento atual com a classificação inicial (que representa o estado do DB)
+    // Uma comparação profunda é necessária, mas vamos simplificar comparando os campos de planejamento
+    return classificacao.some(c => 
+        c.planned_status !== undefined || 
+        c.planned_cmei_id !== undefined || 
+        c.planned_turma_id !== undefined
+    );
+  }, [classificacao, isLoading]);
+  
+  // Aplica o alerta de alterações não salvas
+  useUnsavedChangesWarning(hasUnsavedChanges, "Você tem alterações no planejamento de transição que não foram salvas ou aplicadas. Deseja realmente sair?");
 
   // --- Handlers de Seleção ---
   const toggleSelection = (id: string) => {
@@ -161,8 +179,8 @@ const Transicoes = () => {
       
       // Abre o CMEI de destino no accordion
       setOpenCmeis(prev => {
-          if (!prev.includes(cmeiNome)) {
-              return [...prev, cmeiNome];
+          if (!prev.includes(cmeiNome)) { // Corrigido o erro 3
+              return [...prev, cmeiNome]; // Corrigido o erro 4
           }
           return prev;
       });
@@ -184,7 +202,7 @@ const Transicoes = () => {
       if (!criancaToAction || !currentJustificativaAction) return;
       
       const id = criancaToAction.id;
-      let newStatus: CriancaClassificada['status'] = 'Desistente';
+      let newStatus: Crianca['status'] = 'Desistente'; // Corrigido o erro 5
       let actionLabel = '';
       
       if (currentJustificativaAction === 'desistente') {

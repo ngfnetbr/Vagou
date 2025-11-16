@@ -364,12 +364,13 @@ export function useTransicoes() {
 
     return {
         classificacao: planningData,
-        isLoading: isLoading,
+        isLoading,
         error,
         savePlanning,
         isSaving,
         executeTransition: transitionMutation.mutateAsync,
         isExecuting: transitionMutation.isPending,
+        initialClassification, // Exportado
         
         // Funções de planejamento
         updateCriancaStatusInPlanning,
