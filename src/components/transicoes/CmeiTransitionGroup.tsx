@@ -56,21 +56,6 @@ export const CmeiTransitionGroup = ({
         const allSelected = turmaIds.every(id => selectedIds.includes(id));
         
         if (allSelected) {
-            // Desselecionar todos
-            const newSelectedIds = selectedIds.filter(id => !turmaIds.includes(id));
-            // Usamos setSelectedIds diretamente no componente pai (Transicoes.tsx)
-            // Como não temos acesso direto ao setSelectedIds aqui, precisamos que toggleSelection seja capaz de lidar com múltiplos IDs.
-            // No entanto, o toggleSelection atual só lida com um ID por vez.
-            // Vamos assumir que o componente pai (Transicoes.tsx) precisa de uma nova prop para seleção em massa.
-            // Por enquanto, vamos simular a seleção/desseleção usando a função toggleSelection individualmente, o que é menos eficiente, mas funcional.
-            
-            // Melhoria: Vamos modificar a prop toggleSelection para aceitar um array de IDs e um booleano para forçar a seleção/desseleção.
-            // Como não posso alterar a interface do componente pai sem a permissão do usuário, vou manter a lógica de toggleSelection individual,
-            // mas vou criar uma função auxiliar que itera sobre os IDs.
-            
-            // Para evitar a complexidade de alterar a interface do pai, vamos fazer a iteração aqui, confiando que o `toggleSelection` do pai
-            // é rápido o suficiente.
-            
             // Se todos estão selecionados, desmarca um por um
             turmaIds.forEach(id => {
                 if (selectedIds.includes(id)) {
@@ -108,6 +93,11 @@ export const CmeiTransitionGroup = ({
         if (crianca.planned_status) {
             // Se estiver no grupo de Saídas Planejadas, exibe o status de saída
             if (cmeiName === 'Saídas Planejadas') {
+                // Se for uma realocação de Saída Final, o status planejado é Convocado
+                if (crianca.planned_status === 'Convocado') {
+                    return getStatusBadge('Convocado');
+                }
+                // Caso contrário, exibe o status de saída planejado (Desistente/Recusada)
                 return getStatusBadge(crianca.planned_status);
             }
             
@@ -183,8 +173,11 @@ export const CmeiTransitionGroup = ({
                                     const hasPlannedChange = !!c.planned_status || !!c.planned_cmei_id || !!c.planned_turma_id;
                                     
                                     // Determina se as ações de Realocação e Conclusão devem ser exibidas
-                                    const showRealocacao = cmeiName !== 'Saídas Planejadas' && cmeiName !== 'Fila Geral';
-                                    const showConclusao = cmeiName !== 'Saídas Planejadas';
+                                    // showRealocacao: Permite realocação para Remanejamento Interno E Saídas Planejadas (Desistente/Recusada)
+                                    const showRealocacao = cmeiName !== 'Fila Geral';
+                                    
+                                    // showConclusao: Permite marcar Desistente/Concluinte para Remanejamento Interno
+                                    const showConclusao = cmeiName === 'Remanejamento Interno';
                                     
                                     return (
                                     <TableRow key={c.id} className={cn(hasPlannedChange && "bg-yellow-50/50 hover:bg-yellow-50/70", isSelected && "bg-primary/10 hover:bg-primary/15")}>
