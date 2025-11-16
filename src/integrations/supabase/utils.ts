@@ -6,18 +6,19 @@ import { format, parseISO, differenceInMonths, differenceInYears, isValid, start
 // --- Helper Functions ---
 
 /**
- * Calcula a idade em anos na data de corte (31 de março do ano atual).
+ * Calcula a idade em anos na data de corte (31 de março do ano alvo).
  * @param dobString Data de nascimento no formato YYYY-MM-DD.
+ * @param targetYear Opcional. O ano letivo alvo. Se não fornecido, usa o ano atual.
  * @returns Idade em anos na data de corte.
  */
-export const calculateAgeAtCutoff = (dobString: string): number | null => {
+export const calculateAgeAtCutoff = (dobString: string, targetYear?: number): number | null => {
   try {
     const dob = parseISO(dobString + 'T00:00:00');
     if (!isValid(dob)) return null;
 
-    // Define a data de corte: 31 de março do ano atual
-    const currentYear = new Date().getFullYear();
-    const cutoffDate = startOfDay(new Date(currentYear, 2, 31)); // Mês 2 é Março
+    // Define a data de corte: 31 de março do ano alvo
+    const year = targetYear || new Date().getFullYear();
+    const cutoffDate = startOfDay(new Date(year, 2, 31)); // Mês 2 é Março
 
     // Se a data de nascimento for posterior à data de corte, a idade é 0.
     if (dob.getTime() > cutoffDate.getTime()) {

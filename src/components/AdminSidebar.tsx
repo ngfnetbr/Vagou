@@ -10,7 +10,8 @@ import {
   Layers,
   History,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowRight // Importando ArrowRight
 } from "lucide-react";
 import { useSidebarStore } from "@/hooks/use-sidebar-store";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const menuItems = [
   { icon: School, label: "CMEIs", to: "/admin/cmeis" },
   { icon: Layers, label: "Turmas", to: "/admin/turmas" },
   { icon: FileText, label: "Relatórios", to: "/admin/relatorios" },
+  { icon: ArrowRight, label: "Transição Anual", to: "/admin/transicoes" },
   { icon: Settings, label: "Configurações", to: "/admin/configuracoes" },
   { icon: History, label: "Logs do Sistema", to: "/admin/logs" },
 ];

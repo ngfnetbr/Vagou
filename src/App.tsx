@@ -13,6 +13,7 @@ import Criancas from "./pages/admin/Criancas";
 import Turmas from "./pages/admin/Turmas";
 import Relatorios from "./pages/admin/Relatorios";
 import Configuracoes from "./pages/admin/Configuracoes";
+import Transicoes from "./pages/admin/Transicoes";
 import Logs from "./pages/Logs";
 import NotFound from "./pages/NotFound";
 import DetalhesTurma from "./pages/admin/DetalhesTurma";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="turmas/:id" element={<DetalhesTurma />} />
               <Route path="relatorios" element={<Relatorios />} />
               <Route path="configuracoes" element={<Configuracoes />} />
+              <Route path="transicoes" element={<Transicoes />} />
               <Route path="logs" element={<Logs />} />
             </Route>
             
