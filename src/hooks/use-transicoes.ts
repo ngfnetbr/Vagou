@@ -89,6 +89,7 @@ export function useTransicoes() {
     }, [initialClassification, planningData]);
     
     // Função para atualizar manualmente o status de transição de uma criança
+    // Mantemos a função internamente, mas não a exportamos mais
     const updatePlanning = (criancaId: string, newStatus: StatusTransicao) => {
         setPlanningData(prev => prev.map(c => 
             c.id === criancaId ? { ...c, statusTransicao: newStatus } : c
@@ -147,7 +148,7 @@ export function useTransicoes() {
         classificacao: planningData, // Retorna os dados de planejamento
         isLoading: isLoading,
         error,
-        updatePlanning,
+        // updatePlanning, // Removido do export
         savePlanning,
         isSaving,
         executeTransition: transitionMutation.mutateAsync,

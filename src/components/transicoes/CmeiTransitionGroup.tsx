@@ -1,15 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Eye, RotateCcw, Trash2, ArrowRight } from "lucide-react";
+import { MoreVertical, Eye, RotateCcw, Trash2, ArrowRight, CheckCircle } from "lucide-react";
 import { CriancaClassificada, StatusTransicao } from "@/hooks/use-transicoes";
 import { useNavigate } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 
-type JustificativaAction = 'desistente' | 'transferir';
+type JustificativaAction = 'desistente' | 'concluinte'; // Alterado: 'transferir' removido, 'concluinte' adicionado
 
 interface CmeiTransitionGroupProps {
     cmeiName: string;
@@ -23,17 +22,10 @@ interface CmeiTransitionGroupProps {
     handleStatusIndividualClick: (crianca: CriancaClassificada, action: JustificativaAction) => void;
 }
 
-const statusOptions: { value: StatusTransicao, label: string }[] = [
-    { value: 'Remanejamento Interno', label: 'Remanejamento Interno' },
-    { value: 'Fila Reclassificada', label: 'Fila Reclassificada' },
-    { value: 'Concluinte', label: 'Concluinte (Evasão)' },
-    { value: 'Manter Status', label: 'Manter Status Atual' },
-];
-
 export const CmeiTransitionGroup = ({
     cmeiName,
     criancas,
-    updatePlanning,
+    updatePlanning, // Mantido, mas não usado diretamente na tabela
     isSaving,
     isExecuting,
     selectedIds,
@@ -66,14 +58,13 @@ export const CmeiTransitionGroup = ({
                             <TableHead>Criança</TableHead>
                             <TableHead>Turma Atual</TableHead>
                             <TableHead>Próxima Turma Base</TableHead>
-                            <TableHead className="w-[180px]">Ação Planejada</TableHead>
                             <TableHead className="text-right w-[80px]">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {sortedCriancas.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-16 text-center text-muted-foreground">
+                                <TableCell colSpan={5} className="h-16 text-center text-muted-foreground">
                                     Nenhuma criança neste CMEI para transição.
                                 </TableCell>
                             </TableRow>
@@ -103,24 +94,6 @@ export const CmeiTransitionGroup = ({
                                     <TableCell>
                                         <Badge variant="secondary" className="text-xs">{c.turmaBaseProximoAno}</Badge>
                                     </TableCell>
-                                    <TableCell>
-                                        <Select 
-                                            value={c.statusTransicao} 
-                                            onValueChange={(value: StatusTransicao) => updatePlanning(c.id, value)}
-                                            disabled={isExecuting || isSaving}
-                                        >
-                                            <SelectTrigger className="h-8 text-xs">
-                                                <SelectValue placeholder="Ajustar Ação" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {statusOptions.map(option => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -143,21 +116,22 @@ export const CmeiTransitionGroup = ({
                                                     Realocar Vaga
                                                 </DropdownMenuItem>
                                                 
-                                                {/* Ações de Status (Desistente/Transferir) */}
+                                                {/* Marcar Concluinte (Evasão) */}
+                                                <DropdownMenuItem 
+                                                    onClick={() => handleStatusIndividualClick(c, 'concluinte')}
+                                                    className="text-secondary focus:bg-secondary/10 focus:text-secondary"
+                                                >
+                                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                                    Marcar Concluinte
+                                                </DropdownMenuItem>
+                                                
+                                                {/* Marcar Desistente */}
                                                 <DropdownMenuItem 
                                                     onClick={() => handleStatusIndividualClick(c, 'desistente')}
                                                     className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                                                 >
                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                     Marcar Desistente
-                                                </DropdownMenuItem>
-                                                
-                                                <DropdownMenuItem 
-                                                    onClick={() => handleStatusIndividualClick(c, 'transferir')}
-                                                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                                >
-                                                    <ArrowRight className="mr-2 h-4 w-4" />
-                                                    Transferir (Sair)
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>

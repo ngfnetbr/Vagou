@@ -27,7 +27,7 @@ import { useCriancas } from "@/hooks/use-criancas";
 import { ConvocationData } from "@/integrations/supabase/types";
 import { CmeiTransitionGroup } from "@/components/transicoes/CmeiTransitionGroup";
 
-type JustificativaAction = 'desistente' | 'transferir'; // Ações de status que exigem justificativa
+type JustificativaAction = 'desistente' | 'concluinte'; // Alterado: 'transferir' removido, 'concluinte' adicionado
 
 const Transicoes = () => {
   const currentYear = new Date().getFullYear();
@@ -37,7 +37,7 @@ const Transicoes = () => {
     isLoading, 
     isExecuting, 
     executeTransition, 
-    updatePlanning, 
+    // updatePlanning, // Removido, pois a coluna de edição foi removida
     savePlanning, 
     isSaving 
   } = useTransicoes();
@@ -47,7 +47,7 @@ const Transicoes = () => {
     isRealocating, 
     marcarDesistente, 
     isMarkingDesistente,
-    transferirCrianca,
+    transferirCrianca, // Mantido para a ação 'transferir' no modal de justificativa
     isTransferring,
   } = useCriancas();
 
@@ -87,6 +87,16 @@ const Transicoes = () => {
     }, {} as Record<string, CriancaClassificada[]>);
   }, [classificacao]);
   
+  // 2. Recalculate stats based on the full classification list (Apenas para o resumo)
+  const { totalAtivos, matriculados, fila, concluintes } = useMemo(() => {
+    const totalAtivos = classificacao.length;
+    const matriculados = classificacao.filter(c => c.status === 'Matriculado' || c.status === 'Matriculada' || c.status === 'Remanejamento Solicitado');
+    const fila = classificacao.filter(c => c.status === 'Fila de Espera' || c.status === 'Convocado');
+    const concluintes = classificacao.filter(c => c.statusTransicao === 'Concluinte');
+    
+    return { totalAtivos, matriculados, fila, concluintes };
+  }, [classificacao]);
+  
   // --- Handlers de Ação em Massa ---
   const handleMassAction = (action: 'realocar' | 'status') => {
       if (selectedIds.length === 0) {
@@ -121,7 +131,7 @@ const Transicoes = () => {
       setCriancaToAction(undefined);
   };
   
-  // 2. Mudança de Status (Desistente/Transferir)
+  // 2. Mudança de Status (Desistente/Concluinte)
   const handleStatusIndividualClick = (crianca: CriancaClassificada, action: JustificativaAction) => {
       setCriancaToAction(crianca);
       setCurrentJustificativaAction(action);
@@ -136,8 +146,10 @@ const Transicoes = () => {
       try {
           if (currentJustificativaAction === 'desistente') {
               await marcarDesistente({ id, justificativa });
-          } else if (currentJustificativaAction === 'transferir') {
-              await transferirCrianca({ id, justificativa });
+          } else if (currentJustificativaAction === 'concluinte') {
+              // Para 'Concluinte', usamos a função de Transferir (que marca como Desistente e limpa a vaga)
+              // Em um sistema real, 'Concluinte' teria um status próprio, mas aqui usamos Transferir como proxy para 'saída do sistema'.
+              await transferirCrianca({ id, justificativa: `Concluinte (Evasão). ${justificativa}` });
           }
           
           setIsJustificativaIndividualModalOpen(false);
@@ -160,13 +172,13 @@ const Transicoes = () => {
           isPending: isMarkingDesistente,
           actionVariant: 'destructive' as const,
         };
-      case 'transferir':
+      case 'concluinte':
         return {
-          title: `Transferir ${criancaNome} (Mudança de Cidade)`,
-          description: "Confirme a transferência por mudança de cidade. A matrícula será encerrada e a criança marcada como desistente.",
-          actionLabel: "Confirmar Transferência",
-          isPending: isTransferring,
-          actionVariant: 'destructive' as const,
+          title: `Marcar ${criancaNome} como Concluinte (Evasão)`,
+          description: "Confirme a conclusão do ciclo no CMEI. A matrícula será encerrada e a criança marcada como desistente/transferida.",
+          actionLabel: "Confirmar Conclusão",
+          isPending: isTransferring, // Usamos isTransferring como proxy para a ação de saída
+          actionVariant: 'secondary' as const,
         };
       default:
         return { title: "", description: "", actionLabel: "", isPending: false, actionVariant: 'destructive' as const };
@@ -305,14 +317,13 @@ const Transicoes = () => {
             Revise e ajuste a ação sugerida para cada criança.
         </CardDescription>
 
-        {/* Removendo overflow-x-auto e flex space-x-6 */}
         <div className="space-y-6"> 
             {Object.entries(groupedByCmei).map(([cmeiName, criancasList]) => (
                 <div key={cmeiName} className="w-full">
                     <CmeiTransitionGroup
                         cmeiName={cmeiName}
                         criancas={criancasList}
-                        updatePlanning={updatePlanning}
+                        updatePlanning={() => {}} // Não é mais usado, mas mantemos a prop para evitar erro de tipo
                         isSaving={isSaving}
                         isExecuting={isExecuting}
                         selectedIds={selectedIds}
