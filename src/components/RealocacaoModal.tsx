@@ -29,7 +29,7 @@ interface RealocacaoModalProps {
 }
 
 const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoModalProps) => {
-  // Usamos useAvailableTurmas, mas filtramos apenas o CMEI atual
+  // Busca todas as turmas disponíveis compatíveis com a idade da criança
   const { data: availableTurmas, isLoading: isLoadingTurmas } = useAvailableTurmas(crianca.id);
 
   const form = useForm<VagaFormData>({
@@ -58,30 +58,24 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
     }
   };
   
-  const currentCmeiId = crianca.cmei_atual_id;
-  
-  // Filtra apenas turmas DENTRO do CMEI atual para Realocação
-  const filteredTurmas = useMemo(() => {
-      if (!availableTurmas || !currentCmeiId) return [];
-      
-      // Filtra turmas que pertencem ao CMEI atual da criança
-      return availableTurmas.filter(t => t.cmei_id === currentCmeiId);
-      
-  }, [availableTurmas, currentCmeiId]);
+  // Usamos todas as turmas disponíveis, sem filtrar pelo CMEI atual
+  const turmasParaSelecao = availableTurmas || [];
 
 
   return (
     <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Realocar {crianca.nome}</DialogTitle>
+        <DialogTitle>Movimentar {crianca.nome}</DialogTitle>
         <DialogDescription>
-          Selecione a nova turma dentro do CMEI {crianca.cmeiNome} para realocar a criança.
+          Selecione a nova turma compatível para realocar a criança.
         </DialogDescription>
       </DialogHeader>
       
       <div className="space-y-3 text-sm p-3 bg-muted/50 rounded-lg border border-border">
         <p className="font-semibold">Localização Atual:</p>
-        <p className="text-muted-foreground">{crianca.cmeiNome} ({crianca.turmaNome})</p>
+        <p className="text-muted-foreground">
+            {crianca.cmeiNome ? `${crianca.cmeiNome} (${crianca.turmaNome})` : 'Fila de Espera'}
+        </p>
       </div>
 
       <Form {...form}>
@@ -101,9 +95,9 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
                   <SelectContent>
                     {isLoadingTurmas ? (
                         <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                    ) : filteredTurmas.length > 0 ? (
-                        filteredTurmas.map((turma, index) => {
-                            const label = `${turma.turma} (${turma.vagas} vagas)`;
+                    ) : turmasParaSelecao.length > 0 ? (
+                        turmasParaSelecao.map((turma, index) => {
+                            const label = `${turma.cmei} - ${turma.turma} (${turma.vagas} vagas)`;
                             
                             // O valor deve incluir o CMEI e a Turma ID
                             return (
@@ -116,7 +110,7 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
                             );
                         })
                     ) : (
-                        <SelectItem value="none" disabled>Nenhuma turma compatível encontrada no CMEI atual.</SelectItem>
+                        <SelectItem value="none" disabled>Nenhuma turma compatível encontrada.</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -134,14 +128,14 @@ const RealocacaoModal = ({ crianca, onClose, onConfirm, isPending }: RealocacaoM
             <Button 
                 type="submit" 
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                disabled={isPending || !form.formState.isValid || isLoadingTurmas || filteredTurmas.length === 0}
+                disabled={isPending || !form.formState.isValid || isLoadingTurmas || turmasParaSelecao.length === 0}
             >
                 {isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                     <RotateCcw className="mr-2 h-4 w-4" />
                 )}
-                Confirmar Realocação
+                Confirmar Movimentação
             </Button>
           </DialogFooter>
         </form>
