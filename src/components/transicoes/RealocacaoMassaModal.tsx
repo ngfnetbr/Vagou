@@ -54,7 +54,7 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
     };
 
     return (
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] h-full sm:h-auto overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-2">
                     <RotateCcw className="h-6 w-6 text-secondary" />
@@ -68,7 +68,6 @@ const RealocacaoMassaModal = ({ selectedIds, onClose, onConfirmMassRealocate }: 
             <div className="space-y-4 py-4">
                 <div className="space-y-2">
                     <Label htmlFor="turma-destino">Turma de Destino *</Label>
-                    {/* Usamos o CmeiTurmaSelector, mas precisamos gerenciar o estado 'selectedVaga' manualmente */}
                     <CmeiTurmaSelector
                         value={selectedVaga}
                         onChange={setSelectedVaga}
