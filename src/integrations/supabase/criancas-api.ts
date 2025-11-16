@@ -67,14 +67,14 @@ export const getCriancaById = async (id: string): Promise<Crianca | undefined> =
 };
 
 /**
- * Busca crianças ativas (Matriculado/Convocado) em uma turma específica.
+ * Busca crianças ativas (Matriculado/Convocado/Remanejamento Solicitado) em uma turma específica.
  */
 export const fetchCriancasByTurmaId = async (turmaId: string): Promise<Crianca[]> => {
     const { data, error } = await supabase
         .from('criancas')
         .select(SELECT_FIELDS)
         .eq('turma_atual_id', turmaId)
-        .in('status', ['Matriculado', 'Matriculada', 'Convocado', 'Remanejamento Solicitado'])
+        .in('status', ['Matriculado', 'Matriculada', 'Convocado', 'Remanejamento Solicitado']) // INCLUÍDO AQUI
         .order('nome', { ascending: true });
 
     if (error) {
