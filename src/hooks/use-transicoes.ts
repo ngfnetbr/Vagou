@@ -306,6 +306,17 @@ export function useTransicoes() {
             setIsSaving(false);
         }
     };
+    
+    // NOVO: Função para descartar o planejamento
+    const discardPlanning = () => {
+        localStorage.removeItem(PLANNING_STORAGE_KEY);
+        // Reseta o estado local para a classificação inicial (estado do DB)
+        setPlanningData(initialClassification);
+        setLastSavedPlanning(initialClassification);
+        toast.info("Alterações descartadas.", {
+            description: "O planejamento foi revertido para o estado inicial.",
+        });
+    };
 
     // --- Execução da Transição (Aplica as mudanças planejadas ao DB) ---
     const executeTransition = async () => {
@@ -446,6 +457,7 @@ export function useTransicoes() {
         isLoading,
         error,
         savePlanning,
+        discardPlanning, // Exportando a nova função
         isSaving,
         executeTransition: transitionMutation.mutateAsync,
         isExecuting: transitionMutation.isPending,

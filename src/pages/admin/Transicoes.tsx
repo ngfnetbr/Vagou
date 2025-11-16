@@ -47,6 +47,7 @@ const Transicoes = () => {
     isExecuting, 
     executeTransition, 
     savePlanning, 
+    discardPlanning, // Importando discardPlanning
     isSaving,
     updateCriancaStatusInPlanning,
     updateCriancaVagaInPlanning,
@@ -96,8 +97,9 @@ const Transicoes = () => {
   };
   
   const handleDiscardAndNavigate = (to: string) => {
-      // Limpa o planejamento do localStorage e navega
-      localStorage.removeItem("vagou_transition_planning");
+      // 1. Descarta o planejamento (limpa localStorage e reseta estado local)
+      discardPlanning();
+      // 2. Navega
       navigate(to);
   };
 
