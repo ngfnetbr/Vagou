@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { differenceInSeconds, parseISO, isValid, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, XCircle } from 'lucide-react';
@@ -17,19 +17,11 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ deadline }) => {
     return isValid(date) ? date : null;
   }, [deadline]);
 
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
+  // Calcula segundos restantes uma única vez na renderização
+  const secondsRemaining = useMemo(() => {
     if (!deadlineDate) return -1;
+    // Usamos differenceInSeconds para precisão, mas só exibiremos dias
     return differenceInSeconds(deadlineDate, new Date());
-  });
-
-  useEffect(() => {
-    if (!deadlineDate) return;
-
-    const interval = setInterval(() => {
-      setSecondsRemaining(differenceInSeconds(deadlineDate, new Date()));
-    }, 1000);
-
-    return () => clearInterval(interval);
   }, [deadlineDate]);
 
   const expirationDateFormatted = deadlineDate ? format(deadlineDate, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
@@ -43,17 +35,17 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ deadline }) => {
     );
   }
 
+  // Calcula apenas os dias
   const days = Math.floor(secondsRemaining / (60 * 60 * 24));
-  const hours = Math.floor((secondsRemaining % (60 * 60 * 24)) / (60 * 60));
-  const minutes = Math.floor((secondsRemaining % (60 * 60)) / 60);
-  const seconds = secondsRemaining % 60;
   
-  const timeString = `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+  // Formata a string para mostrar apenas os dias
+  const timeString = `${days} dia${days !== 1 ? 's' : ''} restante${days !== 1 ? 's' : ''}`;
   
-  const isUrgent = days === 0 && hours < 24;
+  // Define urgência se faltar 1 dia ou menos
+  const isUrgent = days <= 1;
   
   const className = isUrgent 
-    ? "bg-destructive/20 text-destructive animate-pulse" 
+    ? "bg-destructive/20 text-destructive" 
     : "bg-accent/20 text-foreground";
 
   return (
