@@ -11,12 +11,8 @@ const getAdminUser = async (): Promise<string> => {
     return user?.email || "Usuário Admin";
 };
 
-// Removendo o alias cmeis_remanejamento temporariamente para resolver o erro de carregamento
-const SELECT_FIELDS = `
-    *,
-    cmeis (nome),
-    turmas (nome)
-`;
+// Simplificando para apenas '*' para isolar o problema de JOINs
+const SELECT_FIELDS = `*`;
 
 // --- Funções de Busca ---
 
