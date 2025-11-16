@@ -7,6 +7,7 @@ import { ConvocationData } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 
 const TRANSICOES_QUERY_KEY = ["transicoes"];
+const PLANNING_STORAGE_KEY = "vagou_transition_planning"; // Chave para localStorage
 
 export type StatusTransicao = 'Remanejamento Interno' | 'Fila Reclassificada' | 'Manter Status' | 'Saída Final';
 
@@ -79,12 +80,37 @@ export function useTransicoes() {
         return classifyCriancasForTransition(criancas);
     }, [criancas]);
     
+    // Efeito para carregar o planejamento do localStorage na montagem
     useEffect(() => {
+        const savedPlanning = localStorage.getItem(PLANNING_STORAGE_KEY);
+        
+        if (savedPlanning) {
+            try {
+                const parsedPlanning = JSON.parse(savedPlanning) as CriancaClassificada[];
+                
+                // Verifica se o planejamento salvo corresponde à lista atual de IDs de crianças
+                const savedIds = new Set(parsedPlanning.map(c => c.id));
+                const currentIds = new Set(initialClassification.map(c => c.id));
+                
+                // Se os IDs forem idênticos, carrega o planejamento salvo
+                if (savedIds.size > 0 && savedIds.size === currentIds.size && [...savedIds].every(id => currentIds.has(id))) {
+                    setPlanningData(parsedPlanning);
+                    toast.info("Planejamento anterior carregado.", { duration: 3000 });
+                    return;
+                }
+            } catch (e) {
+                console.error("Erro ao carregar planejamento do localStorage:", e);
+                localStorage.removeItem(PLANNING_STORAGE_KEY);
+            }
+        }
+        
+        // Se não houver planejamento salvo ou se os dados estiverem desatualizados, usa a classificação inicial
         if (initialClassification.length > 0 && planningData.length === 0) {
             setPlanningData(initialClassification);
         }
-    }, [initialClassification, planningData]);
-    
+        
+    }, [initialClassification]); // Depende apenas da classificação inicial
+
     // --- Funções de Manipulação do Planejamento ---
 
     const updateCriancaInPlanning = (criancaId: string, updates: Partial<CriancaClassificada>) => {
@@ -186,16 +212,19 @@ export function useTransicoes() {
         }));
     };
 
-    // Simulação de salvamento do planejamento (apenas para feedback visual)
+    // Função para salvar o planejamento no localStorage
     const savePlanning = async () => {
         setIsSaving(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(planningData));
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay de salvamento
             toast.success("Planejamento salvo com sucesso!", {
-                description: `Ajustes foram armazenados.`,
+                description: `Ajustes foram armazenados localmente no navegador.`,
             });
         } catch (e) {
-            toast.error("Erro ao salvar planejamento.");
+            toast.error("Erro ao salvar planejamento.", {
+                description: "Não foi possível acessar o armazenamento local.",
+            });
         } finally {
             setIsSaving(false);
         }
@@ -307,6 +336,9 @@ export function useTransicoes() {
         
         // Executa todas as promessas em paralelo
         await Promise.all(promises);
+        
+        // Limpa o planejamento local após a execução bem-sucedida
+        localStorage.removeItem(PLANNING_STORAGE_KEY);
     };
 
     const transitionMutation = useMutation({
