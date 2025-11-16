@@ -11,24 +11,47 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useGroupedAvailableTurmas } from "@/hooks/use-grouped-available-turmas";
-import { AvailableTurma } from "@/hooks/use-all-available-turmas";
+import { AvailableTurma } from "@/hooks/use-all-available-turmas"; // Reutilizando a tipagem
 import { Badge } from "@/components/ui/badge";
 
 interface CmeiTurmaSelectorProps {
   value: string; // cmei_id|turma_id|cmei_nome|turma_nome
   onChange: (value: string) => void;
   disabled: boolean;
+  availableTurmas: AvailableTurma[]; // Nova prop: lista de turmas disponíveis (já filtrada)
+  isLoading: boolean; // Nova prop: estado de carregamento
+}
+
+// Interface para o agrupamento local
+interface GroupedTurmas {
+    [cmeiName: string]: AvailableTurma[];
 }
 
 const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
   value,
   onChange,
   disabled,
+  availableTurmas,
+  isLoading,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [selectedCmeiName, setSelectedCmeiName] = React.useState<string | null>(null);
-  const { groupedTurmas, allAvailableTurmas, isLoading } = useGroupedAvailableTurmas();
+
+  // Agrupa as turmas recebidas por CMEI
+  const { groupedTurmas, allAvailableTurmas } = React.useMemo(() => {
+    const grouped = availableTurmas.reduce((acc, turma) => {
+        if (!acc[turma.cmei]) {
+            acc[turma.cmei] = [];
+        }
+        acc[turma.cmei].push(turma);
+        return acc;
+    }, {} as GroupedTurmas);
+    
+    return {
+        groupedTurmas: grouped,
+        allAvailableTurmas: availableTurmas,
+    };
+  }, [availableTurmas]);
 
   const selectedVaga = React.useMemo(() => {
     if (!value) return null;
@@ -83,8 +106,8 @@ const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        // Usando a variável do Radix para garantir que a largura seja exatamente a do trigger
-        className="w-[var(--radix-popover-trigger-width)] p-0" 
+        // Aumenta a largura máxima para acomodar 3 colunas
+        className="w-[var(--radix-popover-trigger-width)] min-w-[300px] p-0" 
         align="start"
         side="bottom" 
       >
@@ -100,7 +123,7 @@ const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
           <ScrollArea className="h-auto max-h-[50vh]">
             <div className="p-1">
               {selectedCmeiName ? (
-                // --- Etapa 2: Seleção da Turma ---
+                // --- Etapa 2: Seleção da Turma (3 COLUNAS) ---
                 <div className="space-y-2">
                     <div className="flex items-center p-2 border-b border-border sticky top-0 bg-card z-10">
                         <Button variant="ghost" size="icon" onClick={handleBack} className="mr-2">
@@ -109,32 +132,34 @@ const CmeiTurmaSelector: React.FC<CmeiTurmaSelectorProps> = ({
                         <span className="font-semibold text-sm truncate">{selectedCmeiName}</span>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-1 p-1">
+                    {/* GRID DE 3 COLUNAS */}
+                    <div className="grid grid-cols-3 gap-1 p-1"> 
                         {currentTurmas.map((vaga) => {
                             const vagaValue = `${vaga.cmei_id}|${vaga.turma_id}|${vaga.cmei}|${vaga.turma}`;
                             const isSelected = value === vagaValue;
+                            const isLotada = vaga.vagas <= 0;
                             
                             return (
                                 <div
                                     key={vaga.turma_id}
                                     onClick={() => handleSelectTurma(vaga)}
                                     className={cn(
-                                        "flex items-center justify-between p-2 rounded-md text-sm cursor-pointer transition-colors border", // Alterado de p-3 para p-2
+                                        "flex flex-col items-center justify-center p-2 rounded-md text-xs cursor-pointer transition-colors border h-16", // Ajustado para badge
                                         isSelected 
                                             ? "bg-primary text-primary-foreground border-primary shadow-md" 
-                                            : "hover:bg-accent border-transparent bg-background"
+                                            : isLotada
+                                            ? "bg-destructive/10 text-destructive border-destructive/30 cursor-not-allowed"
+                                            : "hover:bg-accent/20 border-transparent bg-background"
                                     )}
+                                    aria-disabled={isLotada}
                                 >
-                                    <div className="flex flex-col items-start">
-                                        <span>{vaga.turma}</span>
-                                        <span className={cn("text-xs", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>Vagas: {vaga.vagas}</span>
-                                    </div>
-                                    <Check
-                                        className={cn(
-                                            "h-4 w-4",
-                                            isSelected ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
+                                    <span className="font-semibold text-center leading-tight">{vaga.turma}</span>
+                                    <Badge 
+                                        variant="secondary" 
+                                        className={cn("mt-1 text-[10px] h-4", isSelected && "bg-primary-foreground text-primary hover:bg-primary-foreground", isLotada && "bg-destructive text-destructive-foreground hover:bg-destructive")}
+                                    >
+                                        {isLotada ? 'LOTADA' : `${vaga.vagas} vagas`}
+                                    </Badge>
                                 </div>
                             );
                         })}

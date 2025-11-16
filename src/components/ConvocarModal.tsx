@@ -9,11 +9,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { format, addDays } from "date-fns";
 import { useConfiguracoes } from "@/hooks/use-configuracoes";
-import { useAllTurmasByCmei } from "@/hooks/use-all-turmas-by-cmei"; // NOVO HOOK
+import { useAllTurmasByCmei } from "@/hooks/use-all-turmas-by-cmei";
+import CmeiTurmaSelector from "./CmeiTurmaSelector"; // Importando o selector customizado
+import { AvailableTurma } from "@/hooks/use-all-available-turmas"; // Importando a tipagem
 
 interface ConvocarModalProps {
     crianca: Crianca;
@@ -35,7 +36,7 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
     
     const isRemanejamento = crianca.status === 'Remanejamento Solicitado';
     
-    // NOVO: Se for remanejamento, buscamos TODAS as turmas do CMEI de destino (sem filtro de idade)
+    // Se for remanejamento, buscamos TODAS as turmas do CMEI de destino
     const { data: allCmeiTurmas, isLoading: isLoadingAllTurmas } = useAllTurmasByCmei(
         isRemanejamento ? crianca.cmei_remanejamento_id : undefined
     );
@@ -43,8 +44,21 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
     // Se NÃO for remanejamento, usamos o hook original que filtra por vagas disponíveis e preferências
     const { data: availableTurmas, isLoading: isLoadingAvailable } = useAvailableTurmas(crianca.id);
 
-    // Define a lista de turmas a ser usada no Select
-    const turmasToDisplay = isRemanejamento ? allCmeiTurmas : availableTurmas;
+    // Define a lista de turmas a ser usada no Selector
+    const turmasToDisplay: AvailableTurma[] = useMemo(() => {
+        if (isRemanejamento) {
+            // Mapeia TurmaDetalhe para AvailableTurma (são quase idênticas)
+            return (allCmeiTurmas || []).map(t => ({
+                cmei: t.cmei,
+                turma: t.turma,
+                vagas: t.vagas,
+                cmei_id: t.cmei_id,
+                turma_id: t.turma_id,
+            }));
+        }
+        return availableTurmas || [];
+    }, [isRemanejamento, allCmeiTurmas, availableTurmas]);
+    
     const isLoadingData = isLoadingConfig || isLoadingAllTurmas || isLoadingAvailable;
 
     const form = useForm<ConvocarFormData>({
@@ -140,56 +154,22 @@ const ConvocarModal = ({ crianca, onClose }: ConvocarModalProps) => {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     
-                    {/* Seleção de Vaga (CMEI + Turma) */}
+                    {/* Seleção de Vaga (CMEI + Turma) - USANDO SELECTOR CUSTOMIZADO */}
                     <FormField
                         control={form.control}
                         name="vagaSelecionada"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Vaga Disponível *</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger disabled={isLoadingData || isConvoking}>
-                                            <SelectValue placeholder={isLoadingData ? "Buscando vagas compatíveis..." : "Selecione a Vaga"} />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent side="bottom" position="popper">
-                                        {isLoadingData ? (
-                                            <SelectItem value="loading" disabled>
-                                                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando...
-                                            </SelectItem>
-                                        ) : turmasToDisplay && turmasToDisplay.length > 0 ? (
-                                            turmasToDisplay.map((vaga, index) => {
-                                                // Se for remanejamento, não precisamos de destaque de preferência
-                                                const isPreferred = !isRemanejamento && (crianca.cmei1_preferencia === vaga.cmei || crianca.cmei2_preferencia === vaga.cmei);
-                                                
-                                                // Formatação do texto de vagas
-                                                const vagasText = `(${vaga.vagas} vagas)`;
-                                                    
-                                                const isLotada = vaga.vagas <= 0;
-                                                
-                                                const label = isRemanejamento 
-                                                    ? `${vaga.turma} ${vagasText}`
-                                                    : `${vaga.cmei} - ${vaga.turma} ${vagasText}`;
-                                                
-                                                // Valor combinado: cmei_id|turma_id|cmei_nome|turma_nome
-                                                const value = `${vaga.cmei_id}|${vaga.turma_id}|${vaga.cmei}|${vaga.turma}`;
-                                                
-                                                return (
-                                                    <SelectItem 
-                                                        key={index} 
-                                                        value={value}
-                                                        className={isPreferred ? 'font-semibold text-primary' : isLotada ? 'text-destructive' : ''}
-                                                    >
-                                                        {label}
-                                                    </SelectItem>
-                                                );
-                                            })
-                                        ) : (
-                                            <SelectItem value="none" disabled>Nenhuma vaga compatível encontrada.</SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                <FormControl>
+                                    <CmeiTurmaSelector
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        disabled={isConvoking}
+                                        availableTurmas={turmasToDisplay}
+                                        isLoading={isLoadingData}
+                                    />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
