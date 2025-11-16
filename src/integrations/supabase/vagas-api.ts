@@ -3,7 +3,7 @@ import { getCriancaById } from "./criancas-api";
 import { calculateAgeAtCutoff, determineTurmaBaseName } from "./utils"; // Importando as novas funções
 
 export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: string, turma: string, vagas: number, cmei_id: string, turma_id: string }[]> => {
-    // 1. Buscar a criança para obter preferências e data de nascimento
+    // 1. Buscar a criança para obter data de nascimento
     const crianca = await getCriancaById(criancaId);
     if (!crianca) return [];
 
@@ -11,8 +11,6 @@ export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: s
     const ageAtCutoff = calculateAgeAtCutoff(crianca.data_nascimento);
     const requiredTurmaBaseName = determineTurmaBaseName(ageAtCutoff);
     
-    // Se a criança for muito nova (menos de 6 meses) ou fora da faixa etária, não há vagas compatíveis.
-    // A lógica de 6 meses é tratada no frontend (CriancaDataForm), mas aqui garantimos que a classificação seja válida.
     if (requiredTurmaBaseName === "Data de Nascimento Inválida" || requiredTurmaBaseName === "Fora da faixa etária") {
         return [];
     }
@@ -51,7 +49,7 @@ export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: s
         return [];
     }
     
-    // 5. Mapear e filtrar por vagas disponíveis e preferências
+    // 5. Mapear e filtrar por vagas disponíveis (REMOVENDO FILTRO DE PREFERÊNCIA)
     let availableTurmas = turmasDb
         .filter(t => t.capacidade > t.ocupacao) // Deve ter vagas
         .map(t => ({
@@ -62,22 +60,17 @@ export const fetchAvailableTurmas = async (criancaId: string): Promise<{ cmei: s
             turma_id: t.id,
         }));
 
+    // Ordenação: Prioriza CMEIs preferidos, mas não exclui os outros.
     const preferredCmeis = [crianca.cmei1_preferencia, crianca.cmei2_preferencia].filter(Boolean);
     
-    if (!crianca.aceita_qualquer_cmei) {
-        // Se não aceita qualquer CMEI, filtra apenas os preferidos
-        availableTurmas = availableTurmas.filter(turma => preferredCmeis.includes(turma.cmei));
-    } else {
-        // Prioriza CMEIs preferidos
-        availableTurmas.sort((a, b) => {
-            const aPreferred = preferredCmeis.includes(a.cmei);
-            const bPreferred = preferredCmeis.includes(b.cmei);
-            
-            if (aPreferred && !bPreferred) return -1;
-            if (!aPreferred && bPreferred) return 1;
-            return 0;
-        });
-    }
+    availableTurmas.sort((a, b) => {
+        const aPreferred = preferredCmeis.includes(a.cmei);
+        const bPreferred = preferredCmeis.includes(b.cmei);
+        
+        if (aPreferred && !bPreferred) return -1;
+        if (!aPreferred && bPreferred) return 1;
+        return 0;
+    });
 
     return availableTurmas;
 };

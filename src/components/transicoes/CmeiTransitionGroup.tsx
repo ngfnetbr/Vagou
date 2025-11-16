@@ -72,7 +72,7 @@ export const CmeiTransitionGroup = ({
                             </TableHeader>
                             <TableBody>
                                 {criancasList.map(c => {
-                                    const isMatriculado = c.status === 'Matriculado' || c.status === 'Matriculada' || c.status === 'Convocado';
+                                    // Não precisamos mais de isMatriculado para desabilitar a realocação
                                     
                                     return (
                                     <TableRow key={c.id}>
@@ -100,10 +100,9 @@ export const CmeiTransitionGroup = ({
                                                         Ver Detalhes
                                                     </DropdownMenuItem>
                                                     
-                                                    {/* Ação de Realocação (Mover para nova turma) */}
+                                                    {/* Ação de Realocação (AGORA DISPONÍVEL PARA TODOS) */}
                                                     <DropdownMenuItem 
                                                         onClick={() => handleRealocacaoIndividualClick(c)}
-                                                        disabled={!isMatriculado} // Só permite realocar se estiver matriculado/convocado
                                                     >
                                                         <RotateCcw className="mr-2 h-4 w-4" />
                                                         Realocar Vaga
