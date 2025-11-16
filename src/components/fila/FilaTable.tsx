@@ -125,12 +125,21 @@ export const FilaTable = ({
                     <TableCell>{item.responsavel_nome}</TableCell>
                     <TableCell>{getInscriptionDate(item)}</TableCell>
                     <TableCell className="text-center">
-                      <Badge 
-                        variant={item.programas_sociais ? "default" : "secondary"}
-                        className="w-fit flex justify-center items-center mx-auto"
-                      >
-                        {getPriorityLabel(item)}
-                      </Badge>
+                      {isRemanejamentoAtivo ? (
+                        <Badge 
+                            variant="default"
+                            className="w-fit flex justify-center items-center mx-auto bg-accent hover:bg-accent/80 text-accent-foreground"
+                        >
+                            REMANEJAMENTO
+                        </Badge>
+                      ) : (
+                        <Badge 
+                            variant={item.programas_sociais ? "default" : "secondary"}
+                            className="w-fit flex justify-center items-center mx-auto"
+                        >
+                            {getPriorityLabel(item)}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                         {isConvocado && item.convocacao_deadline ? (
