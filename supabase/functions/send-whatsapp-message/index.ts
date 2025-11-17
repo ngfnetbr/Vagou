@@ -9,11 +9,14 @@ const corsHeaders = {
 }
 
 // O URL e a chave do Z-API devem ser configurados como segredos no Supabase Console.
-// Exemplo de segredos necessários: ZAPI_URL, ZAPI_TOKEN
+// Exemplo de segredos necessários: ZAPI_URL (agora deve ser o ID da instância), ZAPI_TOKEN
 // @ts-ignore
-const ZAPI_URL = Deno.env.get('ZAPI_URL');
+const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_URL'); // Reutilizando ZAPI_URL para o ID da instância
 // @ts-ignore
 const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
+
+// URL base da API Z-API
+const ZAPI_BASE_URL = 'https://api.z-api.io/instances/';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -64,7 +67,6 @@ serve(async (req) => {
     }
     
     if (!configData.notificacao_whatsapp) {
-        // Se a notificação por WhatsApp estiver desativada, retorna sucesso sem enviar
         return new Response(JSON.stringify({ message: 'WhatsApp notifications are disabled in system configuration.' }), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -72,8 +74,8 @@ serve(async (req) => {
     }
 
     // 4. Validação de Segredos
-    if (!ZAPI_URL || !ZAPI_TOKEN) {
-        console.error(`[ZAPI DEBUG] ZAPI_URL configured: ${!!ZAPI_URL}, ZAPI_TOKEN configured: ${!!ZAPI_TOKEN}`);
+    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+        console.error(`[ZAPI DEBUG] ZAPI_INSTANCE_ID configured: ${!!ZAPI_INSTANCE_ID}, ZAPI_TOKEN configured: ${!!ZAPI_TOKEN}`);
         
         return new Response(JSON.stringify({ error: 'Z-API secrets not configured in environment. Cannot send message.' }), {
             status: 500,
@@ -122,13 +124,15 @@ serve(async (req) => {
         phone: cleanPhone,
         message: message,
     };
+    
+    // CONSTRUÇÃO DO URL FINAL: Base + ID da Instância + Endpoint
+    const finalUrl = `${ZAPI_BASE_URL}${ZAPI_INSTANCE_ID}/send-messages`;
 
     // 9. Enviar requisição para o Z-API, usando o header Client-Token
-    const zapiResponse = await fetch(ZAPI_URL, {
+    const zapiResponse = await fetch(finalUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            // <--- MUDANÇA CRÍTICA AQUI: USANDO CLIENT-TOKEN --->
             'Client-Token': ZAPI_TOKEN, 
         },
         body: JSON.stringify(zapiPayload),
