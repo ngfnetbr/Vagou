@@ -79,12 +79,17 @@ serve(async (req) => {
     // 5. Receber dados da requisição
     const { phone, message } = await req.json();
     
-    // --- DEBUG LOG ---
+    // --- DEBUG LOG (Mantido para logs do servidor) ---
     console.log(`[DEBUG] Received Phone: ${phone}, Message Length: ${message?.length}`);
     // -----------------
 
     if (!phone || !message) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: phone and message' }), {
+      // RETORNA O PAYLOAD RECEBIDO NO ERRO 400 PARA DEBUG NO CLIENTE
+      return new Response(JSON.stringify({ 
+          error: 'Missing required fields: phone and message',
+          debug_phone: phone,
+          debug_message_length: message?.length,
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
