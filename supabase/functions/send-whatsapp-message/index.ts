@@ -1,6 +1,7 @@
-/// <reference lib="deno.ns" />
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+// @ts-ignore
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +10,9 @@ const corsHeaders = {
 
 // O URL e a chave do Z-API devem ser configurados como segredos no Supabase Console.
 // Exemplo de segredos necessários: ZAPI_URL, ZAPI_TOKEN
+// @ts-ignore
 const ZAPI_URL = Deno.env.get('ZAPI_URL');
+// @ts-ignore
 const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
 
 serve(async (req) => {
@@ -20,6 +23,9 @@ serve(async (req) => {
   try {
     // 1. Autenticação Manual (Verifica se o usuário está logado)
     const authHeader = req.headers.get('Authorization')
+    
+    // Usamos o Service Role Key para acessar o DB e verificar a configuração,
+    // mas ainda exigimos o token do usuário para garantir que a chamada venha de um usuário logado.
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { 
         status: 401, 
@@ -27,15 +33,49 @@ serve(async (req) => {
       })
     }
     
-    // 2. Validação de Segredos
+    // 2. Inicializa o Supabase Client com Service Role Key para acesso ao DB
+    // @ts-ignore
+    const supabase = createClient(
+      // @ts-ignore
+      Deno.env.get('SUPABASE_URL') ?? '',
+      // @ts-ignore
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Usando Service Role Key
+      {
+        auth: {
+          persistSession: false,
+        },
+      }
+    );
+
+    // 3. Verifica a configuração de notificação do WhatsApp no DB
+    const { data: configData, error: configError } = await supabase
+        .from('configuracoes_sistema')
+        .select('notificacao_whatsapp')
+        .eq('id', 1)
+        .single();
+        
+    if (configError) {
+        console.error('DB Config Error:', configError);
+        throw new Error('Failed to fetch notification configuration from database.');
+    }
+    
+    if (!configData.notificacao_whatsapp) {
+        // Se a notificação por WhatsApp estiver desativada, retorna sucesso sem enviar
+        return new Response(JSON.stringify({ message: 'WhatsApp notifications are disabled in system configuration.' }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+
+    // 4. Validação de Segredos (só verifica se a notificação está ativa)
     if (!ZAPI_URL || !ZAPI_TOKEN) {
-        return new Response(JSON.stringify({ error: 'Z-API secrets not configured in environment.' }), {
+        return new Response(JSON.stringify({ error: 'Z-API secrets not configured in environment. Cannot send message.' }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
 
-    // 3. Receber dados da requisição
+    // 5. Receber dados da requisição
     const { phone, message } = await req.json();
 
     if (!phone || !message) {
@@ -45,19 +85,16 @@ serve(async (req) => {
       });
     }
     
-    // 4. Formatar o número de telefone (Remover caracteres não numéricos e garantir código do país)
+    // 6. Formatar o número de telefone
     const cleanPhone = phone.replace(/\D/g, '');
-    // Assumindo que o número já inclui o código do país (e.g., 55) e o DDD.
-    // Se o Z-API exigir um formato específico (e.g., 5599999999999), ajuste aqui.
     
-    // 5. Preparar payload para o Z-API
+    // 7. Preparar payload para o Z-API
     const zapiPayload = {
         phone: cleanPhone,
         message: message,
-        // Adicione outros parâmetros específicos do Z-API, se necessário
     };
 
-    // 6. Enviar requisição para o Z-API
+    // 8. Enviar requisição para o Z-API
     const zapiResponse = await fetch(`${ZAPI_URL}/send-message`, {
         method: 'POST',
         headers: {

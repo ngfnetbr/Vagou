@@ -14,6 +14,7 @@ export interface Configuracoes {
   prazo_resposta_dias: number;
   notificacao_email: boolean;
   notificacao_sms: boolean;
+  notificacao_whatsapp: boolean; // NOVO CAMPO
   updated_at: string;
 }
 
@@ -42,6 +43,7 @@ const fetchConfiguracoes = async (): Promise<Configuracoes> => {
     data_fim_inscricao: data.data_fim_inscricao || '',
     email_contato: data.email_contato || '',
     telefone_contato: data.telefone_contato || '',
+    notificacao_whatsapp: data.notificacao_whatsapp ?? false, // Garante valor padrão
   } as Configuracoes;
 };
 

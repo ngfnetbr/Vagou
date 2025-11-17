@@ -5,10 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Save, Settings2, Loader2, Database, Trash2 } from "lucide-react";
+import { Save, Settings2, Loader2, Database, Trash2, Bell } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Importar from "@/pages/parametros/Importar";
 import TurmasBase from "@/pages/parametros/TurmasBase";
+import Notificacoes from "@/pages/parametros/Notificacoes"; // NOVO
 import { useConfiguracoes, ConfiguracoesFormData } from "@/hooks/use-configuracoes";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
-// Esquema de validação para as configurações
+// Esquema de validação para as configurações GERAIS (excluindo notificações)
 const configSchema = z.object({
   nome_municipio: z.string().min(1, "O nome do município é obrigatório."),
   nome_secretaria: z.string().min(1, "O nome da secretaria é obrigatório."),
@@ -41,9 +42,11 @@ const configSchema = z.object({
   data_inicio_inscricao: z.string().optional().or(z.literal('')),
   data_fim_inscricao: z.string().optional().or(z.literal('')),
   prazo_resposta_dias: z.coerce.number().min(1, "O prazo deve ser no mínimo 1 dia."),
-  notificacao_email: z.boolean(),
-  notificacao_sms: z.boolean(),
+  // Campos de notificação removidos daqui, pois serão gerenciados na aba Notificações
 });
+
+// Tipo de dados para o formulário Geral (subconjunto de ConfiguracoesFormData)
+type ConfiguracoesGeraisFormData = z.infer<typeof configSchema>;
 
 const Configuracoes = () => {
   const { config, isLoading, error, updateConfiguracoes, isUpdating } = useConfiguracoes();
@@ -51,7 +54,7 @@ const Configuracoes = () => {
   const [isSeeding, setIsSeeding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
-  const form = useForm<ConfiguracoesFormData>({
+  const form = useForm<ConfiguracoesGeraisFormData>({
     resolver: zodResolver(configSchema),
     values: {
       nome_municipio: config?.nome_municipio || "",
@@ -61,14 +64,27 @@ const Configuracoes = () => {
       data_inicio_inscricao: config?.data_inicio_inscricao || "",
       data_fim_inscricao: config?.data_fim_inscricao || "",
       prazo_resposta_dias: config?.prazo_resposta_dias || 7,
-      notificacao_email: config?.notificacao_email ?? true,
-      notificacao_sms: config?.notificacao_sms ?? false,
     },
     mode: "onChange",
   });
 
-  const onSubmit = async (data: ConfiguracoesFormData) => {
-    await updateConfiguracoes(data);
+  const onSubmit = async (data: ConfiguracoesGeraisFormData) => {
+    if (!config) {
+        toast.error("Erro", { description: "Configurações não carregadas." });
+        return;
+    }
+    
+    // Mescla os dados gerais com os dados de notificação existentes (que não estão no formulário atual)
+    const fullData: ConfiguracoesFormData = {
+        ...config,
+        ...data,
+        // Garante que os campos de notificação não sejam perdidos
+        notificacao_email: config.notificacao_email,
+        notificacao_sms: config.notificacao_sms,
+        notificacao_whatsapp: config.notificacao_whatsapp,
+    };
+    
+    await updateConfiguracoes(fullData);
   };
   
   const handleRunSeed = async () => {
@@ -135,8 +151,9 @@ const Configuracoes = () => {
         </div>
 
         <Tabs defaultValue="geral" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="geral">Geral</TabsTrigger>
+            <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
             <TabsTrigger value="importar">Importar Dados</TabsTrigger>
             <TabsTrigger value="turmas-base">Turmas Base</TabsTrigger>
           </TabsList>
@@ -289,58 +306,6 @@ const Configuracoes = () => {
                     </div>
 
                     <Separator />
-
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Notificações</h3>
-
-                      <FormField
-                        control={form.control}
-                        name="notificacao_email"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <FormLabel htmlFor="notif-email">Notificações por E-mail</FormLabel>
-                              <p className="text-sm text-muted-foreground">
-                                Enviar e-mails automáticos para responsáveis
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch 
-                                id="notif-email" 
-                                checked={field.value} 
-                                onCheckedChange={field.onChange} 
-                                disabled={isUpdating}
-                              />
-                            </FormControl>
-                          </div>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="notificacao_sms"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <FormLabel htmlFor="notif-sms">Notificações por SMS</FormLabel>
-                              <p className="text-sm text-muted-foreground">
-                                Enviar SMS para convocações e alertas
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch 
-                                id="notif-sms" 
-                                checked={field.value} 
-                                onCheckedChange={field.onChange} 
-                                disabled={isUpdating}
-                              />
-                            </FormControl>
-                          </div>
-                        )}
-                      />
-                    </div>
-
-                    <Separator />
                     
                     {/* Botões de Ação do Formulário */}
                     <div className="flex gap-4">
@@ -417,6 +382,10 @@ const Configuracoes = () => {
                 </form>
               </Form>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="notificacoes" className="mt-6">
+            <Notificacoes />
           </TabsContent>
 
           <TabsContent value="importar" className="mt-6">
