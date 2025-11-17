@@ -33,7 +33,6 @@ function formatPhoneForZapi(phone: string): string | null {
     // Esperamos 10 dígitos (DDD + 8 dígitos) ou 11 dígitos (DDD + 9 + 8 dígitos)
     if (cleanPhone.length === 10) { // Ex: 4488887777 (sem o 9)
         // Adiciona o 9 se for um número de celular (assumindo que todos são celulares)
-        // Isso é arriscado, mas necessário se o número foi salvo sem o 9.
         // Vamos manter a lógica mais simples: se tiver 10 ou 11 dígitos, adiciona 55.
         return `55${cleanPhone}`;
     }
@@ -151,8 +150,8 @@ serve(async (req) => {
         message: message,
     };
     
-    // CONSTRUÇÃO DO URL FINAL CORRETO: Base + ID da Instância + /send-text?token=Token
-    const finalUrl = `${ZAPI_BASE_URL}${ZAPI_INSTANCE_ID}/send-text?token=${ZAPI_TOKEN}`;
+    // CONSTRUÇÃO DO URL FINAL: Base + ID da Instância + /token/ + Token + /send-text (Revertido para a estrutura que você me forneceu)
+    const finalUrl = `${ZAPI_BASE_URL}${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
 
     // 8. Enviar requisição para o Z-API
     const zapiResponse = await fetch(finalUrl, {
@@ -165,11 +164,13 @@ serve(async (req) => {
 
     const zapiResult = await zapiResponse.json();
 
+    // 9. VERIFICAÇÃO DE STATUS HTTP (CORREÇÃO CRÍTICA)
     if (!zapiResponse.ok) {
         console.error('Z-API Error:', zapiResult);
         
         let zapiErrorMessage = zapiResult.error || zapiResult.message || JSON.stringify(zapiResult);
         
+        // Se o Z-API retornou um erro (como NOT_FOUND), lançamos um erro 502 para o cliente
         return new Response(JSON.stringify({ 
             error: `Failed to send message via Z-API: ${zapiErrorMessage}`, 
             details: zapiResult,
@@ -180,6 +181,7 @@ serve(async (req) => {
         });
     }
 
+    // Se chegou aqui, o Z-API retornou 200 OK
     return new Response(JSON.stringify({ 
         message: 'WhatsApp message sent successfully', 
         zapiResult 
