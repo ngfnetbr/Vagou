@@ -36,6 +36,37 @@ interface ChildImportRow {
     data_penalidade?: string; // YYYY-MM-DD
 }
 
+// Helper para converter data de DD/MM/YYYY para YYYY-MM-DD
+function convertDateToIso(dateString: string | undefined): string | null {
+    if (!dateString) return null;
+    dateString = dateString.trim();
+
+    // Verifica se já está no formato YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+    }
+
+    // Tenta converter de DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            // Verifica se os componentes são válidos (simples)
+            if (parseInt(day) > 0 && parseInt(month) > 0 && parseInt(year) > 1900) {
+                return `${year}-${month}-${day}`;
+            }
+        }
+    }
+    
+    // Se não for nenhum dos formatos esperados, retorna o original para que o DB lance o erro
+    // Mas, para evitar o erro, vamos lançar um erro mais claro aqui.
+    if (dateString) {
+        throw new Error(`Invalid date format: "${dateString}". Expected YYYY-MM-DD or DD/MM/YYYY.`);
+    }
+
+    return null;
+}
+
 // Helper para buscar IDs de CMEI e Turma
 async function getCmeiTurmaIds(supabase: any, cmeiName: string, turmaName: string): Promise<{ cmei_id: string | null, turma_id: string | null }> {
     if (!cmeiName || !turmaName) {
@@ -114,12 +145,12 @@ serve(async (req) => {
       }
     );
     
-    // Parse CSV content - ADDING DELIMITER OPTION
+    // Parse CSV content
     const records: ChildImportRow[] = parse(csvContent, {
       columns: true, 
       skip_empty_lines: true,
       trim: true,
-      delimiter: ';', // <-- CORREÇÃO APLICADA AQUI
+      delimiter: ';', 
     });
 
     if (records.length === 0) {
@@ -147,20 +178,29 @@ serve(async (req) => {
                  throw new Error("Missing required fields (Nome, Data Nascimento, CPF, Status).");
             }
             
+            // 2. Conversão de Datas
+            const data_nascimento_iso = convertDateToIso(record.data_nascimento);
+            const convocacao_deadline_iso = convertDateToIso(record.convocacao_deadline);
+            const data_penalidade_iso = convertDateToIso(record.data_penalidade);
+            
+            if (!data_nascimento_iso) {
+                throw new Error("Data de Nascimento inválida ou ausente.");
+            }
+            
             let cmei_atual_id = null;
             let turma_atual_id = null;
             
-            // 2. Se houver CMEI/Turma atual, busca os IDs
+            // 3. Se houver CMEI/Turma atual, busca os IDs
             if (record.cmei_atual_nome && record.turma_atual_nome) {
                 const ids = await getCmeiTurmaIds(supabase, record.cmei_atual_nome, record.turma_atual_nome);
                 cmei_atual_id = ids.cmei_id;
                 turma_atual_id = ids.turma_id;
             }
 
-            // 3. Prepara o payload
+            // 4. Prepara o payload
             const childData = {
                 nome: record.nome,
-                data_nascimento: record.data_nascimento,
+                data_nascimento: data_nascimento_iso, // USANDO FORMATO ISO
                 sexo: record.sexo,
                 programas_sociais: record.programas_sociais?.toLowerCase() === 'sim',
                 aceita_qualquer_cmei: record.aceita_qualquer_cmei?.toLowerCase() === 'sim',
@@ -179,11 +219,11 @@ serve(async (req) => {
                 cmei_atual_id: cmei_atual_id,
                 turma_atual_id: turma_atual_id,
                 posicao_fila: record.posicao_fila ? parseInt(record.posicao_fila) : null,
-                convocacao_deadline: record.convocacao_deadline || null,
-                data_penalidade: record.data_penalidade || null,
+                convocacao_deadline: convocacao_deadline_iso, // USANDO FORMATO ISO
+                data_penalidade: data_penalidade_iso, // USANDO FORMATO ISO
             };
 
-            // 4. Insert into criancas table
+            // 5. Insert into criancas table
             const { error: insertError } = await supabase
                 .from('criancas')
                 .insert([childData]);
