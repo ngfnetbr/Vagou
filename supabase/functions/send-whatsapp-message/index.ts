@@ -92,15 +92,18 @@ serve(async (req) => {
         });
     }
     
+    // 6. Limpeza e Validação do Telefone
+    let cleanPhone = phone ? phone.replace(/\D/g, '') : undefined;
+    
     // --- DEBUG LOG (Mantido para logs do servidor) ---
-    console.log(`[DEBUG] Received Phone: ${phone}, Message Length: ${message?.length}`);
+    console.log(`[DEBUG] Original Phone: ${phone}, Cleaned Phone: ${cleanPhone}, Message Length: ${message?.length}`);
     // -----------------
 
-    if (!phone || !message) {
+    if (!cleanPhone || !message) {
       // RETORNA O PAYLOAD RECEBIDO NO ERRO 400 PARA DEBUG NO CLIENTE
       return new Response(JSON.stringify({ 
           error: 'Missing required fields: phone and message',
-          debug_phone: phone,
+          debug_phone: cleanPhone, // Agora retorna o telefone limpo
           debug_message_length: message?.length,
       }), {
         status: 400,
@@ -108,8 +111,7 @@ serve(async (req) => {
       });
     }
     
-    // 6. Formatar o número de telefone (phone já deve ser apenas dígitos)
-    let cleanPhone = phone;
+    // 7. Formatar o número de telefone (cleanPhone já deve ser apenas dígitos)
     
     // Adiciona '55' se o número não começar com ele (formato brasileiro)
     if (!cleanPhone.startsWith('55')) {
@@ -119,13 +121,13 @@ serve(async (req) => {
         }
     }
     
-    // 7. Preparar payload para o Z-API
+    // 8. Preparar payload para o Z-API
     const zapiPayload = {
         phone: cleanPhone,
         message: message,
     };
 
-    // 8. Enviar requisição para o Z-API
+    // 9. Enviar requisição para o Z-API
     // USANDO ZAPI_URL DIRETAMENTE
     const zapiResponse = await fetch(ZAPI_URL, {
         method: 'POST',

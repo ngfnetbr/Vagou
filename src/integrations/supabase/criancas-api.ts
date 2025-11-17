@@ -24,15 +24,16 @@ const SELECT_FIELDS = `
 // --- NOVO: Função para invocar a Edge Function de WhatsApp ---
 const invokeWhatsappFunction = async (phone: string, message: string, action: string) => {
     // 1. Validação no cliente antes de invocar
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (!cleanPhone || !message) {
+    // REMOVENDO LIMPEZA AQUI PARA ENVIAR O VALOR BRUTO DO DB PARA DEBUG NA EDGE FUNCTION
+    if (!phone || !message) {
         console.warn(`[WhatsApp] Skipping invocation for action '${action}': Phone or message is empty.`);
         return false;
     }
     
     try {
+        // Enviamos o phone bruto (mascarado) para a Edge Function
         const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
-            body: { phone: cleanPhone, message }, // Passa o telefone limpo
+            body: { phone: phone, message }, 
         });
 
         if (error) {
@@ -704,6 +705,6 @@ export const apiResendConvocationNotification = async (criancaId: string) => {
     } else {
         // Se invokeWhatsappFunction retornar false, significa que houve um erro na Edge Function
         // O erro detalhado já foi lançado dentro de invokeWhatsappFunction, mas se for um erro genérico, lançamos este:
-        throw new Error("Falha ao reenviar notificação via WhatsApp. Verifique os logs do servidor para detalhes.");
+        throw new Error("Falha ao reenviar notificação via WhatsApp.");
     }
 };
