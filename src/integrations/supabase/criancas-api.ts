@@ -61,14 +61,17 @@ const invokeWhatsappFunction = async (phone: string, message: string, action: st
             if (result && result.error) {
                 errorMessage = result.error;
                 
-                // Se o erro for do Z-API, ele terá 'details'
                 if (result.details) {
-                    // Tentativa de extrair o erro específico do Z-API
                     const zapiError = result.details.error || result.details.message || JSON.stringify(result.details);
-                    errorMessage = `Falha no Z-API: ${zapiError}`;
+                    
+                    // Verifica se o erro é de configuração do token
+                    if (zapiError.includes('client-token is not configured')) {
+                        errorMessage = "Falha no Z-API: Token de acesso (ZAPI_TOKEN) não configurado ou inválido. Verifique os segredos da Edge Function.";
+                    } else {
+                        errorMessage = `Falha no Z-API: ${zapiError}`;
+                    }
                 }
                 
-                // Se for erro 400 de validação da EF, ele terá debug_phone
                 if (result.debug_phone) {
                     errorMessage += ` (Debug: Phone=${result.debug_phone}, MsgLen=${result.debug_message_length})`;
                 }
@@ -78,7 +81,6 @@ const invokeWhatsappFunction = async (phone: string, message: string, action: st
         }
         
         if (result && result.error) {
-            // Este bloco é para erros que a EF retorna com status 200, mas com erro interno (improvável)
             console.error(`Erro do Z-API (${action}):`, result.error);
             throw new Error(`Erro do Z-API: ${result.error.details?.message || result.error}`);
         }
