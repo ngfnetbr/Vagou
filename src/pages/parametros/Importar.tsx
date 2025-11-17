@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, FileText, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Upload, FileText, Loader2, AlertTriangle, CheckCircle, Download } from "lucide-react";
 import { toast } from "sonner";
 import { importChildrenData } from "@/lib/utils/import-data";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,41 @@ interface ImportResult {
     errorCount: number;
     errors: { row: number, error: string }[];
 }
+
+// Define o cabeçalho do CSV modelo
+const CSV_HEADERS = [
+    "nome",
+    "data_nascimento",
+    "sexo",
+    "programas_sociais",
+    "aceita_qualquer_cmei",
+    "cmei1_preferencia",
+    "cmei2_preferencia",
+    "responsavel_nome",
+    "responsavel_cpf",
+    "responsavel_telefone",
+    "responsavel_email",
+    "endereco",
+    "bairro",
+    "observacoes"
+];
+
+const CSV_EXAMPLE_ROW = [
+    "João da Silva",
+    "2023-08-15",
+    "M",
+    "Não",
+    "Sim",
+    "CMEI Centro",
+    "",
+    "Maria da Silva",
+    "123.456.789-00",
+    "(99) 9 1234-5678",
+    "maria@email.com",
+    "Rua Exemplo, 100",
+    "Bairro Novo",
+    "Alergia a amendoim"
+];
 
 const Importar = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -87,6 +122,26 @@ const Importar = () => {
 
         reader.readAsText(file);
     };
+    
+    const handleDownloadTemplate = () => {
+        const headerRow = CSV_HEADERS.join(';') + '\n';
+        const exampleRow = CSV_EXAMPLE_ROW.join(';') + '\n';
+        const csvContent = headerRow + exampleRow;
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'modelo_importacao_criancas.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.info("Download iniciado.", {
+            description: "O arquivo modelo foi baixado.",
+        });
+    };
 
     const renderResults = () => {
         if (!importResults) return null;
@@ -148,6 +203,15 @@ const Importar = () => {
                     <p className="text-xs text-red-500">
                         Atenção: A importação insere novos registros. Não use para atualização de dados existentes.
                     </p>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleDownloadTemplate}
+                        className="mt-2 text-primary border-primary hover:bg-primary/10"
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Baixar Modelo CSV
+                    </Button>
                 </div>
 
                 <Separator />
