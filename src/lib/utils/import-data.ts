@@ -18,17 +18,18 @@ const EDGE_FUNCTION_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/
  * @returns A promise resolving to the import results summary.
  */
 export async function importChildrenData(csvContent: string): Promise<ImportResult> {
-    const { data: { session } } = await supabase.auth.getSession();
+    // Usamos getAccessToken() para garantir que o token mais recente seja obtido
+    const { data: { access_token }, error: tokenError } = await supabase.auth.getAccessToken();
 
-    if (!session) {
-        throw new Error("User is not authenticated.");
+    if (tokenError || !access_token) {
+        throw new Error("User is not authenticated or token is missing.");
     }
 
     const response = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${access_token}`,
         },
         body: JSON.stringify({ csvContent }),
     });
@@ -36,6 +37,10 @@ export async function importChildrenData(csvContent: string): Promise<ImportResu
     const result = await response.json();
 
     if (!response.ok) {
+        // Se o erro for 401, o backend retornou 'Unauthorized'
+        if (response.status === 401) {
+            throw new Error("Unauthorized: Acesso negado. Verifique se você está logado.");
+        }
         throw new Error(result.error || "Failed to import data via Edge Function.");
     }
 
