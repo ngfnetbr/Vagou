@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useAccessibilityStore } from '@/hooks/use-accessibility-store';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Eye, Text } from 'lucide-react';
+import { Eye, Text, Accessibility } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const AccessibilityPanel = () => {
@@ -26,7 +26,7 @@ const AccessibilityPanel = () => {
         <SheetContent side="right" className="w-full sm:max-w-md">
             <SheetHeader>
                 <div className="flex items-center gap-3 text-primary">
-                    <Eye className="h-6 w-6" />
+                    <Accessibility className="h-6 w-6" />
                     <SheetTitle>Configurações de Acessibilidade</SheetTitle>
                 </div>
                 <SheetDescription>
