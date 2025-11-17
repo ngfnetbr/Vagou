@@ -21,7 +21,11 @@ const SELECT_FIELDS = `
     cmei_remanejamento:cmeis!criancas_cmei_remanejamento_id_fkey(nome)
 `;
 
-// --- NOVO: Função para invocar a Edge Function de WhatsApp ---
+// Supabase Project ID (Hardcoded, as per instructions)
+const SUPABASE_PROJECT_ID = "bibsduqgpmeuwbsgdoih"; 
+const EDGE_FUNCTION_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/send-whatsapp-message`;
+
+// --- NOVO: Função para invocar a Edge Function de WhatsApp (usando fetch) ---
 const invokeWhatsappFunction = async (phone: string, message: string, action: string) => {
     // 1. Validação no cliente antes de invocar
     if (!phone || !message) {
@@ -40,7 +44,7 @@ const invokeWhatsappFunction = async (phone: string, message: string, action: st
             throw new Error("Sessão de usuário não encontrada para invocar a função.");
         }
         
-        const response = await fetch(`https://bibsduqgpmeuwbsgdoih.supabase.co/functions/v1/send-whatsapp-message`, {
+        const response = await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -56,6 +60,15 @@ const invokeWhatsappFunction = async (phone: string, message: string, action: st
             
             if (result && result.error) {
                 errorMessage = result.error;
+                
+                // Se o erro for do Z-API, ele terá 'details'
+                if (result.details) {
+                    // Tentativa de extrair o erro específico do Z-API
+                    const zapiError = result.details.error || result.details.message || JSON.stringify(result.details);
+                    errorMessage = `Falha no Z-API: ${zapiError}`;
+                }
+                
+                // Se for erro 400 de validação da EF, ele terá debug_phone
                 if (result.debug_phone) {
                     errorMessage += ` (Debug: Phone=${result.debug_phone}, MsgLen=${result.debug_message_length})`;
                 }
@@ -65,6 +78,7 @@ const invokeWhatsappFunction = async (phone: string, message: string, action: st
         }
         
         if (result && result.error) {
+            // Este bloco é para erros que a EF retorna com status 200, mas com erro interno (improvável)
             console.error(`Erro do Z-API (${action}):`, result.error);
             throw new Error(`Erro do Z-API: ${result.error.details?.message || result.error}`);
         }
@@ -78,7 +92,6 @@ const invokeWhatsappFunction = async (phone: string, message: string, action: st
         if (e instanceof Error) {
             throw e;
         }
-        // Se for um erro de Edge Function que conseguimos detalhar, ele já foi lançado acima.
         return false;
     }
 };

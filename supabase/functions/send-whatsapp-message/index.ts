@@ -57,7 +57,7 @@ serve(async (req) => {
         
     if (configError) {
         console.error('DB Config Error:', configError);
-        throw new Response(JSON.stringify({ error: 'Failed to fetch notification configuration from database.' }), {
+        return new Response(JSON.stringify({ error: 'Failed to fetch notification configuration from database.' }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -93,7 +93,6 @@ serve(async (req) => {
     }
     
     // 6. Limpeza e Validação do Telefone
-    // Limpeza robusta: remove todos os caracteres não-dígitos
     let cleanPhone = phone ? phone.replace(/\D/g, '') : undefined;
     
     // --- DEBUG LOG (Mantido para logs do servidor) ---
@@ -129,7 +128,6 @@ serve(async (req) => {
     };
 
     // 9. Enviar requisição para o Z-API
-    // USANDO ZAPI_URL DIRETAMENTE
     const zapiResponse = await fetch(ZAPI_URL, {
         method: 'POST',
         headers: {
@@ -143,12 +141,14 @@ serve(async (req) => {
 
     if (!zapiResponse.ok) {
         console.error('Z-API Error:', zapiResult);
-        // Se o Z-API falhar, retornamos o erro detalhado do Z-API
+        
+        // Retorna 502 Bad Gateway para indicar erro de serviço externo
         return new Response(JSON.stringify({ 
             error: 'Failed to send message via Z-API', 
-            details: zapiResult 
+            details: zapiResult,
+            zapi_status: zapiResponse.status,
         }), {
-            status: zapiResponse.status,
+            status: 502, // Retorna 502 para indicar erro de gateway
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
