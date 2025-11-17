@@ -23,9 +23,16 @@ const SELECT_FIELDS = `
 
 // --- NOVO: Função para invocar a Edge Function de WhatsApp ---
 const invokeWhatsappFunction = async (phone: string, message: string, action: string) => {
+    // 1. Validação no cliente antes de invocar
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone || !message) {
+        console.warn(`[WhatsApp] Skipping invocation for action '${action}': Phone or message is empty.`);
+        return false;
+    }
+    
     try {
         const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
-            body: { phone, message },
+            body: { phone: cleanPhone, message }, // Passa o telefone limpo
         });
 
         if (error) {
