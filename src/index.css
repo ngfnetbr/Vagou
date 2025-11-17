@@ -59,6 +59,58 @@ All colors MUST be HSL.
     --govbr-gray-2: 0 0% 98%;
     --govbr-gray-10: 210 20% 96%;
     --govbr-gray-20: 214 20% 88%;
+    
+    /* Accessibility Variables */
+    --font-scale: 1; /* Default scale */
+    font-size: calc(16px * var(--font-scale)); /* Apply scale to base font size */
+  }
+
+  .high-contrast {
+    /* High Contrast Mode (Example: Black/White) */
+    --background: 0 0% 100%; /* White */
+    --foreground: 0 0% 0%; /* Black */
+    
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    
+    --primary: 240 100% 50%; /* Bright Blue */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 120 100% 25%; /* Dark Green */
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: 60 100% 50%; /* Bright Yellow */
+    --accent-foreground: 0 0% 0%;
+    
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 20%;
+    
+    --destructive: 0 100% 50%; /* Bright Red */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 0%;
+    --input: 0 0% 100%;
+    --ring: 240 100% 50%;
+    
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 240 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 240 100% 50%;
+    
+    /* Govbr overrides for high contrast */
+    --govbr-blue-warm-vivid-70: 240 100% 50%;
+    --govbr-green: 120 100% 25%;
+    --govbr-yellow: 60 100% 50%;
+    --govbr-gray-2: 0 0% 100%;
+    --govbr-gray-10: 0 0% 90%;
+    --govbr-gray-20: 0 0% 80%;
   }
 
   .dark {
@@ -98,6 +150,16 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 217 40% 24%;
     --sidebar-ring: 217 71% 58%;
+    
+    --font-scale: 1;
+  }
+  
+  /* Font size scaling classes */
+  .font-scale-medium {
+    --font-scale: 1.15;
+  }
+  .font-scale-large {
+    --font-scale: 1.3;
   }
 }
 

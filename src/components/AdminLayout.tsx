@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { AdminSidebar } from "./AdminSidebar";
-import { Building2, LogOut, User, Menu } from "lucide-react";
+import { Building2, LogOut, User, Menu, Accessibility } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSession } from "./SessionContextProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 import { Dialog } from "@/components/ui/dialog";
-import UnsavedChangesModal from "./UnsavedChangesModal"; // Importando o novo modal
+import UnsavedChangesModal from "./UnsavedChangesModal";
+import { Sheet, SheetTrigger } from "@/components/ui/sheet";
+import AccessibilityPanel from "./AccessibilityPanel";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -36,6 +38,9 @@ export const AdminLayout = ({
   // Estado para o modal de navegação bloqueada
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [targetPath, setTargetPath] = useState<string | null>(null);
+  
+  // Estado para o painel de acessibilidade
+  const [isAccessibilityPanelOpen, setIsAccessibilityPanelOpen] = useState(false);
   
   // Usa o hook de alerta de navegação
   const blockNavigation = useUnsavedChangesWarning(shouldBlockNavigation);
@@ -127,6 +132,21 @@ export const AdminLayout = ({
               </div>
             </div>
             <div className="flex items-center gap-4">
+                {/* Botão de Acessibilidade */}
+                <Sheet open={isAccessibilityPanelOpen} onOpenChange={setIsAccessibilityPanelOpen}>
+                    <SheetTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            aria-label="Configurações de Acessibilidade"
+                            className="text-muted-foreground hover:text-primary"
+                        >
+                            <Accessibility className="h-5 w-5" />
+                        </Button>
+                    </SheetTrigger>
+                    <AccessibilityPanel />
+                </Sheet>
+                
                 <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
                     <User className="h-4 w-4" />
                     <span>{userName}</span>
