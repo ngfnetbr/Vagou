@@ -93,6 +93,7 @@ serve(async (req) => {
     }
     
     // 6. Limpeza e Validação do Telefone
+    // Limpeza robusta: remove todos os caracteres não-dígitos
     let cleanPhone = phone ? phone.replace(/\D/g, '') : undefined;
     
     // --- DEBUG LOG (Mantido para logs do servidor) ---
@@ -103,7 +104,7 @@ serve(async (req) => {
       // RETORNA O PAYLOAD RECEBIDO NO ERRO 400 PARA DEBUG NO CLIENTE
       return new Response(JSON.stringify({ 
           error: 'Missing required fields: phone and message',
-          debug_phone: cleanPhone, // Agora retorna o telefone limpo
+          debug_phone: phone, // Retorna o valor BRUTO recebido
           debug_message_length: message?.length,
       }), {
         status: 400,
@@ -142,6 +143,7 @@ serve(async (req) => {
 
     if (!zapiResponse.ok) {
         console.error('Z-API Error:', zapiResult);
+        // Se o Z-API falhar, retornamos o erro detalhado do Z-API
         return new Response(JSON.stringify({ 
             error: 'Failed to send message via Z-API', 
             details: zapiResult 
