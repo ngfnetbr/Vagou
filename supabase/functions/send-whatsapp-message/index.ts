@@ -54,10 +54,7 @@ serve(async (req) => {
         
     if (configError) {
         console.error('DB Config Error:', configError);
-        throw new Response(JSON.stringify({ error: 'Failed to fetch notification configuration from database.' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        throw new Error('Failed to fetch notification configuration from database.');
     }
     
     if (!configData.notificacao_whatsapp) {
@@ -112,7 +109,8 @@ serve(async (req) => {
     };
 
     // 8. Enviar requisição para o Z-API
-    const zapiResponse = await fetch(`${ZAPI_URL}/send-message`, {
+    // USANDO ZAPI_URL DIRETAMENTE
+    const zapiResponse = await fetch(ZAPI_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
