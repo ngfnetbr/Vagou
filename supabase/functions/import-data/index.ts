@@ -81,6 +81,7 @@ serve(async (req) => {
   try {
     // Manual authentication handling (since verify_jwt is false)
     const authHeader = req.headers.get('Authorization')
+    
     if (!authHeader) {
       return new Response('Unauthorized', { 
         status: 401, 
@@ -113,11 +114,12 @@ serve(async (req) => {
       }
     );
     
-    // Parse CSV content
+    // Parse CSV content - ADDING DELIMITER OPTION
     const records: ChildImportRow[] = parse(csvContent, {
       columns: true, 
       skip_empty_lines: true,
       trim: true,
+      delimiter: ';', // <-- CORREÇÃO APLICADA AQUI
     });
 
     if (records.length === 0) {
@@ -184,9 +186,6 @@ serve(async (req) => {
             // 4. Insert into criancas table
             const { error: insertError } = await supabase
                 .from('criancas')
-                // Desabilitamos o RLS para esta inserção de migração, usando o service_role_key
-                // NOTA: Como estamos usando o token do usuário logado, o RLS deve estar configurado para permitir a inserção.
-                // Assumindo que o RLS permite a inserção por usuários autenticados.
                 .insert([childData]);
 
             if (insertError) {
