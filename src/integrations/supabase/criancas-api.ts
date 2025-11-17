@@ -37,8 +37,24 @@ const invokeWhatsappFunction = async (phone: string, message: string, action: st
 
         if (error) {
             console.error(`Erro ao enviar WhatsApp (${action}):`, error);
-            // Lançamos um erro, mas o chamador pode decidir se deve ser fatal
-            throw new Error(`Falha no envio de notificação WhatsApp: ${error.message}`);
+            
+            // Tenta extrair a mensagem de erro detalhada do corpo da resposta 400/500
+            let errorMessage = error.message;
+            if (error.context?.body) {
+                try {
+                    const errorBody = JSON.parse(error.context.body);
+                    if (errorBody.error) {
+                        errorMessage = errorBody.error;
+                        if (errorBody.debug_phone) {
+                            errorMessage += ` (Debug: Phone=${errorBody.debug_phone}, MsgLen=${errorBody.debug_message_length})`;
+                        }
+                    }
+                } catch (e) {
+                    // Ignora se o corpo não for JSON
+                }
+            }
+            
+            throw new Error(`Falha no envio de notificação WhatsApp: ${errorMessage}`);
         }
         
         if (data && data.error) {
